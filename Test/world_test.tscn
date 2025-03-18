@@ -1,46 +1,18 @@
-[gd_scene load_steps=5 format=3 uid="uid://b16odll4w6fmg"]
+[gd_scene load_steps=3 format=3 uid="uid://b16odll4w6fmg"]
 
 [ext_resource type="PackedScene" uid="uid://bcavxefldragy" path="res://Test/archer_test.tscn" id="1_ffwo5"]
 [ext_resource type="PackedScene" uid="uid://dr52dwcmya0ut" path="res://Test/enemy_test.tscn" id="2_uahnj"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_ya207"]
-radius = 21.0
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_jhrkv"]
-size = Vector2(58, 20)
-
 [node name="WorldTest" type="Node2D"]
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
-position = Vector2(1061, 375)
+position = Vector2(594, 543)
 
 [node name="Enemy" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(889, 358)
+position = Vector2(455, 527)
 
-[node name="Area2D" type="StaticBody2D" parent="." groups=["obstacles"]]
-light_mask = 3
-visibility_layer = 3
+[node name="Enemy2" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(452, 468)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" groups=["obstacles"]]
-light_mask = 3
-visibility_layer = 3
-position = Vector2(330, 234)
-shape = SubResource("CircleShape2D_ya207")
-
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="Area2D" groups=["obstacles"]]
-light_mask = 3
-visibility_layer = 3
-position = Vector2(383, 177)
-shape = SubResource("CircleShape2D_ya207")
-
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="Area2D" groups=["obstacles"]]
-light_mask = 3
-visibility_layer = 3
-position = Vector2(387, 254)
-shape = SubResource("CircleShape2D_ya207")
-
-[node name="CollisionShape2D4" type="CollisionShape2D" parent="Area2D" groups=["obstacles"]]
-light_mask = 3
-visibility_layer = 3
-position = Vector2(450, 222)
-shape = SubResource("RectangleShape2D_jhrkv")
+[node name="Enemy3" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(452, 405)

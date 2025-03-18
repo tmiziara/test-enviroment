@@ -56,6 +56,17 @@ func _ready():
 func get_main_stat() -> int:
 	return main_stat
 
+func reset_attack_cooldown() -> void:
+	# Verifica se existe um cooldown original armazenado
+	if has_meta("original_cooldown"):
+		var original_cooldown = get_meta("original_cooldown")
+		attack_cooldown = original_cooldown
+		remove_meta("original_cooldown")
+		
+		# Atualiza o timer e a animação
+		attack_timer.wait_time = attack_cooldown
+		update_animation_speed()
+
 func get_weapon_damage() -> int:
 	# Verifica se tem arma equipada
 	if "Weapons" in equipment_slots and equipment_slots["Weapons"] != null:
@@ -65,6 +76,9 @@ func get_weapon_damage() -> int:
 func reset_attack():
 	is_attacking = false
 	animation_tree.set("parameters/TimeScale/scale", 1)
+	
+	# Após finalizar uma sequência de ataque, restaura o cooldown original
+	reset_attack_cooldown()  # Chama o método que adicionamos ao Soldier_Base
 
 func _physics_process(delta):
 	if is_idle:
@@ -227,3 +241,8 @@ func apply_item_modifiers(item: Resource, apply: bool):
 	for stat in item.stat_modifiers.keys():
 		if stat in self:
 			self[stat] += item.stat_modifiers[stat] * modifier
+			
+func get_current_target() -> Node2D:
+	if current_target and is_instance_valid(current_target):
+		return current_target
+	return null
