@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="DmgIncreaseStrategy" load_steps=2 format=3 uid="uid://b0lv17rsf8s2r"]
+
+[ext_resource type="Script" path="res://Test/Strategys/DmgIncreaseStrategy.gd" id="1_fad0k"]
+
+[resource]
+script = ExtResource("1_fad0k")
+dmg_bonus = 10

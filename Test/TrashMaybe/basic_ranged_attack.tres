@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RangedAttack" load_steps=2 format=3 uid="uid://dtfaa5oyrs6gh"]
+
+[ext_resource type="Script" path="res://Test/TrashMaybe/ranged_attack.gd" id="1_bfeir"]
+
+[resource]
+script = ExtResource("1_bfeir")
+name = "Ataque Básico"
+damage = 10
+speed = 400.0
+cooldown = 1.0
+tags = Array[String](["physical", "projectile"])
+piercing = false
+ricochet = false
+explosion_radius = 0.0
+slow_effect = 0.0
+projectile_count = 1
+spread_angle = 0.0
