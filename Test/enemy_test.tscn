@@ -152,6 +152,7 @@ grow_horizontal = 2
 position = Vector2(-1, -12)
 
 [node name="HealthComponent" parent="." instance=ExtResource("5_5luq3")]
+max_health = 1000
 crit_multiplier = 2.0
 
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]

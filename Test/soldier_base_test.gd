@@ -5,6 +5,8 @@ extends CharacterBody2D
 @export var icon_texture: Texture2D
 @export var attack_range: float = 300.0
 @export var sp: float = 0.0
+@export var main_stat: int = 10  # Atributo principal (DEX para arqueiros, STR para guerreiros, INT para magos)
+@export var main_stat_type: String = "dexterity"  # "dexterity", "strength" ou "intelligence"
 @export var meele: float = 0.0
 @export var magic: float = 0.0
 @export var type: String = ""
@@ -50,6 +52,15 @@ func _ready():
 	
 	animation_tree.active = true
 
+# Método para obter o atributo principal
+func get_main_stat() -> int:
+	return main_stat
+
+func get_weapon_damage() -> int:
+	# Verifica se tem arma equipada
+	if "Weapons" in equipment_slots and equipment_slots["Weapons"] != null:
+		return equipment_slots["Weapons"].damage
+	return 1  # Dano padrão se não tiver arma
 
 func reset_attack():
 	is_attacking = false

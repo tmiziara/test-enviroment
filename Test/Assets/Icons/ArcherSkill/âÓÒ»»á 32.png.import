@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ccvdoif876s61"
-path="res://.godot/imported/âÓÒ»»á 32.png-2cc86218940643309c6e892fd8c8a37e.ctex"
+path="res://.godot/imported/âÓÒ»»á 32.png-2593b0b6558823eba116413d605f7ea7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://test-enviroment/backup/Test/Assets/Icons/ArcherSkill/âÓÒ»»á 32.png"
-dest_files=["res://.godot/imported/âÓÒ»»á 32.png-2cc86218940643309c6e892fd8c8a37e.ctex"]
+source_file="res://Test/Assets/Icons/ArcherSkill/âÓÒ»»á 32.png"
+dest_files=["res://.godot/imported/âÓÒ»»á 32.png-2593b0b6558823eba116413d605f7ea7.ctex"]
 
 [params]
 

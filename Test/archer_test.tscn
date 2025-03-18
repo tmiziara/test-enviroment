@@ -1,11 +1,13 @@
-[gd_scene load_steps=58 format=3 uid="uid://bcavxefldragy"]
+[gd_scene load_steps=60 format=3 uid="uid://bcavxefldragy"]
 
 [ext_resource type="Script" path="res://Test/archer_base_test.gd" id="1_7fdqo"]
 [ext_resource type="Texture2D" uid="uid://7mrtyfyknm00" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_6tla_bo01_v01.png" id="2_oeqfw"]
 [ext_resource type="Script" path="res://Test/Projectiles/baseProjectileStrategy.gd" id="2_wr8a1"]
 [ext_resource type="Resource" uid="uid://b0lv17rsf8s2r" path="res://Test/Strategys/DmgIncreaseStrategy.tres" id="3_i0k0v"]
 [ext_resource type="Texture2D" uid="uid://dju5j3m7em5i7" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_0bas_humn_v00.png" id="3_pcsk4"]
+[ext_resource type="Resource" uid="uid://dx3njsxeieso8" path="res://Test/Strategys/FireArrowStrategy.tres" id="4_02gph"]
 [ext_resource type="Texture2D" uid="uid://cdqqao7ig4gf" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_1out_boxr_v01.png" id="4_bf8xg"]
+[ext_resource type="Resource" uid="uid://bm72odcu57eb" path="res://Test/Strategys/FireDamageBoostStrategy.tres" id="5_it31y"]
 [ext_resource type="Texture2D" uid="uid://5a5lss411kud" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_7tlb_qv01_v01.png" id="5_k2kna"]
 [ext_resource type="Texture2D" uid="uid://dgneq3bfin281" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_6tla_bo01_v01.png" id="6_p7nmc"]
 [ext_resource type="Texture2D" uid="uid://dc77ixsj23hih" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_0bas_humn_v00.png" id="7_2opj6"]
@@ -3290,8 +3292,9 @@ position = Vector2(400, 183)
 collision_mask = 3
 script = ExtResource("1_7fdqo")
 cost_food = 50
-attack_upgrades = Array[ExtResource("2_wr8a1")]([ExtResource("3_i0k0v")])
+attack_upgrades = Array[ExtResource("2_wr8a1")]([ExtResource("3_i0k0v"), ExtResource("4_02gph"), ExtResource("5_it31y")])
 icon_texture = SubResource("Resource_1dqe7")
+main_stat = 0
 type = "soldier"
 classType = "archer"
 attack_cooldown = 0.5
@@ -3305,7 +3308,7 @@ visible = false
 texture = ExtResource("2_oeqfw")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="QuiverBehind" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("5_k2kna")
@@ -3317,14 +3320,14 @@ z_index = 1
 texture = ExtResource("3_pcsk4")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="Pants" type="Sprite2D" parent="SpriteLayer"]
 z_index = 2
 texture = ExtResource("4_bf8xg")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="BowFront" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("2_oeqfw")
@@ -3336,7 +3339,7 @@ visible = false
 texture = ExtResource("5_k2kna")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {

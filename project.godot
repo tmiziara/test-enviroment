@@ -18,7 +18,6 @@ config/icon="res://icon.svg"
 [autoload]
 
 DamageNumbers="*res://Test/Singletons/damageNumbers.gd"
-DamageVisuals="*res://Test/Singletons/DamageTypeVisualManager.gd"
 
 [display]
 

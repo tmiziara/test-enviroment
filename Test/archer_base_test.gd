@@ -55,18 +55,27 @@ func spawn_arrow():
 		return  
 	var arrow_scene = preload("res://Test/Projectiles/Archer/Arrow.tscn")  
 	var arrow = arrow_scene.instantiate() as ProjectileBase  
+	
+	# Configurações da flecha
 	arrow.global_position = arrow_spawn.global_position  
 	arrow.direction = (current_target.global_position - arrow_spawn.global_position).normalized()
 	arrow.rotation = arrow.direction.angle()
-	# Verifica o crit_chance ANTES de aplicar os upgrades
-	print("Antes do upgrade - crit_chance da flecha:", arrow.crit_chance)
-	# Aplica todas as estratégias armazenadas no arqueiro
+	
+	# IMPORTANTE: Defina o atirador ANTES de adicionar a flecha à árvore
+	arrow.shooter = self
+	print("Archer: Definindo shooter da flecha. Main stat:", main_stat)
+	
+	# Aplicar os upgrades
 	for upgrade in attack_upgrades:
 		print("Aplicando upgrade:", upgrade)
 		upgrade.apply_upgrade(arrow)
-	# Verifica o crit_chance DEPOIS de aplicar os upgrades
-	print("Depois do upgrade - crit_chance da flecha:", arrow.crit_chance)
-	get_parent().add_child(arrow)  
+	
+	# IMPORTANTE: Force a inicialização do calculador de dano antes de adicionar à árvore
+	if arrow.dmg_calculator:
+		arrow.dmg_calculator.initialize_from_shooter(self)
+	
+	# Adiciona a flecha à cena
+	get_parent().add_child(arrow)
 
 # Método para adicionar upgrades ao ataque do arqueiro
 func add_attack_upgrade(upgrade: BaseProjectileStrategy):

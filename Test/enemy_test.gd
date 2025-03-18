@@ -100,10 +100,14 @@ func _on_health_component_died() -> void:
 #		# Desenha a velocidade
 #		draw_line(Vector2.ZERO, velocity.normalized() * 50.0, Color(1, 1, 0), 2.0)
 
-func _on_health_component_health_changed(new_health: Variant, amount: int, is_crit: bool) -> void:
-	if not is_inside_tree():  # Evita erros se o nó já foi removido
+func _on_health_component_health_changed(new_health: Variant, amount: int, is_crit: bool, damage_type: String = "") -> void:
+	if not is_instance_valid(self) or not is_inside_tree():
 		return
-	if healthbar:
+		
+	if is_instance_valid(healthbar) and healthbar:
 		healthbar._set_health(new_health)
-	if new_health > 0:  # Só exibe dano se o inimigo ainda estiver vivo
-		DamageNumbers.display_number(amount, damage_number_origin.global_position, is_crit)
+	else:
+		print("AVISO: Healthbar não válida ou não encontrada")
+		
+	if new_health > 0 and is_instance_valid(damage_number_origin):
+		DamageNumbers.display_number(amount, damage_number_origin.global_position, is_crit, damage_type)
