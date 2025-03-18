@@ -1,17 +1,16 @@
-[gd_scene load_steps=59 format=3 uid="uid://bcavxefldragy"]
+[gd_scene load_steps=58 format=3 uid="uid://bcavxefldragy"]
 
 [ext_resource type="Script" path="res://Test/archer_base_test.gd" id="1_7fdqo"]
 [ext_resource type="Texture2D" uid="uid://7mrtyfyknm00" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_6tla_bo01_v01.png" id="2_oeqfw"]
 [ext_resource type="Script" path="res://Test/Projectiles/baseProjectileStrategy.gd" id="2_wr8a1"]
+[ext_resource type="Resource" uid="uid://b0lv17rsf8s2r" path="res://Test/Strategys/DmgIncreaseStrategy.tres" id="3_i0k0v"]
 [ext_resource type="Texture2D" uid="uid://dju5j3m7em5i7" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_0bas_humn_v00.png" id="3_pcsk4"]
-[ext_resource type="Resource" uid="uid://bysqxs8y7ooal" path="res://Test/Strategys/FireArrowStrategy.tres" id="3_xwbo0"]
 [ext_resource type="Texture2D" uid="uid://cdqqao7ig4gf" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_1out_boxr_v01.png" id="4_bf8xg"]
 [ext_resource type="Texture2D" uid="uid://5a5lss411kud" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_7tlb_qv01_v01.png" id="5_k2kna"]
 [ext_resource type="Texture2D" uid="uid://dgneq3bfin281" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_6tla_bo01_v01.png" id="6_p7nmc"]
 [ext_resource type="Texture2D" uid="uid://dc77ixsj23hih" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_0bas_humn_v00.png" id="7_2opj6"]
 [ext_resource type="Texture2D" uid="uid://bhoajenuietjd" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_1out_boxr_v01.png" id="8_uqrf1"]
 [ext_resource type="Texture2D" uid="uid://fapklicwnmhf" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_7tlb_qv01_v01.png" id="9_vneyq"]
-[ext_resource type="PackedScene" uid="uid://cxq4afkfo8nwf" path="res://Test/Components/DamageDealerComponent.tscn" id="12_ueout"]
 
 [sub_resource type="Resource" id="Resource_1dqe7"]
 metadata/__load_path__ = "res://assets/Bows/Bows000.png"
@@ -3291,7 +3290,7 @@ position = Vector2(400, 183)
 collision_mask = 3
 script = ExtResource("1_7fdqo")
 cost_food = 50
-attack_upgrades = Array[ExtResource("2_wr8a1")]([ExtResource("3_xwbo0")])
+attack_upgrades = Array[ExtResource("2_wr8a1")]([ExtResource("3_i0k0v")])
 icon_texture = SubResource("Resource_1dqe7")
 type = "soldier"
 classType = "archer"
@@ -3306,7 +3305,7 @@ visible = false
 texture = ExtResource("2_oeqfw")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="QuiverBehind" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("5_k2kna")
@@ -3318,14 +3317,14 @@ z_index = 1
 texture = ExtResource("3_pcsk4")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="Pants" type="Sprite2D" parent="SpriteLayer"]
 z_index = 2
 texture = ExtResource("4_bf8xg")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="BowFront" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("2_oeqfw")
@@ -3337,7 +3336,7 @@ visible = false
 texture = ExtResource("5_k2kna")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -3371,8 +3370,6 @@ shape = SubResource("CircleShape2D_uilrr")
 [node name="Aim" type="Marker2D" parent="." groups=["player"]]
 
 [node name="AttackTimer" type="Timer" parent="."]
-
-[node name="DamageDealerComponent" parent="." instance=ExtResource("12_ueout")]
 
 [connection signal="body_entered" from="AreaDetection" to="." method="_on_body_entered"]
 [connection signal="body_exited" from="AreaDetection" to="." method="_on_body_exited"]

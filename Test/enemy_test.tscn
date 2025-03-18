@@ -1,12 +1,10 @@
-[gd_scene load_steps=23 format=3 uid="uid://dr52dwcmya0ut"]
+[gd_scene load_steps=21 format=3 uid="uid://dr52dwcmya0ut"]
 
 [ext_resource type="Script" path="res://Test/enemy_test.gd" id="1_d25wl"]
 [ext_resource type="Texture2D" uid="uid://d1grx4h6lygtt" path="res://Test/Assets/enemys/slime/D_Death2.png" id="2_aqd0t"]
 [ext_resource type="Texture2D" uid="uid://jfmyy54uivrr" path="res://Test/Assets/enemys/slime/D_Walk2.png" id="3_xvbhr"]
 [ext_resource type="PackedScene" uid="uid://cvhrkbsgs68ee" path="res://Test/Components/healthbar.tscn" id="4_1ckdd"]
 [ext_resource type="PackedScene" uid="uid://c676llufstx63" path="res://Test/Components/health_component.tscn" id="5_5luq3"]
-[ext_resource type="PackedScene" uid="uid://dh4t82vpejvno" path="res://Test/Components/DamageReceiverComponent.tscn" id="6_komdp"]
-[ext_resource type="PackedScene" uid="uid://cfg3c80qkhf14" path="res://Test/Components/StatusEffectComponent.tscn" id="7_b1r03"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_fypkk"]
 
@@ -155,10 +153,6 @@ position = Vector2(-1, -12)
 
 [node name="HealthComponent" parent="." instance=ExtResource("5_5luq3")]
 crit_multiplier = 2.0
-
-[node name="DamageReceiverComponent" parent="." instance=ExtResource("6_komdp")]
-
-[node name="StatusEffectComponent" parent="." instance=ExtResource("7_b1r03")]
 
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
 [connection signal="health_changed" from="HealthComponent" to="." method="_on_health_component_health_changed"]

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dju5j3m7em5i7"
-path="res://.godot/imported/char_a_pBOW2_0bas_humn_v00.png-d00c9631f123be78bdd1e9c5ef1b6916.ctex"
+path="res://.godot/imported/char_a_pBOW2_0bas_humn_v00.png-bdee2dbc5a363614192b6312e7d6fd80.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_0bas_humn_v00.png"
-dest_files=["res://.godot/imported/char_a_pBOW2_0bas_humn_v00.png-d00c9631f123be78bdd1e9c5ef1b6916.ctex"]
+source_file="res://test-enviroment/backup/Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_0bas_humn_v00.png"
+dest_files=["res://.godot/imported/char_a_pBOW2_0bas_humn_v00.png-bdee2dbc5a363614192b6312e7d6fd80.ctex"]
 
 [params]
 
