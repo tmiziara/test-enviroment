@@ -1,16 +1,30 @@
 extends Node
 
 func display_number(value: int, position: Vector2, is_critical: bool = false, damage_type: String = ""):
+	# Não exibe números para dano zero
+	if value <= 0:
+		return
+		
 	var number = Label.new()
 	
 	# Adiciona uma variação aleatória à posição para evitar sobreposição
 	var random_offset = Vector2(
-		randf_range(-15, 15),  # Variação horizontal aleatória de -15 a 15 pixels
-		randf_range(-10, 5)    # Variação vertical aleatória de -10 a 5 pixels
+		randf_range(-15, 15),  # Variação horizontal aleatória
+		randf_range(-10, 5)    # Variação vertical aleatória
 	)
 	
 	number.global_position = position + random_offset
-	number.text = str(value)
+	
+	# Adiciona símbolos baseados no tipo de dano
+	var prefix = ""
+	if damage_type == "fire":
+		prefix = "🔥 "  # Emoji de fogo
+	elif damage_type == "ice":
+		prefix = "❄️ "  # Emoji de gelo
+	elif damage_type == "poison":
+		prefix = "☠️ "  # Emoji de veneno
+	
+	number.text = prefix + str(value)
 	number.z_index = 5
 	number.label_settings = LabelSettings.new()
 	
@@ -28,8 +42,6 @@ func display_number(value: int, position: Vector2, is_critical: bool = false, da
 	# Depois considera se é crítico - crítico tem prioridade
 	if is_critical:
 		color = "#F22"  # Vermelho para crítico
-	elif value == 0:
-		color = "#FFF8"  # Branco transparente para dano zero
 	
 	number.label_settings.font_color = color
 	number.label_settings.font_size = 18

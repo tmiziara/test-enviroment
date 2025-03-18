@@ -29,7 +29,6 @@ func _ready():
 	context_map.danger_threshold = 0.8  # Reduzido de 0.8 para 0.6
 
 func _physics_process(delta):
-	
 	if target:
 		target_position = target.global_position
 	else:
@@ -91,23 +90,12 @@ func _on_health_component_died() -> void:
 	await $AnimatedSprite2D.animation_finished
 	queue_free()  # Remove o inimigo da cena após a animação
 
-# Desenha as visualizações de debug
-#func _draw():
-#	if debug_draw and context_map:
-		# Desenha o mapa de contexto
-#		context_map.debug_draw(self, Vector2.ZERO, 50.0)
-#		
-#		# Desenha a velocidade
-#		draw_line(Vector2.ZERO, velocity.normalized() * 50.0, Color(1, 1, 0), 2.0)
-
 func _on_health_component_health_changed(new_health: Variant, amount: int, is_crit: bool, damage_type: String = "") -> void:
 	if not is_instance_valid(self) or not is_inside_tree():
 		return
 		
-	if is_instance_valid(healthbar) and healthbar:
-		healthbar._set_health(new_health)
-	else:
-		print("AVISO: Healthbar não válida ou não encontrada")
-		
+	# Não atualiza mais a health bar aqui, isso é feito diretamente no HealthComponent
+	
+	# Apenas mostra os números de dano
 	if new_health > 0 and is_instance_valid(damage_number_origin):
 		DamageNumbers.display_number(amount, damage_number_origin.global_position, is_crit, damage_type)

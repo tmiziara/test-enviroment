@@ -61,16 +61,9 @@ func initialize_from_shooter(shooter):
 		print("DmgCalculator: Atirador não tem método get_weapon_damage")
 
 # Adiciona modificadores de dano (usado pelas estratégias)
+# No DmgCalculatorComponent, método add_damage_modifier
 func add_damage_modifier(modifier_type: String, value):
 	match modifier_type:
-		"base_damage_add":
-			base_damage += value
-			print("DmgCalculator: Adicionado", value, "ao dano base, total:", base_damage)
-		"damage_multiplier":
-			damage_multiplier += value
-			print("DmgCalculator: Adicionado", value, "ao multiplicador, total:", damage_multiplier)
-		"armor_penetration":
-			armor_penetration += value
 		"elemental_damage":
 			# value deve ser um dicionário {tipo: valor}
 			for element in value:
@@ -78,8 +71,8 @@ func add_damage_modifier(modifier_type: String, value):
 					elemental_damage[element] += value[element]
 				else:
 					elemental_damage[element] = value[element]
-		"effect":
-			additional_effects.append(value)
+				print("Dano elemental adicionado:", element, "=", elemental_damage[element])
+				
 # Método para adicionar um efeito DoT
 func add_dot_effect(damage: int, duration: float, interval: float, element_type: String = "generic"):
 	dot_effects.append({
