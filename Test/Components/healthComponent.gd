@@ -17,7 +17,6 @@ func _ready():
 
 # Função básica que aplica dano direto à vida
 func take_damage(amount: int, is_crit: bool = false, damage_type: String = ""):
-	print("HealthComponent: Recebendo dano de", amount, ", Crítico:", is_crit, ", Tipo:", damage_type)
 	
 	# Aplica dano à vida do personagem
 	current_health -= int(amount)
@@ -40,7 +39,6 @@ func update_health_bar():
 	if parent and parent.has_node("Healthbar"):
 		var healthbar = parent.get_node("Healthbar")
 		if healthbar.has_method("_set_health"):
-			print("Atualizando barra de vida diretamente para:", current_health)
 			healthbar._set_health(current_health)
 		else:
 			print("ERRO: Healthbar não tem método _set_health")
@@ -107,23 +105,21 @@ func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
 
 # Versão melhorada do método apply_dot
 func apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic"):
-	print("Aplicando DoT de tipo ", dot_type, " com dano ", damage, "/", interval, "s por ", duration, "s")
 	
 	# Verifica se já existe um DoT desse tipo
 	if dot_type in active_dots:
-		print("DoT de ", dot_type, " já existe, renovando duração")
 		
 		# Atualiza o dano se o novo for maior
 		if damage > active_dots[dot_type].damage:
 			active_dots[dot_type].damage = damage
-			print("Atualizando dano para", damage)
+
 		
 		# Renova o timer de duração
 		if active_dots[dot_type].duration_timer and is_instance_valid(active_dots[dot_type].duration_timer):
 			active_dots[dot_type].duration_timer.stop()
 			active_dots[dot_type].duration_timer.wait_time = duration
 			active_dots[dot_type].duration_timer.start()
-			print("Duração renovada para", duration, "segundos")
+
 		
 		# Não cria um novo DoT, apenas retorna
 		return
@@ -156,7 +152,7 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 		take_damage(damage, false, dot_type)
 		if dot_type == "fire":
 			# Aqui você poderia adicionar efeitos visuais específicos para fogo
-			print("Dano de fogo aplicado: ", damage)
+			pass
 	)
 	
 	duration_timer.timeout.connect(func():
@@ -165,7 +161,6 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 		dot_timer.queue_free()
 		duration_timer.queue_free()
 		active_dots.erase(dot_type)
-		print("DoT de ", dot_type, " terminou")
 	)
 	
 	# Inicia os timers

@@ -1,9 +1,9 @@
 [gd_scene load_steps=3 format=3 uid="uid://bdkviwqe7miyl"]
 
-[ext_resource type="Texture2D" uid="uid://bxxs4mqwkah6m" path="res://icon.svg" id="1_ysegc"]
+[ext_resource type="Texture2D" uid="uid://csr88qge038y4" path="res://icon.svg" id="1_ysegc"]
 [ext_resource type="Script" path="res://Test/skill_button_test.gd" id="2_5edff"]
 
-[node name="skillButton" type="TextureButton"]
+[node name="skillButton" type="TextureButton" groups=["skill_buttons"]]
 offset_right = 40.0
 offset_bottom = 40.0
 toggle_mode = true
@@ -30,11 +30,5 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 5
 text = "0/1"
 horizontal_alignment = 2
-
-[node name="Line2D" type="Line2D" parent="."]
-top_level = true
-z_index = -1
-width = 3.0
-default_color = Color(0.255659, 0.255659, 0.255659, 1)
 
 [connection signal="pressed" from="." to="." method="_on_pressed"]

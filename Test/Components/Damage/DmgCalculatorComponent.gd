@@ -46,17 +46,14 @@ func calculate_damage() -> Dictionary:
 
 # Define os atributos base do projétil baseado no atirador
 func initialize_from_shooter(shooter):
-	print("DmgCalculator: Inicializando com atirador:", shooter)
 	
 	if shooter.has_method("get_main_stat"):
 		main_stat = shooter.get_main_stat()
-		print("DmgCalculator: Main Stat obtido:", main_stat)
 	else:
 		print("DmgCalculator: Atirador não tem método get_main_stat")
 	
 	if shooter.has_method("get_weapon_damage"):
 		weapon_damage = shooter.get_weapon_damage()
-		print("DmgCalculator: Dano da arma:", weapon_damage)
 	else:
 		print("DmgCalculator: Atirador não tem método get_weapon_damage")
 
@@ -71,7 +68,6 @@ func add_damage_modifier(modifier_type: String, value):
 					elemental_damage[element] += value[element]
 				else:
 					elemental_damage[element] = value[element]
-				print("Dano elemental adicionado:", element, "=", elemental_damage[element])
 				
 # Método para adicionar um efeito DoT
 func add_dot_effect(damage: int, duration: float, interval: float, element_type: String = "generic"):

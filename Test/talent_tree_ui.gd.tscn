@@ -1,10 +1,38 @@
-[gd_scene load_steps=6 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=34 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
-[ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="1_jly1d"]
-[ext_resource type="Texture2D" uid="uid://leh8xkgwyu5u" path="res://Test/Assets/Icons/ArcherSkill/âÓÒ»»á 1.png" id="3_k61eb"]
-[ext_resource type="Texture2D" uid="uid://ccvdoif876s61" path="res://Test/Assets/Icons/ArcherSkill/âÓÒ»»á 32.png" id="4_laf5g"]
-[ext_resource type="Texture2D" uid="uid://c87xnymfgya76" path="res://Test/Assets/Icons/ArcherSkill/âÓÒ»»á 19.png" id="4_rngao"]
+[ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
+[ext_resource type="Texture2D" uid="uid://leh8xkgwyu5u" path="res://Test/Assets/Icons/ArcherSkill/0.png" id="3_l53o2"]
+[ext_resource type="Texture2D" uid="uid://c87xnymfgya76" path="res://Test/Assets/Icons/ArcherSkill/1.png" id="4_d2vu7"]
+[ext_resource type="Texture2D" uid="uid://ccvdoif876s61" path="res://Test/Assets/Icons/ArcherSkill/2.png" id="5_tu26t"]
+[ext_resource type="Texture2D" uid="uid://5yjeuctmq6kv" path="res://Test/Assets/Icons/ArcherSkill/3.png" id="6_yqxhp"]
+[ext_resource type="Texture2D" uid="uid://bvw6divckq3ux" path="res://Test/Assets/Icons/ArcherSkill/4.png" id="7_nwq3q"]
+[ext_resource type="Texture2D" uid="uid://dcx01i7uqiu26" path="res://Test/Assets/Icons/ArcherSkill/5.png" id="8_abbjq"]
+[ext_resource type="Texture2D" uid="uid://cl68l7fo1rryx" path="res://Test/Assets/Icons/ArcherSkill/6.png" id="9_tboi8"]
+[ext_resource type="Texture2D" uid="uid://0vyvluc35uaq" path="res://Test/Assets/Icons/ArcherSkill/7.png" id="10_mjvwq"]
+[ext_resource type="Texture2D" uid="uid://csl3ecp4iwsrx" path="res://Test/Assets/Icons/ArcherSkill/8.png" id="11_l23rc"]
+[ext_resource type="Texture2D" uid="uid://kwckvf4ycsvf" path="res://Test/Assets/Icons/ArcherSkill/9.png" id="12_4k41y"]
+[ext_resource type="Texture2D" uid="uid://dyocwwuyu3e1l" path="res://Test/Assets/Icons/ArcherSkill/10.png" id="13_1fpha"]
+[ext_resource type="Texture2D" uid="uid://bqo7gccxxrnb4" path="res://Test/Assets/Icons/ArcherSkill/11.png" id="14_xa5yu"]
+[ext_resource type="Texture2D" uid="uid://bkfg2c8ybthks" path="res://Test/Assets/Icons/ArcherSkill/12.png" id="15_evbns"]
+[ext_resource type="Texture2D" uid="uid://bfgb6661urlnl" path="res://Test/Assets/Icons/ArcherSkill/13.png" id="16_kwscv"]
+[ext_resource type="Texture2D" uid="uid://co2bpj3f5p3pp" path="res://Test/Assets/Icons/ArcherSkill/14.png" id="17_5f38h"]
+[ext_resource type="Texture2D" uid="uid://c8r30foegmkmk" path="res://Test/Assets/Icons/ArcherSkill/15.png" id="18_voe78"]
+[ext_resource type="Texture2D" uid="uid://drcbxap10cxgg" path="res://Test/Assets/Icons/ArcherSkill/16.png" id="19_rfep8"]
+[ext_resource type="Texture2D" uid="uid://cm5rdp0n4jxtn" path="res://Test/Assets/Icons/ArcherSkill/17.png" id="20_108br"]
+[ext_resource type="Texture2D" uid="uid://e8jfiwnfeyaq" path="res://Test/Assets/Icons/ArcherSkill/18.png" id="21_5sr80"]
+[ext_resource type="Texture2D" uid="uid://byn2hpoaxrk42" path="res://Test/Assets/Icons/ArcherSkill/19.png" id="22_tdwa2"]
+[ext_resource type="Texture2D" uid="uid://ipfta00gpbny" path="res://Test/Assets/Icons/ArcherSkill/20.png" id="23_yhr6m"]
+[ext_resource type="Texture2D" uid="uid://bmjtvqeqwvrfl" path="res://Test/Assets/Icons/ArcherSkill/21.png" id="24_1phgv"]
+[ext_resource type="Texture2D" uid="uid://bnib1jybhvxqk" path="res://Test/Assets/Icons/ArcherSkill/22.png" id="25_ir8vh"]
+[ext_resource type="Texture2D" uid="uid://c3pr33xwd55qn" path="res://Test/Assets/Icons/ArcherSkill/23.png" id="26_gfuel"]
+[ext_resource type="Texture2D" uid="uid://biwe3pu3h3nir" path="res://Test/Assets/Icons/ArcherSkill/24.png" id="27_rogyu"]
+[ext_resource type="Texture2D" uid="uid://dt1y46ac3bjvj" path="res://Test/Assets/Icons/ArcherSkill/25.png" id="28_gc4n2"]
+[ext_resource type="Texture2D" uid="uid://b578fuywitovb" path="res://Test/Assets/Icons/ArcherSkill/26.png" id="29_curf5"]
+[ext_resource type="Texture2D" uid="uid://b7th7fmko5gt8" path="res://Test/Assets/Icons/ArcherSkill/27.png" id="30_j2ums"]
+[ext_resource type="Texture2D" uid="uid://bbegfny4yir4x" path="res://Test/Assets/Icons/ArcherSkill/28.png" id="31_vfsdg"]
+[ext_resource type="Texture2D" uid="uid://wyfj6bkmhhv8" path="res://Test/Assets/Icons/ArcherSkill/29.png" id="32_essnb"]
+[ext_resource type="Texture2D" uid="uid://dn26dle6ue1sw" path="res://Test/Assets/Icons/ArcherSkill/30.png" id="33_6s1uf"]
 
 [node name="TalentTreeUi" type="Control" groups=["skill_tree"]]
 layout_mode = 3
@@ -15,7 +43,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_0tkk1")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="BackgroundPanel" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,93 +51,391 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer"]
+[node name="MainLayout" type="HBoxContainer" parent="BackgroundPanel"]
 layout_mode = 2
 
-[node name="PanelContainer2" type="PanelContainer" parent="PanelContainer/HBoxContainer"]
-custom_minimum_size = Vector2(848, 648)
+[node name="SkillTreeArea" type="PanelContainer" parent="BackgroundPanel/MainLayout"]
+custom_minimum_size = Vector2(900, 648)
 layout_mode = 2
 
-[node name="SkillTree" type="ScrollContainer" parent="PanelContainer/HBoxContainer/PanelContainer2"]
+[node name="ScrollContSkillTreeScroll ainer" type="ScrollContainer" parent="BackgroundPanel/MainLayout/SkillTreeArea"]
 layout_mode = 2
-vertical_scroll_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 0
 
-[node name="SkillsContainer" type="Control" parent="PanelContainer/HBoxContainer/PanelContainer2/SkillTree"]
-custom_minimum_size = Vector2(848, 2000)
+[node name="SkillsContainer" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer"]
 layout_mode = 2
-size_flags_vertical = 3
 
-[node name="skillButton" parent="PanelContainer/HBoxContainer/PanelContainer2/SkillTree/SkillsContainer" groups=["skill_buttons"] instance=ExtResource("1_jly1d")]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-offset_left = 408.0
-offset_top = 171.0
-offset_right = 448.0
-offset_bottom = 211.0
-texture_normal = ExtResource("3_k61eb")
-stretch_mode = 4
-icon = ExtResource("3_k61eb")
-is_starter = true
+[node name="ConnectionsLayer" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
+anchors_preset = 0
 
-[node name="skillButton" parent="PanelContainer/HBoxContainer/PanelContainer2/SkillTree/SkillsContainer/skillButton" groups=["skill_buttons"] instance=ExtResource("1_jly1d")]
-custom_minimum_size = Vector2(40, 40)
+[node name="BasicPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_0" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 69.0
-offset_top = -25.0
-offset_right = 109.0
-offset_bottom = 15.0
-disabled = true
-texture_normal = ExtResource("4_rngao")
-icon = ExtResource("4_rngao")
+offset_left = 430.0
+offset_top = 304.0
+offset_right = 470.0
+offset_bottom = 344.0
+texture_normal = ExtResource("3_l53o2")
+skill_name = "Basic Attack"
+icon = ExtResource("3_l53o2")
 
-[node name="skillButton2" parent="PanelContainer/HBoxContainer/PanelContainer2/SkillTree/SkillsContainer/skillButton" groups=["skill_buttons"] instance=ExtResource("1_jly1d")]
-custom_minimum_size = Vector2(40, 40)
+[node name="talent_1" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = -82.0
-offset_top = 44.0
-offset_right = -42.0
-offset_bottom = 84.0
-disabled = true
+offset_left = 350.0
+offset_top = 304.0
+offset_right = 390.0
+offset_bottom = 344.0
+texture_normal = ExtResource("4_d2vu7")
+skill_name = "Precise Aim"
+icon = ExtResource("4_d2vu7")
 
-[node name="skillButton3" parent="PanelContainer/HBoxContainer/PanelContainer2/SkillTree/SkillsContainer/skillButton" groups=["skill_buttons"] instance=ExtResource("1_jly1d")]
-custom_minimum_size = Vector2(40, 40)
+[node name="talent_2" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 11.0
-offset_top = 80.0
-offset_right = 51.0
-offset_bottom = 120.0
-disabled = true
+offset_left = 270.0
+offset_top = 304.0
+offset_right = 310.0
+offset_bottom = 344.0
+texture_normal = ExtResource("5_tu26t")
+skill_name = "Enhanced Range"
+icon = ExtResource("5_tu26t")
 
-[node name="skillButton4" parent="PanelContainer/HBoxContainer/PanelContainer2/SkillTree/SkillsContainer/skillButton/skillButton3" groups=["skill_buttons"] instance=ExtResource("1_jly1d")]
-custom_minimum_size = Vector2(40, 40)
+[node name="talent_3" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 81.0
-offset_top = -5.0
-offset_right = 121.0
-offset_bottom = 35.0
-disabled = true
-texture_normal = ExtResource("4_laf5g")
+offset_left = 190.0
+offset_top = 304.0
+offset_right = 230.0
+offset_bottom = 344.0
+texture_normal = ExtResource("6_yqxhp")
+skill_name = "Sharp Arrows"
+icon = ExtResource("6_yqxhp")
 
-[node name="PanelContainer" type="PanelContainer" parent="PanelContainer/HBoxContainer"]
-custom_minimum_size = Vector2(300, 0)
+[node name="talent_4" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 304.0
+offset_right = 150.0
+offset_bottom = 344.0
+texture_normal = ExtResource("7_nwq3q")
+skill_name = "Piercing Shot"
+icon = ExtResource("7_nwq3q")
+
+[node name="talent_5" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 384.0
+offset_right = 190.0
+offset_bottom = 424.0
+texture_normal = ExtResource("8_abbjq")
+skill_name = "Focused Shot"
+icon = ExtResource("8_abbjq")
+
+[node name="ElementalPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_6" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 224.0
+offset_right = 190.0
+offset_bottom = 264.0
+texture_normal = ExtResource("9_tboi8")
+skill_name = "Flaming Arrows"
+icon = ExtResource("9_tboi8")
+
+[node name="talent_7" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 144.0
+offset_right = 470.0
+offset_bottom = 184.0
+texture_normal = ExtResource("10_mjvwq")
+skill_name = "Frost Arrows"
+icon = ExtResource("10_mjvwq")
+
+[node name="talent_8" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 64.0
+offset_right = 470.0
+offset_bottom = 104.0
+texture_normal = ExtResource("11_l23rc")
+skill_name = "Freezing Explosion"
+icon = ExtResource("11_l23rc")
+
+[node name="talent_9" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 144.0
+offset_right = 550.0
+offset_bottom = 184.0
+texture_normal = ExtResource("12_4k41y")
+skill_name = "Cutting Winds"
+icon = ExtResource("12_4k41y")
+
+[node name="talent_10" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 64.0
+offset_right = 550.0
+offset_bottom = 104.0
+texture_normal = ExtResource("13_1fpha")
+skill_name = "Rain of Ashes"
+icon = ExtResource("13_1fpha")
+
+[node name="ArcheryPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_11" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 384.0
+offset_right = 470.0
+offset_bottom = 424.0
+texture_normal = ExtResource("14_xa5yu")
+skill_name = "Double Shot"
+icon = ExtResource("14_xa5yu")
+
+[node name="talent_12" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 384.0
+offset_right = 550.0
+offset_bottom = 424.0
+texture_normal = ExtResource("15_evbns")
+skill_name = "Chain Shot"
+icon = ExtResource("15_evbns")
+
+[node name="talent_13" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 304.0
+offset_right = 550.0
+offset_bottom = 344.0
+texture_normal = ExtResource("16_kwscv")
+skill_name = "Arrow Rain"
+icon = ExtResource("16_kwscv")
+
+[node name="talent_14" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 224.0
+offset_right = 550.0
+offset_bottom = 264.0
+texture_normal = ExtResource("17_5f38h")
+skill_name = "Arrow Storm"
+icon = ExtResource("17_5f38h")
+
+[node name="talent_15" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 304.0
+offset_right = 630.0
+offset_bottom = 344.0
+texture_normal = ExtResource("18_voe78")
+skill_name = "Arrow Explosion"
+icon = ExtResource("18_voe78")
+
+[node name="SpecialArrowsPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_16" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 230.0
+offset_top = 384.0
+offset_right = 270.0
+offset_bottom = 424.0
+texture_normal = ExtResource("19_rfep8")
+skill_name = "Serrated Arrows"
+icon = ExtResource("19_rfep8")
+
+[node name="talent_17" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 230.0
+offset_top = 464.0
+offset_right = 270.0
+offset_bottom = 504.0
+texture_normal = ExtResource("20_108br")
+skill_name = "Explosive Arrows"
+icon = ExtResource("20_108br")
+
+[node name="talent_18" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 310.0
+offset_top = 464.0
+offset_right = 350.0
+offset_bottom = 504.0
+texture_normal = ExtResource("21_5sr80")
+skill_name = "Ghost Bow"
+icon = ExtResource("21_5sr80")
+
+[node name="talent_19" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 230.0
+offset_top = 544.0
+offset_right = 270.0
+offset_bottom = 584.0
+texture_normal = ExtResource("22_tdwa2")
+skill_name = "Burning Flames"
+icon = ExtResource("22_tdwa2")
+
+[node name="talent_20" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 310.0
+offset_top = 384.0
+offset_right = 350.0
+offset_bottom = 424.0
+texture_normal = ExtResource("23_yhr6m")
+skill_name = "Penetrating Arrows"
+icon = ExtResource("23_yhr6m")
+
+[node name="PrecisionPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_21" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 144.0
+offset_right = 630.0
+offset_bottom = 184.0
+texture_normal = ExtResource("24_1phgv")
+skill_name = "Precise Execution"
+icon = ExtResource("24_1phgv")
+
+[node name="talent_22" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 224.0
+offset_right = 630.0
+offset_bottom = 264.0
+texture_normal = ExtResource("25_ir8vh")
+skill_name = "Chaos Arrows"
+icon = ExtResource("25_ir8vh")
+
+[node name="talent_23" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 224.0
+offset_right = 710.0
+offset_bottom = 264.0
+texture_normal = ExtResource("26_gfuel")
+skill_name = "Prey Marker"
+icon = ExtResource("26_gfuel")
+
+[node name="talent_24" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 750.0
+offset_top = 224.0
+offset_right = 790.0
+offset_bottom = 264.0
+texture_normal = ExtResource("27_rogyu")
+skill_name = "Poisoned Shot"
+icon = ExtResource("27_rogyu")
+
+[node name="talent_25" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 384.0
+offset_right = 710.0
+offset_bottom = 424.0
+texture_normal = ExtResource("28_gc4n2")
+skill_name = "Annihilating Shot"
+icon = ExtResource("28_gc4n2")
+
+[node name="PrecisiDamagePath onPath2" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_26" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 464.0
+offset_right = 550.0
+offset_bottom = 504.0
+texture_normal = ExtResource("29_curf5")
+skill_name = "Intensive Training"
+icon = ExtResource("29_curf5")
+
+[node name="talent_27" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 464.0
+offset_right = 710.0
+offset_bottom = 504.0
+texture_normal = ExtResource("30_j2ums")
+skill_name = "Merciless Shot"
+icon = ExtResource("30_j2ums")
+
+[node name="talent_28" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 544.0
+offset_right = 710.0
+offset_bottom = 584.0
+texture_normal = ExtResource("31_vfsdg")
+skill_name = "Enhanced Damage"
+icon = ExtResource("31_vfsdg")
+
+[node name="talent_29" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 544.0
+offset_right = 470.0
+offset_bottom = 584.0
+texture_normal = ExtResource("32_essnb")
+skill_name = "Wind Force"
+icon = ExtResource("32_essnb")
+
+[node name="talent_30" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 750.0
+offset_top = 544.0
+offset_right = 790.0
+offset_bottom = 584.0
+texture_normal = ExtResource("33_6s1uf")
+skill_name = "Supreme Shot"
+icon = ExtResource("33_6s1uf")
+
+[node name="InfoPanel" type="PanelContainer" parent="BackgroundPanel/MainLayout"]
+custom_minimum_size = Vector2(248, 648)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InfoLayout" type="VBoxContainer" parent="BackgroundPanel/MainLayout/InfoPanel"]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/HBoxContainer/PanelContainer"]
+[node name="TalentPointsLabel" type="Label" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
 layout_mode = 2
 
-[node name="TalentPointsLabel" type="Label" parent="PanelContainer/HBoxContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 0
-
-[node name="CenterContainer" type="CenterContainer" parent="PanelContainer/HBoxContainer/PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 200)
+[node name="IconContainer" type="CenterContainer" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+custom_minimum_size = Vector2(100, 200)
 layout_mode = 2
 
-[node name="SkillIcon" type="TextureRect" parent="PanelContainer/HBoxContainer/PanelContainer/VBoxContainer/CenterContainer"]
+[node name="SkillIcon" type="TextureRect" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/IconContainer"]
 custom_minimum_size = Vector2(150, 150)
 layout_mode = 2
-expand_mode = 1
-stretch_mode = 6
 
-[node name="SkillDescription" type="Label" parent="PanelContainer/HBoxContainer/PanelContainer/VBoxContainer"]
+[node name="SkillDescription" type="RichTextLabel" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+layout_mode = 2
+text = "ewwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+fit_content = true
+
+[node name="ButtonContainer" type="CenterContainer" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+layout_mode = 2
+
+[node name="UnlockButton" type="TextureButton" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/ButtonContainer"]
+layout_mode = 2
+
+[node name="DebugTools" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 1221.0
+offset_top = 48.0
+offset_right = 1261.0
+offset_bottom = 88.0
+
+[node name="AddPointsButton" type="Button" parent="DebugTools"]
+layout_mode = 2
+
+[node name="ResetTreeButton" type="Button" parent="DebugTools"]
 layout_mode = 2

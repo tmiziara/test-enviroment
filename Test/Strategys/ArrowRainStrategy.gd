@@ -113,7 +113,7 @@ func create_shadow_at_impact(impact_position, parent_node):
 	# Adiciona a sombra à cena
 	parent_node.add_child(shadow)
 	
-	# CORRIGIDO: Adiciona um efeito de "piscar" com número limitado de loops
+	# Adiciona um efeito de "piscar" com número limitado de loops
 	var tween = parent_node.create_tween()
 	tween.tween_property(shadow_sprite, "modulate:a", 0.8, 0.2)
 	tween.tween_property(shadow_sprite, "modulate:a", 0.3, 0.2)
@@ -127,40 +127,101 @@ func create_shadow_at_impact(impact_position, parent_node):
 	return shadow
 
 # Função para estender o _physics_process da flecha
-func add_custom_physics_process(arrow):
+func add_custom_physics_process(arrow, impact_position, fall_time):
 	# Criar um script customizado para substituir o comportamento padrão
 	var custom_script = GDScript.new()
 	custom_script.source_code = """
 	extends Node
 	
-	# Referência ao movimento original da flecha
-	var original_speed = 0.0
-	var original_direction = Vector2.ZERO
+	var start_position: Vector2
+	var impact_position: Vector2
+	var total_time: float
+	var elapsed_time: float = 0.0
 	
 	func _ready():
 		var arrow = get_parent()
-		original_speed = arrow.speed
-		original_direction = arrow.direction
+		start_position = arrow.global_position
+		
+		# Armazena a posição original para cálculos
+		if arrow.has_meta("impact_position"):
+			impact_position = arrow.get_meta("impact_position")
+		
+		if arrow.has_meta("fall_time"):
+			total_time = arrow.get_meta("fall_time")
+			
+		# Define imediatamente a direção correta da flecha
+		var direction = (impact_position - start_position).normalized()
+		arrow.direction = direction
+		
+		# Aplica a rotação correta no início
+		# IMPORTANTE: A flecha deve apontar na direção do movimento
+		arrow.rotation = direction.angle()
+		
+		# Ajusta qualquer deslocamento do sprite se necessário
+		# Isso depende de como o sprite da flecha está orientado
+		# Para uma flecha que aponta para a direita por padrão
+		if direction.x < 0:
+			# Se a flecha vai para a esquerda
+			arrow.get_node("Sprite2D").flip_h = true
 	
 	func _physics_process(delta):
-		# Movemos manualmente a flecha sem usar física
 		var arrow = get_parent()
-		var velocity = original_direction * original_speed
-		arrow.global_position += velocity * delta
 		
-		# CORRIGIDO: Ajusta a rotação para apontar na direção do movimento
-		# A flecha deve apontar para baixo (direção do movimento)
-		arrow.rotation = original_direction.angle()
+		# Incrementa o tempo decorrido
+		elapsed_time += delta
+		
+		# Calcula a porcentagem de progresso (0 a 1)
+		var progress = min(elapsed_time / total_time, 1.0)
+		
+		# Interpolação linear da posição
+		var new_position = start_position.lerp(impact_position, progress)
+		
+		# Adiciona efeito de arco para movimento mais natural
+		var arc_height = start_position.distance_to(impact_position) * 0.05
+		var arc_offset = sin(progress * PI) * arc_height
+		
+		# Aplica o offset do arco à posição Y
+		new_position.y -= arc_offset
+		
+		# Atualiza a posição da flecha
+		arrow.global_position = new_position
+		
+		# Calcula a direção atual baseada no próximo ponto da trajetória
+		# Usando um pequeno offset para calcular a direção tangente à curva
+		var next_progress = min(progress + 0.01, 1.0)
+		var next_position = start_position.lerp(impact_position, next_progress)
+		
+		# Adiciona o mesmo efeito de arco ao próximo ponto
+		var next_arc_offset = sin(next_progress * PI) * arc_height
+		next_position.y -= next_arc_offset
+		
+		# Calcula a direção tangente
+		var direction = (next_position - arrow.global_position).normalized()
+		
+		# Atualiza a direção e rotação apenas se a direção for significativa
+		if direction.length() > 0.1:
+			arrow.direction = direction
+			arrow.rotation = direction.angle()
+		
+		# Se chegou ao destino, termina o movimento
+		if progress >= 1.0:
+			# A flecha deve estar exatamente na posição de impacto
+			arrow.global_position = impact_position
+			set_physics_process(false)
 	"""
 	
 	# Adiciona o script como um nó filho
 	var custom_processor = Node.new()
 	custom_processor.name = "CustomPhysicsProcessor"
 	custom_processor.set_script(custom_script)
+	
+	# Armazena dados importantes como metadados
+	arrow.set_meta("impact_position", impact_position)
+	arrow.set_meta("fall_time", fall_time)
+	
 	arrow.add_child(custom_processor)
 	
 	# Desativa o processamento físico original da flecha
-	# Isso impede que o move_and_slide() padrão seja executado
 	arrow.set_physics_process(false)
 
 func spawn_rain_arrows(projectile: Node):
@@ -253,19 +314,23 @@ func spawn_rain_arrows(projectile: Node):
 		
 		# Altura inicial de spawn
 		var random_height = randf_range(min_height, max_height)
-		arrow.global_position = Vector2(fall_position.x, fall_position.y - random_height)
+		
+		# Posição inicial com um deslocamento horizontal aleatório para variar o ângulo de queda
+		var horizontal_offset = randf_range(-50, 50)
+		arrow.global_position = Vector2(fall_position.x + horizontal_offset, fall_position.y - random_height)
 		
 		# Configurações básicas da flecha
 		arrow.damage = damage_per_arrow
 		arrow.crit_chance = original_crit_chance
 		arrow.shooter = shooter
-		arrow.speed = 500.0
+		arrow.speed = 500.0  # Velocidade padrão, será ignorada pelo nosso sistema customizado
 		
-		# CORRIGIDO: Direção para baixo com leve aleatorização
-		arrow.direction = Vector2(0, 1).rotated(randf_range(-0.2, 0.2))
+		# A direção inicial (será substituída pelo sistema de movimento personalizado)
+		var initial_direction = (impact_position - arrow.global_position).normalized()
+		arrow.direction = initial_direction
 		
-		# CORRIGIDO: Definir a rotação adequada para apontar para baixo
-		arrow.rotation = arrow.direction.angle()
+		# Definir a rotação inicial baseada na direção para o ponto de impacto
+		arrow.rotation = initial_direction.angle()
 		
 		# Adiciona tag para identificação
 		arrow.add_tag("rain_arrow")
@@ -320,8 +385,12 @@ func spawn_rain_arrows(projectile: Node):
 				if child is CollisionShape2D or child is CollisionPolygon2D:
 					child.disabled = true
 		
-		# 3. Substitui a física padrão por um movimento manual
-		add_custom_physics_process(arrow)
+		# Calcula o tempo estimado até o impacto baseado na distância
+		var fall_distance = arrow.global_position.distance_to(impact_position)
+		var fall_time = fall_distance / arrow.speed
+		
+		# 3. Substitui a física padrão por um movimento controlado que atinge exatamente o alvo
+		add_custom_physics_process(arrow, impact_position, fall_time)
 		
 		# Aplica outras estratégias (exceto ArrowRainStrategy para evitar recursão)
 		for strategy in other_strategies:
@@ -330,10 +399,6 @@ func spawn_rain_arrows(projectile: Node):
 		
 		# Adiciona à cena
 		shooter.get_parent().add_child(arrow)
-		
-		# IMPORTANTE: Calcula o tempo estimado até o impacto baseado na altura e velocidade
-		var fall_distance = random_height
-		var fall_time = fall_distance / arrow.speed
 		
 		# Cria um timer para aplicar o dano na área de impacto quando a flecha "atingir" o solo
 		var impact_timer = Timer.new()
