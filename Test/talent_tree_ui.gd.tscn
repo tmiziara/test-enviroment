@@ -35,6 +35,7 @@
 [ext_resource type="Texture2D" uid="uid://dn26dle6ue1sw" path="res://Test/Assets/Icons/ArcherSkill/30.png" id="33_6s1uf"]
 
 [node name="TalentTreeUi" type="Control" groups=["skill_tree"]]
+custom_minimum_size = Vector2(1152, 648)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -69,6 +70,176 @@ layout_mode = 2
 [node name="ConnectionsLayer" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
 anchors_preset = 0
 
+[node name="connection_0_1" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 324, 370, 324)
+width = 3.0
+default_color = Color(0.223103, 0.223103, 0.223103, 1)
+
+[node name="connection_0_6" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(170, 244, 450, 244, 450, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_0_11" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 324, 450, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_1_2" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 324, 290, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_2_3" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(290, 324, 210, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_3_4" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 324, 130, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_3_16" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 324, 210, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_4_5" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(130, 324, 130, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_6_7" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(170, 244, 170, 164, 450, 164)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_6_19" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(170, 244, 55, 244, 55, 564, 290, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_7_8" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 164, 450, 84)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_7_9" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 164, 530, 164)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_8_10" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 84, 530, 84)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_9_10" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 164, 530, 84)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_9_21" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 164, 610, 164)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_11_12" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 404, 530, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_12_13" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 404, 530, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_12_26" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 404, 530, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_13_14" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 324, 530, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_13_15" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 324, 610, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_16_17" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 404, 210, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_17_18" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 484, 370, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_18_19" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 484, 290, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_18_20" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 484, 370, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_18_29" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 484, 450, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_21_22" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(610, 164, 610, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_22_23" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(610, 244, 690, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_23_24" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 244, 770, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_23_25" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 244, 690, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_25_27" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 404, 690, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_26_27" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 484, 690, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_27_28" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 484, 690, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_28_29" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 564, 450, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_28_30" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 564, 770, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
 [node name="BasicPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
 anchors_preset = 0
 
@@ -79,8 +250,10 @@ offset_top = 304.0
 offset_right = 470.0
 offset_bottom = 344.0
 texture_normal = ExtResource("3_l53o2")
+talent_id = 0
 skill_name = "Basic Attack"
 icon = ExtResource("3_l53o2")
+is_starter = true
 
 [node name="talent_1" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
@@ -89,6 +262,7 @@ offset_top = 304.0
 offset_right = 390.0
 offset_bottom = 344.0
 texture_normal = ExtResource("4_d2vu7")
+talent_id = 1
 skill_name = "Precise Aim"
 icon = ExtResource("4_d2vu7")
 
@@ -99,6 +273,7 @@ offset_top = 304.0
 offset_right = 310.0
 offset_bottom = 344.0
 texture_normal = ExtResource("5_tu26t")
+talent_id = 2
 skill_name = "Enhanced Range"
 icon = ExtResource("5_tu26t")
 
@@ -109,6 +284,7 @@ offset_top = 304.0
 offset_right = 230.0
 offset_bottom = 344.0
 texture_normal = ExtResource("6_yqxhp")
+talent_id = 3
 skill_name = "Sharp Arrows"
 icon = ExtResource("6_yqxhp")
 
@@ -119,16 +295,18 @@ offset_top = 304.0
 offset_right = 150.0
 offset_bottom = 344.0
 texture_normal = ExtResource("7_nwq3q")
+talent_id = 4
 skill_name = "Piercing Shot"
 icon = ExtResource("7_nwq3q")
 
 [node name="talent_5" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 150.0
+offset_left = 110.0
 offset_top = 384.0
-offset_right = 190.0
+offset_right = 150.0
 offset_bottom = 424.0
 texture_normal = ExtResource("8_abbjq")
+talent_id = 5
 skill_name = "Focused Shot"
 icon = ExtResource("8_abbjq")
 
@@ -142,6 +320,7 @@ offset_top = 224.0
 offset_right = 190.0
 offset_bottom = 264.0
 texture_normal = ExtResource("9_tboi8")
+talent_id = 6
 skill_name = "Flaming Arrows"
 icon = ExtResource("9_tboi8")
 
@@ -152,6 +331,7 @@ offset_top = 144.0
 offset_right = 470.0
 offset_bottom = 184.0
 texture_normal = ExtResource("10_mjvwq")
+talent_id = 7
 skill_name = "Frost Arrows"
 icon = ExtResource("10_mjvwq")
 
@@ -162,6 +342,7 @@ offset_top = 64.0
 offset_right = 470.0
 offset_bottom = 104.0
 texture_normal = ExtResource("11_l23rc")
+talent_id = 8
 skill_name = "Freezing Explosion"
 icon = ExtResource("11_l23rc")
 
@@ -172,6 +353,7 @@ offset_top = 144.0
 offset_right = 550.0
 offset_bottom = 184.0
 texture_normal = ExtResource("12_4k41y")
+talent_id = 9
 skill_name = "Cutting Winds"
 icon = ExtResource("12_4k41y")
 
@@ -182,6 +364,7 @@ offset_top = 64.0
 offset_right = 550.0
 offset_bottom = 104.0
 texture_normal = ExtResource("13_1fpha")
+talent_id = 10
 skill_name = "Rain of Ashes"
 icon = ExtResource("13_1fpha")
 
@@ -195,6 +378,7 @@ offset_top = 384.0
 offset_right = 470.0
 offset_bottom = 424.0
 texture_normal = ExtResource("14_xa5yu")
+talent_id = 11
 skill_name = "Double Shot"
 icon = ExtResource("14_xa5yu")
 
@@ -205,6 +389,7 @@ offset_top = 384.0
 offset_right = 550.0
 offset_bottom = 424.0
 texture_normal = ExtResource("15_evbns")
+talent_id = 12
 skill_name = "Chain Shot"
 icon = ExtResource("15_evbns")
 
@@ -215,6 +400,7 @@ offset_top = 304.0
 offset_right = 550.0
 offset_bottom = 344.0
 texture_normal = ExtResource("16_kwscv")
+talent_id = 13
 skill_name = "Arrow Rain"
 icon = ExtResource("16_kwscv")
 
@@ -225,6 +411,7 @@ offset_top = 224.0
 offset_right = 550.0
 offset_bottom = 264.0
 texture_normal = ExtResource("17_5f38h")
+talent_id = 14
 skill_name = "Arrow Storm"
 icon = ExtResource("17_5f38h")
 
@@ -235,6 +422,7 @@ offset_top = 304.0
 offset_right = 630.0
 offset_bottom = 344.0
 texture_normal = ExtResource("18_voe78")
+talent_id = 15
 skill_name = "Arrow Explosion"
 icon = ExtResource("18_voe78")
 
@@ -243,51 +431,56 @@ anchors_preset = 0
 
 [node name="talent_16" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 230.0
+offset_left = 190.0
 offset_top = 384.0
-offset_right = 270.0
+offset_right = 230.0
 offset_bottom = 424.0
 texture_normal = ExtResource("19_rfep8")
+talent_id = 16
 skill_name = "Serrated Arrows"
 icon = ExtResource("19_rfep8")
 
 [node name="talent_17" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 230.0
+offset_left = 190.0
 offset_top = 464.0
-offset_right = 270.0
+offset_right = 230.0
 offset_bottom = 504.0
 texture_normal = ExtResource("20_108br")
+talent_id = 17
 skill_name = "Explosive Arrows"
 icon = ExtResource("20_108br")
 
 [node name="talent_18" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 310.0
+offset_left = 350.0
 offset_top = 464.0
-offset_right = 350.0
+offset_right = 390.0
 offset_bottom = 504.0
 texture_normal = ExtResource("21_5sr80")
+talent_id = 18
 skill_name = "Ghost Bow"
 icon = ExtResource("21_5sr80")
 
 [node name="talent_19" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 230.0
+offset_left = 270.0
 offset_top = 544.0
-offset_right = 270.0
+offset_right = 310.0
 offset_bottom = 584.0
 texture_normal = ExtResource("22_tdwa2")
+talent_id = 19
 skill_name = "Burning Flames"
 icon = ExtResource("22_tdwa2")
 
 [node name="talent_20" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
-offset_left = 310.0
+offset_left = 350.0
 offset_top = 384.0
-offset_right = 350.0
+offset_right = 390.0
 offset_bottom = 424.0
 texture_normal = ExtResource("23_yhr6m")
+talent_id = 20
 skill_name = "Penetrating Arrows"
 icon = ExtResource("23_yhr6m")
 
@@ -301,6 +494,7 @@ offset_top = 144.0
 offset_right = 630.0
 offset_bottom = 184.0
 texture_normal = ExtResource("24_1phgv")
+talent_id = 21
 skill_name = "Precise Execution"
 icon = ExtResource("24_1phgv")
 
@@ -311,6 +505,7 @@ offset_top = 224.0
 offset_right = 630.0
 offset_bottom = 264.0
 texture_normal = ExtResource("25_ir8vh")
+talent_id = 22
 skill_name = "Chaos Arrows"
 icon = ExtResource("25_ir8vh")
 
@@ -321,6 +516,7 @@ offset_top = 224.0
 offset_right = 710.0
 offset_bottom = 264.0
 texture_normal = ExtResource("26_gfuel")
+talent_id = 23
 skill_name = "Prey Marker"
 icon = ExtResource("26_gfuel")
 
@@ -331,6 +527,7 @@ offset_top = 224.0
 offset_right = 790.0
 offset_bottom = 264.0
 texture_normal = ExtResource("27_rogyu")
+talent_id = 24
 skill_name = "Poisoned Shot"
 icon = ExtResource("27_rogyu")
 
@@ -341,6 +538,7 @@ offset_top = 384.0
 offset_right = 710.0
 offset_bottom = 424.0
 texture_normal = ExtResource("28_gc4n2")
+talent_id = 25
 skill_name = "Annihilating Shot"
 icon = ExtResource("28_gc4n2")
 
@@ -354,6 +552,7 @@ offset_top = 464.0
 offset_right = 550.0
 offset_bottom = 504.0
 texture_normal = ExtResource("29_curf5")
+talent_id = 26
 skill_name = "Intensive Training"
 icon = ExtResource("29_curf5")
 
@@ -364,6 +563,7 @@ offset_top = 464.0
 offset_right = 710.0
 offset_bottom = 504.0
 texture_normal = ExtResource("30_j2ums")
+talent_id = 27
 skill_name = "Merciless Shot"
 icon = ExtResource("30_j2ums")
 
@@ -374,6 +574,7 @@ offset_top = 544.0
 offset_right = 710.0
 offset_bottom = 584.0
 texture_normal = ExtResource("31_vfsdg")
+talent_id = 28
 skill_name = "Enhanced Damage"
 icon = ExtResource("31_vfsdg")
 
@@ -384,6 +585,7 @@ offset_top = 544.0
 offset_right = 470.0
 offset_bottom = 584.0
 texture_normal = ExtResource("32_essnb")
+talent_id = 29
 skill_name = "Wind Force"
 icon = ExtResource("32_essnb")
 
@@ -394,6 +596,7 @@ offset_top = 544.0
 offset_right = 790.0
 offset_bottom = 584.0
 texture_normal = ExtResource("33_6s1uf")
+talent_id = 30
 skill_name = "Supreme Shot"
 icon = ExtResource("33_6s1uf")
 
@@ -406,7 +609,12 @@ size_flags_horizontal = 3
 layout_mode = 2
 
 [node name="TalentPointsLabel" type="Label" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+custom_minimum_size = Vector2(248, 0)
 layout_mode = 2
+text = "Talent Point: rrrrr"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
 
 [node name="IconContainer" type="CenterContainer" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
 custom_minimum_size = Vector2(100, 200)
@@ -415,17 +623,45 @@ layout_mode = 2
 [node name="SkillIcon" type="TextureRect" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/IconContainer"]
 custom_minimum_size = Vector2(150, 150)
 layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="SkillDescription" type="RichTextLabel" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+custom_minimum_size = Vector2(248, 0)
 layout_mode = 2
-text = "ewwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+theme_override_font_sizes/bold_italics_font_size = 10
+theme_override_font_sizes/italics_font_size = 10
+theme_override_font_sizes/mono_font_size = 10
+theme_override_font_sizes/normal_font_size = 10
+theme_override_font_sizes/bold_font_size = 10
+text = "Talent Description"
 fit_content = true
 
 [node name="ButtonContainer" type="CenterContainer" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="UnlockButton" type="TextureButton" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/ButtonContainer"]
+custom_minimum_size = Vector2(120, 30)
 layout_mode = 2
+
+[node name="Label" type="Label" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/ButtonContainer/UnlockButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -59.5
+offset_top = -13.5
+offset_right = 59.5
+offset_bottom = 13.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 15
+text = "Unlock"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="DebugTools" type="HBoxContainer" parent="."]
 layout_mode = 0
@@ -439,3 +675,5 @@ layout_mode = 2
 
 [node name="ResetTreeButton" type="Button" parent="DebugTools"]
 layout_mode = 2
+
+[connection signal="pressed" from="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/ButtonContainer/UnlockButton" to="." method="_on_unlock_button_pressed"]
