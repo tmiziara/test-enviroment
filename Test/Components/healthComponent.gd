@@ -12,18 +12,39 @@ var active_dots = {}   # Lista para armazenar DoTs ativos
 signal health_changed(new_health, amount, is_crit, damage_type)  # Para números de dano
 signal died  # Evento de morte
 
+# Referência ao componente de defesa
+var defense_component = null
+
 func _ready():
 	current_health = max_health
+	
+	# Tenta encontrar o componente de defesa no pai
+	var parent = get_parent()
+	if parent.has_node("DefenseComponent"):
+		defense_component = parent.get_node("DefenseComponent")
+		print("HealthComponent: DefenseComponent encontrado com armadura:", defense_component.armor)
+	else:
+		print("HealthComponent: DefenseComponent NÃO encontrado!")
 
 # Função básica que aplica dano direto à vida
 func take_damage(amount: int, is_crit: bool = false, damage_type: String = ""):
+	print("take_damage chamado com:", amount, is_crit, damage_type)
+	
+	# Aplica redução de dano se possível
+	var final_amount = amount
+	if defense_component and defense_component.has_method("reduce_damage"):
+		print("Aplicando redução via DefenseComponent")
+		final_amount = defense_component.reduce_damage(amount, damage_type)
+		print("Dano após redução:", final_amount)
+	else:
+		print("DefenseComponent não encontrado ou não tem método reduce_damage")
 	
 	# Aplica dano à vida do personagem
-	current_health -= int(amount)
+	current_health -= int(final_amount)
 	current_health = max(current_health, 0)
 	
 	# Emite sinal com informações do dano (para números de dano)
-	health_changed.emit(current_health, amount, is_crit, damage_type)
+	health_changed.emit(current_health, final_amount, is_crit, damage_type)
 	
 	# Atualiza a barra de vida diretamente
 	update_health_bar()
@@ -47,17 +68,27 @@ func update_health_bar():
 
 # Processa um pacote completo de dano
 func take_complex_damage(damage_package: Dictionary):
-	# Obtém todos os componentes de dano
-	var physical_damage = damage_package.get("physical_damage", 0)
-	var is_critical = damage_package.get("is_critical", false)
-	var elemental_damage = damage_package.get("elemental_damage", {})
+	print("take_complex_damage chamado com:", damage_package)
+	
+	# Aplica redução de dano se houver componente de defesa
+	var final_damage = damage_package.duplicate(true)
+	if defense_component and defense_component.has_method("apply_reductions"):
+		print("HealthComponent: Aplicando reduções de dano via DefenseComponent")
+		final_damage = defense_component.apply_reductions(final_damage)
+	else:
+		print("HealthComponent: Sem reduções de dano - DefenseComponent não encontrado")
+	
+	# Obtém todos os componentes de dano após reduções
+	var physical_damage = final_damage.get("physical_damage", 0)
+	var is_critical = final_damage.get("is_critical", false)
+	var elemental_damage = final_damage.get("elemental_damage", {})
 	
 	# Calcula o dano total
 	var total_damage = physical_damage
 	for element_type in elemental_damage:
 		total_damage += elemental_damage[element_type]
 	
-	print("Dano total calculado:", total_damage)
+	print("Dano total após reduções:", total_damage)
 	
 	# Mostra números de dano para dano físico
 	if physical_damage > 0:
@@ -83,7 +114,7 @@ func take_complex_damage(damage_package: Dictionary):
 		died.emit()
 	
 	# Processa efeitos DoT
-	var dot_effects = damage_package.get("dot_effects", [])
+	var dot_effects = final_damage.get("dot_effects", [])
 	for dot in dot_effects:
 		apply_dot(
 			dot.get("damage", 0),
@@ -94,6 +125,12 @@ func take_complex_damage(damage_package: Dictionary):
 
 # Aplica um debuff no personagem
 func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
+	# Se o componente de defesa existir e tiver um método específico para debuffs, use-o
+	if defense_component and defense_component.has_method("apply_debuff"):
+		defense_component.apply_debuff(debuff_name, duration, effect_func)
+		return
+	
+	# Caso contrário, use a implementação atual
 	if debuff_name in active_debuffs:
 		return  # Evita reaplicar um debuff já ativo
 
@@ -105,21 +142,25 @@ func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
 
 # Versão melhorada do método apply_dot
 func apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic"):
+	# Verifica se o componente de defesa pode reduzir o DoT
+	if defense_component and defense_component.has_method("reduce_dot_damage"):
+		damage = defense_component.reduce_dot_damage(damage, dot_type)
+	
+	# Se o dano for reduzido a zero ou menos, não aplica o DoT
+	if damage <= 0:
+		return
 	
 	# Verifica se já existe um DoT desse tipo
 	if dot_type in active_dots:
-		
 		# Atualiza o dano se o novo for maior
 		if damage > active_dots[dot_type].damage:
 			active_dots[dot_type].damage = damage
-
 		
 		# Renova o timer de duração
 		if active_dots[dot_type].duration_timer and is_instance_valid(active_dots[dot_type].duration_timer):
 			active_dots[dot_type].duration_timer.stop()
 			active_dots[dot_type].duration_timer.wait_time = duration
 			active_dots[dot_type].duration_timer.start()
-
 		
 		# Não cria um novo DoT, apenas retorna
 		return
@@ -149,6 +190,7 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 	
 	# Conecta os sinais dos timers
 	dot_timer.timeout.connect(func():
+		# Aplica dano periódico, já considerando as resistências
 		take_damage(damage, false, dot_type)
 		if dot_type == "fire":
 			# Aqui você poderia adicionar efeitos visuais específicos para fogo

@@ -52,6 +52,9 @@ var talent_status = {}
 
 # Referência para o nó atualmente selecionado
 var selected_skill_node: SkillNode = null
+var archer = null  # Referência ao arqueiro
+
+signal tree_closed  # Adicione esta linha
 
 func _ready():
 	# Conecta o botão de desbloqueio se ainda não estiver conectado
@@ -61,26 +64,123 @@ func _ready():
 	# Conecta os botões de debug
 	$DebugTools/AddPointsButton.connect("pressed", _on_add_points_button_pressed)
 	$DebugTools/ResetTreeButton.connect("pressed", _on_reset_tree_button_pressed)
-	
+	_add_close_button()
 	_setup_ui()
 	_initialize_talent_status()
 	_activate_starter_skill()
 	_update_connection_colors()
 	_update_ui()
 
+func _add_close_button():
+	var close_button = Button.new()
+	close_button.text = "X"
+	close_button.position = Vector2(size.x - 40, 10)
+	close_button.size = Vector2(30, 30)
+	close_button.connect("pressed", Callable(self, "_on_close_button_pressed"))
+	add_child(close_button)
+
+func _on_close_button_pressed():
+	# Emite o sinal antes de fechar
+	emit_signal("tree_closed")
+	queue_free()
+
 func _setup_ui():
 	$DebugTools/AddPointsButton.text = "Add Points"
 	$DebugTools/ResetTreeButton.text = "Reset Tree"
 	unlock_button.disabled = true
 
-func _initialize_talent_status():
+func initialize(unlocked_talents: Dictionary, points: int, archer_ref: Node):
+	# Configura a referência ao arqueiro
+	archer = archer_ref
+	
+	# Define os pontos de talento
+	total_talent_points = points
+	
+	# Inicializa o estado dos talentos (primeiro certifique-se de que a estrutura existe)
+	_initialize_talent_status()
+	
+	# Marca os talentos desbloqueados
+	for key in unlocked_talents.keys():
+		var talent_id = int(key)
+		if talent_id in talent_status and unlocked_talents[key]:
+			talent_status[talent_id]["unlocked"] = true
+			talent_status[talent_id]["available"] = true
+	
+	# Ativa o talento inicial sempre
+	if 0 in talent_status:
+		talent_status[0]["unlocked"] = true
+		talent_status[0]["available"] = true
+	
+	# Atualiza talentos disponíveis
+	update_available_talents()
+	
+	# Atualização visual (adiada para garantir que a árvore esteja pronta)
+	call_deferred("_update_visuals_deferred")
+
+func _update_visuals_deferred():
+	# Espera um frame para garantir que os botões estejam prontos
+	await get_tree().process_frame
+	
+	# Atualiza visualmente cada nó de talento para refletir seu estado
 	var skill_buttons = get_tree().get_nodes_in_group("skill_buttons")
 	for button in skill_buttons:
-		if button.talent_id != -1:
-			talent_status[button.talent_id] = {
+		if button.talent_id in talent_status:
+			var status = talent_status[button.talent_id]
+			
+			# Se o talento estiver desbloqueado
+			if status["unlocked"]:
+				button.set_level(1)  # Usa o método próprio do botão para atualizar visual
+			else:
+				button.set_level(0)
+				button.update_prereq_status(status["available"])
+	
+	# Atualiza as conexões
+	_update_connection_lines()
+	
+	# Atualiza a UI
+	_update_ui()
+
+func get_unlocked_talents() -> Dictionary:
+	var result = {}
+	for talent_id in talent_status.keys():
+		# Usa strings para as chaves para evitar conversões inconsistentes
+		result[str(talent_id)] = talent_status[talent_id]["unlocked"]
+	return result
+
+func _initialize_talent_status():
+	# Verifica se o dicionário já foi inicializado
+	if talent_status.size() > 0:
+		return
+	
+	# Valores padrão iniciais para garantir que a estrutura exista
+	talent_status[0] = {
+		"unlocked": false,
+		"available": false
+	}
+	
+	# Talentos padrão baseados na estrutura talento_connections
+	for talent_id in talent_connections.keys():
+		talent_status[talent_id] = {
+			"unlocked": false,
+			"available": false
+		}
+		
+		# Também adiciona os talentos conectados
+		for connected_id in talent_connections[talent_id]:
+			talent_status[connected_id] = {
 				"unlocked": false,
 				"available": false
 			}
+	
+	# Tenta buscar os botões somente se a árvore já estiver disponível
+	if is_inside_tree():
+		var skill_buttons = get_tree().get_nodes_in_group("skill_buttons")
+		for button in skill_buttons:
+			if button.talent_id != -1:
+				talent_status[button.talent_id] = {
+					"unlocked": false,
+					"available": false
+				}
 
 func _activate_starter_skill():
 	talent_status[0]["unlocked"] = true
@@ -102,22 +202,31 @@ func _update_connection_colors():
 		if button.talent_id in talent_status:
 			var status = talent_status[button.talent_id]
 			
+			# Verifica se o botão tem um panel válido
+			var panel = button.get_node_or_null("Panel")
+			
 			# Se o talento estiver desbloqueado
 			if status["unlocked"]:
-				button.panel.self_modulate = Color(0.2, 0.8, 0.2, 0.7)  # Verde mais intenso
 				button.modulate = Color(1.0, 1.0, 1.0)  # Normal
+				if panel:
+					panel.self_modulate = Color(0.2, 0.8, 0.2, 0.7)  # Verde mais intenso
+				# Usa a função set_level do botão que já tem as verificações necessárias
+				button.set_level(1)
 			# Se estiver disponível
 			elif status["available"]:
-				button.panel.self_modulate = Color(0.8, 0.8, 0.2, 0.5)  # Amarelo
 				button.modulate = Color(1.0, 1.0, 1.0)  # Normal
+				if panel:
+					panel.self_modulate = Color(0.8, 0.8, 0.2, 0.5)  # Amarelo
+				button.update_prereq_status(true)
 			# Se não estiver disponível
 			else:
-				button.panel.self_modulate = Color(0.3, 0.3, 0.3, 0.5)  # Cinza escuro
 				button.modulate = Color(0.7, 0.7, 0.7)  # Escurecido
+				if panel:
+					panel.self_modulate = Color(0.3, 0.3, 0.3, 0.5)  # Cinza escuro
+				button.update_prereq_status(false)
 	
 	# Depois atualiza as conexões
 	_update_connection_lines()
-
 # Nova função para atualizar as linhas de conexão
 func _update_connection_lines():
 	var connections_layer = $"BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"
@@ -269,18 +378,18 @@ func get_formatted_description(talent_id: int) -> String:
 	var talent_descriptions = {
 		0: "Archer's basic attack. Starting point for all specializations.",
 		1: "Increases basic attack damage by 15%.",
-		2: "Increases tower range by 20%.",
+		2: "Increases Archer range by 20%.",
 		3: "Attacks ignore 10% of enemy armor.",
 		4: "Arrows now pierce through 1 additional enemy.",
 		5: "Arrows deal 30% more damage to enemies with health above 75%.",
-		6: "Basic attacks apply 20% extra damage as fire, burning for 3s.",
+		6: "Basic attacks apply 20% extra damage as fire instantly, plus a burning effect that deals 5% of base damage every 0.5s for 3s",
 		7: "Attacks reduce enemy speed by 30% for 2s.",
 		8: "Frozen enemies explode upon death, dealing area damage.",
 		9: "Arrows create an air blade that hits nearby enemies.",
 		10: "Attacks on burning enemies have a 50% chance to spread fire to up to 2 nearby enemies.",
-		11: "The tower fires 2 arrows simultaneously instead of 1.",
+		11: "The Archer fires 2 arrows simultaneously instead of 1.",
 		12: "Arrows have a 30% chance to ricochet to another enemy.",
-		13: "Every 10 attacks, the tower fires 5 arrows in an area.",
+		13: "Every 10 attacks, the Archer fires 5 arrows in an area.",
 		14: "Attacks have a 10% chance to fire 3 arrows in a cone.",
 		15: "Arrows explode on impact, dealing 50% of the damage in an area.",
 		16: "Critical hits apply bleeding, causing 30% of base damage over 4s.",
@@ -289,7 +398,7 @@ func get_formatted_description(talent_id: int) -> String:
 		19: "Fire damage increases as the enemy's health decreases.",
 		20: "Arrows now pierce through up to 3 enemies.",
 		21: "Enemies with less than 15% health receive double damage.",
-		22: "Every 5 attacks, the tower fires a random elemental arrow (fire, ice, or physical).",
+		22: "Every 5 attacks, the Archer fires a random elemental arrow (fire, ice, or physical).",
 		23: "Arrows apply a debuff, increasing damage received by the enemy by 10% for 5s.",
 		24: "Arrows apply poison, causing 30% of total damage over 4s.",
 		25: "If 3 consecutive attacks hit the same enemy, the next hit deals 300% damage.",
@@ -297,7 +406,7 @@ func get_formatted_description(talent_id: int) -> String:
 		27: "Every 5 consecutive shots on the same enemy increases damage by 5%, stacking up to 5 times.",
 		28: "Criticals now deal 100% extra damage.",
 		29: "Arrows have a 15% chance to fire a gust of wind, pushing enemies back.",
-		30: "Every 50 attacks, the tower fires a giant arrow that deals 500% damage in a straight line."
+		30: "Every 50 attacks, the Archer fires a giant arrow that deals 500% damage in a straight line."
 	}
 	# Dicionário com informações sobre as tags
 	var talent_tag_info = {
@@ -582,3 +691,18 @@ func enable_connected_talents(skill: SkillNode):
 
 	# Redesenha as conexões para mostrar visualmente
 	_update_connection_colors()
+
+func update_available_talents():
+		# Primeiro, marque todos os talentos como não disponíveis
+	for talent_id in talent_status.keys():
+		if not talent_status[talent_id]["unlocked"]:
+			talent_status[talent_id]["available"] = false
+	
+	# Depois, marque como disponíveis os talentos conectados a talentos desbloqueados
+	for talent_id in talent_status.keys():
+		if talent_status[talent_id]["unlocked"]:
+			# Se este talento está desbloqueado, marca suas conexões como disponíveis
+			if talent_id in talent_connections:
+				for connected_id in talent_connections[talent_id]:
+					if connected_id in talent_status:
+						talent_status[connected_id]["available"] = true

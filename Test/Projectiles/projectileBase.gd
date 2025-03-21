@@ -13,13 +13,11 @@ var dmg_calculator: DmgCalculatorComponent
 var tags: Array = []  # Array para armazenar tags como "fire", "ice", etc.
 
 func _ready():
-	print("Projétil criado com dano base:", damage, ", crit_chance:", crit_chance)
 	is_crit = is_critical_hit(crit_chance)
 	
 	# Obtém ou cria o calculador de dano
 	dmg_calculator = $DmgCalculatorComponent
 	if not dmg_calculator:
-		print("AVISO: DmgCalculatorComponent não encontrado! Criando um novo...")
 		dmg_calculator = DmgCalculatorComponent.new()
 		add_child(dmg_calculator)
 	
@@ -28,7 +26,6 @@ func _ready():
 	
 	# Inicializa com o atirador se estiver disponível
 	if shooter:
-		print("Inicializando calculador com o atirador")
 		dmg_calculator.initialize_from_shooter(shooter)
 
 func _physics_process(delta):
@@ -57,10 +54,8 @@ func get_damage_package() -> Dictionary:
 	if is_crit:
 		damage_package["physical_damage"] = int(damage_package["physical_damage"] * 2)
 		damage_package["is_critical"] = true
-		print("HIT CRÍTICO! Dano:", damage_package["physical_damage"])
 	else:
 		damage_package["is_critical"] = false
-		print("Hit normal. Dano:", damage_package["physical_damage"])
 	
 	# Adiciona as tags do projétil ao pacote de dano
 	damage_package["tags"] = tags
@@ -71,4 +66,3 @@ func get_damage_package() -> Dictionary:
 func add_tag(tag_name: String) -> void:
 	if not tag_name in tags:
 		tags.append(tag_name)
-		print("Tag adicionada ao projétil:", tag_name)

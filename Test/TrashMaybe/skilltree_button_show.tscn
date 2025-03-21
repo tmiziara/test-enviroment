@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cdrhayu8ooy1v"]
+
+[node name="TalentButton" type="Button"]
+offset_right = 194.0
+offset_bottom = 35.0
+text = "Skill Tree"
+
+[connection signal="pressed" from="." to="." method="_on_pressed"]

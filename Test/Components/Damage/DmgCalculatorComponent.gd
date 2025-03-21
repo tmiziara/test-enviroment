@@ -28,11 +28,6 @@ func calculate_damage() -> Dictionary:
 	# Garantia de dano mínimo
 	total_damage = max(total_damage, 1)  # Sempre causa pelo menos 1 de dano
 	
-	print("DmgCalculator: Calculando dano - Base:", base_damage, 
-		  ", Arma:", weapon_damage, 
-		  ", Main Stat:", main_stat,
-		  ", Total:", total_damage)
-	
 	# Pacote final de dano
 	var damage_package = {
 		"physical_damage": total_damage,

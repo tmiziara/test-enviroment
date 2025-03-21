@@ -146,7 +146,6 @@ func reset_animation_state():
 	animation_tree.set("parameters/TimeScale/scale", 1)  # Reseta a escala da animação
 
 func _on_body_entered(body):
-	print(body)
 	if body.is_in_group("enemies"):
 		mobs_in_range.append(body)
 		if current_target == null:

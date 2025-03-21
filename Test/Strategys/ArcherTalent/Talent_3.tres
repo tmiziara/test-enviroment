@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="Talent_3" load_steps=2 format=3 uid="uid://nwxxf3cf7fn6"]
+
+[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_3.gd" id="1_5w844"]
+
+[resource]
+script = ExtResource("1_5w844")
+armor_penetration = 0.53

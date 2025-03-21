@@ -1,15 +1,19 @@
-[gd_scene load_steps=34 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=40 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
 [ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
 [ext_resource type="Texture2D" uid="uid://leh8xkgwyu5u" path="res://Test/Assets/Icons/ArcherSkill/0.png" id="3_l53o2"]
 [ext_resource type="Texture2D" uid="uid://c87xnymfgya76" path="res://Test/Assets/Icons/ArcherSkill/1.png" id="4_d2vu7"]
 [ext_resource type="Texture2D" uid="uid://ccvdoif876s61" path="res://Test/Assets/Icons/ArcherSkill/2.png" id="5_tu26t"]
+[ext_resource type="Resource" uid="uid://b3twni6a08hah" path="res://Test/Strategys/ArcherTalent/Talent_1.tres" id="5_y6fry"]
 [ext_resource type="Texture2D" uid="uid://5yjeuctmq6kv" path="res://Test/Assets/Icons/ArcherSkill/3.png" id="6_yqxhp"]
 [ext_resource type="Texture2D" uid="uid://bvw6divckq3ux" path="res://Test/Assets/Icons/ArcherSkill/4.png" id="7_nwq3q"]
+[ext_resource type="Resource" uid="uid://b3k4iexvnptf3" path="res://Test/Strategys/ArcherTalent/Talent_2.tres" id="7_v5qnm"]
 [ext_resource type="Texture2D" uid="uid://dcx01i7uqiu26" path="res://Test/Assets/Icons/ArcherSkill/5.png" id="8_abbjq"]
 [ext_resource type="Texture2D" uid="uid://cl68l7fo1rryx" path="res://Test/Assets/Icons/ArcherSkill/6.png" id="9_tboi8"]
+[ext_resource type="Resource" uid="uid://nwxxf3cf7fn6" path="res://Test/Strategys/ArcherTalent/Talent_3.tres" id="9_xind3"]
 [ext_resource type="Texture2D" uid="uid://0vyvluc35uaq" path="res://Test/Assets/Icons/ArcherSkill/7.png" id="10_mjvwq"]
+[ext_resource type="Resource" uid="uid://bk13qo7eoht87" path="res://Test/Strategys/ArcherTalent/Talent_6.tres" id="10_vwo7v"]
 [ext_resource type="Texture2D" uid="uid://csl3ecp4iwsrx" path="res://Test/Assets/Icons/ArcherSkill/8.png" id="11_l23rc"]
 [ext_resource type="Texture2D" uid="uid://kwckvf4ycsvf" path="res://Test/Assets/Icons/ArcherSkill/9.png" id="12_4k41y"]
 [ext_resource type="Texture2D" uid="uid://dyocwwuyu3e1l" path="res://Test/Assets/Icons/ArcherSkill/10.png" id="13_1fpha"]
@@ -17,6 +21,7 @@
 [ext_resource type="Texture2D" uid="uid://bkfg2c8ybthks" path="res://Test/Assets/Icons/ArcherSkill/12.png" id="15_evbns"]
 [ext_resource type="Texture2D" uid="uid://bfgb6661urlnl" path="res://Test/Assets/Icons/ArcherSkill/13.png" id="16_kwscv"]
 [ext_resource type="Texture2D" uid="uid://co2bpj3f5p3pp" path="res://Test/Assets/Icons/ArcherSkill/14.png" id="17_5f38h"]
+[ext_resource type="Resource" uid="uid://dvd5ph7btp2e" path="res://Test/Strategys/ArcherTalent/Talent_11.tres" id="17_kml1r"]
 [ext_resource type="Texture2D" uid="uid://c8r30foegmkmk" path="res://Test/Assets/Icons/ArcherSkill/15.png" id="18_voe78"]
 [ext_resource type="Texture2D" uid="uid://drcbxap10cxgg" path="res://Test/Assets/Icons/ArcherSkill/16.png" id="19_rfep8"]
 [ext_resource type="Texture2D" uid="uid://cm5rdp0n4jxtn" path="res://Test/Assets/Icons/ArcherSkill/17.png" id="20_108br"]
@@ -34,17 +39,27 @@
 [ext_resource type="Texture2D" uid="uid://wyfj6bkmhhv8" path="res://Test/Assets/Icons/ArcherSkill/29.png" id="32_essnb"]
 [ext_resource type="Texture2D" uid="uid://dn26dle6ue1sw" path="res://Test/Assets/Icons/ArcherSkill/30.png" id="33_6s1uf"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wr0a4"]
+bg_color = Color(0, 0, 0, 1)
+
 [node name="TalentTreeUi" type="Control" groups=["skill_tree"]]
 custom_minimum_size = Vector2(1152, 648)
 layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+anchors_preset = 0
+offset_right = 1152.0
+offset_bottom = 648.0
 script = ExtResource("1_0tkk1")
 
+[node name="Panel" type="Panel" parent="."]
+self_modulate = Color(0, 0, 0, 1)
+custom_minimum_size = Vector2(1152, 648)
+layout_mode = 2
+offset_right = 1152.0
+offset_bottom = 648.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_wr0a4")
+
 [node name="BackgroundPanel" type="PanelContainer" parent="."]
+self_modulate = Color(0, 0, 0, 1)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -265,6 +280,7 @@ texture_normal = ExtResource("4_d2vu7")
 talent_id = 1
 skill_name = "Precise Aim"
 icon = ExtResource("4_d2vu7")
+talent_strategy = ExtResource("5_y6fry")
 
 [node name="talent_2" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
@@ -276,6 +292,7 @@ texture_normal = ExtResource("5_tu26t")
 talent_id = 2
 skill_name = "Enhanced Range"
 icon = ExtResource("5_tu26t")
+talent_strategy = ExtResource("7_v5qnm")
 
 [node name="talent_3" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
@@ -287,6 +304,7 @@ texture_normal = ExtResource("6_yqxhp")
 talent_id = 3
 skill_name = "Sharp Arrows"
 icon = ExtResource("6_yqxhp")
+talent_strategy = ExtResource("9_xind3")
 
 [node name="talent_4" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
@@ -323,6 +341,7 @@ texture_normal = ExtResource("9_tboi8")
 talent_id = 6
 skill_name = "Flaming Arrows"
 icon = ExtResource("9_tboi8")
+talent_strategy = ExtResource("10_vwo7v")
 
 [node name="talent_7" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
@@ -381,6 +400,7 @@ texture_normal = ExtResource("14_xa5yu")
 talent_id = 11
 skill_name = "Double Shot"
 icon = ExtResource("14_xa5yu")
+talent_strategy = ExtResource("17_kml1r")
 
 [node name="talent_12" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
@@ -627,7 +647,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="SkillDescription" type="RichTextLabel" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
-custom_minimum_size = Vector2(248, 0)
+custom_minimum_size = Vector2(248, 300)
 layout_mode = 2
 theme_override_font_sizes/bold_italics_font_size = 10
 theme_override_font_sizes/italics_font_size = 10

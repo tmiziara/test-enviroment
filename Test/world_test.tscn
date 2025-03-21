@@ -1,18 +1,47 @@
-[gd_scene load_steps=3 format=3 uid="uid://b16odll4w6fmg"]
+[gd_scene load_steps=7 format=3 uid="uid://b16odll4w6fmg"]
 
+[ext_resource type="Script" path="res://Test/world_test.gd" id="1_e78mo"]
 [ext_resource type="PackedScene" uid="uid://bcavxefldragy" path="res://Test/archer_test.tscn" id="1_ffwo5"]
+[ext_resource type="PackedScene" uid="uid://clurda8aosh4e" path="res://Test/talent_tree_ui.gd.tscn" id="2_4rk15"]
 [ext_resource type="PackedScene" uid="uid://dr52dwcmya0ut" path="res://Test/enemy_test.tscn" id="2_uahnj"]
+[ext_resource type="PackedScene" uid="uid://cdrhayu8ooy1v" path="res://Test/TrashMaybe/skilltree_button_show.tscn" id="3_qqvft"]
+[ext_resource type="PackedScene" uid="uid://dknruy0w6okvd" path="res://Test/Debug/archer_debug_panel.tscn" id="3_ug3j4"]
 
 [node name="WorldTest" type="Node2D"]
+script = ExtResource("1_e78mo")
+talent_tree_scene = ExtResource("2_4rk15")
+debug_panel_scene = ExtResource("3_ug3j4")
 
-[node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
-position = Vector2(594, 543)
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 14
+
+[node name="TalentButton" parent="CanvasLayer" instance=ExtResource("3_qqvft")]
+z_index = 1
+offset_right = 124.0
+offset_bottom = 24.0
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 10
 
 [node name="Enemy" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(455, 527)
+position = Vector2(455, 464)
 
 [node name="Enemy2" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(452, 468)
+position = Vector2(424, 464)
 
 [node name="Enemy3" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(452, 405)
+position = Vector2(485, 463)
+
+[node name="Enemy4" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(438, 488)
+
+[node name="Enemy5" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(407, 488)
+
+[node name="Enemy6" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(468, 487)
+
+[node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
+position = Vector2(562, 559)
+
+[connection signal="pressed" from="CanvasLayer/TalentButton" to="." method="_on_talent_button_pressed"]
