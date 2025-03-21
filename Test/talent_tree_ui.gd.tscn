@@ -1,4 +1,4 @@
-[gd_scene load_steps=40 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=42 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
 [ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
@@ -15,8 +15,10 @@
 [ext_resource type="Texture2D" uid="uid://0vyvluc35uaq" path="res://Test/Assets/Icons/ArcherSkill/7.png" id="10_mjvwq"]
 [ext_resource type="Resource" uid="uid://bk13qo7eoht87" path="res://Test/Strategys/ArcherTalent/Talent_6.tres" id="10_vwo7v"]
 [ext_resource type="Texture2D" uid="uid://csl3ecp4iwsrx" path="res://Test/Assets/Icons/ArcherSkill/8.png" id="11_l23rc"]
+[ext_resource type="Resource" uid="uid://rjd88mabw72i" path="res://Test/Strategys/ArcherTalent/Talent_4.tres" id="11_owmts"]
 [ext_resource type="Texture2D" uid="uid://kwckvf4ycsvf" path="res://Test/Assets/Icons/ArcherSkill/9.png" id="12_4k41y"]
 [ext_resource type="Texture2D" uid="uid://dyocwwuyu3e1l" path="res://Test/Assets/Icons/ArcherSkill/10.png" id="13_1fpha"]
+[ext_resource type="Resource" uid="uid://bve2h5xdwx405" path="res://Test/Strategys/ArcherTalent/Talent_5.tres" id="13_amsuu"]
 [ext_resource type="Texture2D" uid="uid://bqo7gccxxrnb4" path="res://Test/Assets/Icons/ArcherSkill/11.png" id="14_xa5yu"]
 [ext_resource type="Texture2D" uid="uid://bkfg2c8ybthks" path="res://Test/Assets/Icons/ArcherSkill/12.png" id="15_evbns"]
 [ext_resource type="Texture2D" uid="uid://bfgb6661urlnl" path="res://Test/Assets/Icons/ArcherSkill/13.png" id="16_kwscv"]
@@ -316,6 +318,7 @@ texture_normal = ExtResource("7_nwq3q")
 talent_id = 4
 skill_name = "Piercing Shot"
 icon = ExtResource("7_nwq3q")
+talent_strategy = ExtResource("11_owmts")
 
 [node name="talent_5" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
@@ -327,6 +330,7 @@ texture_normal = ExtResource("8_abbjq")
 talent_id = 5
 skill_name = "Focused Shot"
 icon = ExtResource("8_abbjq")
+talent_strategy = ExtResource("13_amsuu")
 
 [node name="ElementalPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
 anchors_preset = 0

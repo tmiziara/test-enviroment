@@ -9,7 +9,7 @@ class_name DefenseComponent
 @export_range(0.0, 1.0) var resistance_generic: float = 0.0
 
 # Constantes para cálculos
-const ARMOR_FACTOR = 0.002  # Ajustado para um valor menor para lidar com valores altos de armadura
+const ARMOR_FACTOR = 0.01  # Ajustado para um valor menor para lidar com valores altos de armadura
 const MAX_ARMOR_REDUCTION = 0.75  # Máximo de 75% de redução por armadura
 
 # Dicionário de debuffs ativos

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="Talent_4" load_steps=2 format=3 uid="uid://rjd88mabw72i"]
+
+[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_4.gd" id="1_crc2y"]
+
+[resource]
+script = ExtResource("1_crc2y")
+piercing_count = 1
+talent_id = 4

@@ -41,6 +41,24 @@ position = Vector2(407, 488)
 [node name="Enemy6" parent="." instance=ExtResource("2_uahnj")]
 position = Vector2(468, 487)
 
+[node name="Enemy7" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(426, 415)
+
+[node name="Enemy8" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(395, 415)
+
+[node name="Enemy9" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(456, 414)
+
+[node name="Enemy10" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(409, 439)
+
+[node name="Enemy11" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(378, 439)
+
+[node name="Enemy12" parent="." instance=ExtResource("2_uahnj")]
+position = Vector2(439, 438)
+
 [node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
 position = Vector2(562, 559)
 

@@ -9,7 +9,17 @@ func _ready():
 # No hurtbox.gd
 func _on_body_entered(body):
 	if body.is_in_group("enemies") and body.has_node("HealthComponent"):
-		var health_component = body.get_node("HealthComponent")
+		# Verifica se o projétil tem o talento de Focused Shot
+		if owner_entity.has_meta("check_focused_shot"):
+			var check_method = owner_entity.get_meta("check_focused_shot")
+			check_method.call(owner_entity, body)
+		
+		# Verifica se o calculador de dano tem o talento de Focused Shot
+		if owner_entity.has_node("DmgCalculatorComponent"):
+			var dmg_calc = owner_entity.get_node("DmgCalculatorComponent")
+			if dmg_calc.has_meta("check_focused_shot"):
+				var check_method = dmg_calc.get_meta("check_focused_shot")
+				check_method.call(dmg_calc, body)
 		
 		# Pega o pacote de dano calculado
 		var damage_package = owner_entity.get_damage_package()
@@ -27,3 +37,4 @@ func _on_body_entered(body):
 		if owner_entity and owner_entity is ProjectileBase:
 			if not owner_entity.piercing:
 				owner_entity.queue_free()
+	return body

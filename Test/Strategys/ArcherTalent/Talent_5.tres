@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Talent_5" load_steps=2 format=3 uid="uid://bve2h5xdwx405"]
+
+[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_5.gd" id="1_ttht1"]
+
+[resource]
+script = ExtResource("1_ttht1")
+damage_bonus_percent = 0.3
+health_threshold = 0.75
+talent_id = 5

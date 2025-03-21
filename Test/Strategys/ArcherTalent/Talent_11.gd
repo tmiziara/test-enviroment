@@ -15,16 +15,8 @@ func get_strategy_name() -> String:
 func apply_upgrade(projectile: Node) -> void:
 	print("Aplicando upgrade de Tiro Duplo!")
 	
-	# Verifica se temos acesso ao atirador para criar a segunda flecha
-	if not "shooter" in projectile or not projectile.shooter:
-		print("ERRO: Não foi possível acessar o atirador para o Double Shot")
-		return
-		
-	# Verifica se é um projétil válido
-	if not projectile is CharacterBody2D:
-		print("ERRO: O projétil não é um CharacterBody2D")
-		return
-		
+	# Verificações de segurança (código atual)...
+	
 	# Pega referências importantes
 	var shooter = projectile.shooter
 	var direction = projectile.direction
@@ -36,7 +28,7 @@ func apply_upgrade(projectile: Node) -> void:
 		print("ERRO: Não foi possível carregar a cena da flecha")
 		return
 		
-	# Cria a segunda flecha com uma pequena variação de ângulo
+	# Cria a segunda flecha
 	var second_arrow = arrow_scene.instantiate()
 	
 	# Configura posição e direção com desvio angular
@@ -46,43 +38,33 @@ func apply_upgrade(projectile: Node) -> void:
 	second_arrow.direction = rotated_direction
 	second_arrow.rotation = rotated_direction.angle()
 	
-	# Configura outras propriedades
+	# Configura o atirador (IMPORTANTE: faça isso antes de adicionar à árvore)
 	second_arrow.shooter = shooter
-	second_arrow.damage = int(projectile.damage * second_arrow_damage_mult)
 	
-	# Copia tags da flecha original, exceto double_shot para evitar recursão
-	if "tags" in projectile and projectile.tags is Array:
-		second_arrow.tags = projectile.tags.duplicate()
-		if "double_shot" in second_arrow.tags:
-			second_arrow.tags.erase("double_shot")
+	# Adiciona a tag de double_shot para evitar recursão infinita
+	if "add_tag" in second_arrow:
+		second_arrow.add_tag("double_shot")
 	
-	# Se a flecha original tem um DmgCalculatorComponent, configura o da segunda flecha
-	if projectile.has_node("DmgCalculatorComponent") and second_arrow.has_node("DmgCalculatorComponent"):
-		var original_calc = projectile.get_node("DmgCalculatorComponent")
-		var second_calc = second_arrow.get_node("DmgCalculatorComponent")
-		
-		# Copia configurações básicas
-		second_calc.base_damage = int(original_calc.base_damage * second_arrow_damage_mult)
-		
-		# Copia dano elemental (se existir)
-		if "elemental_damage" in original_calc and original_calc.elemental_damage is Dictionary:
-			second_calc.elemental_damage = original_calc.elemental_damage.duplicate()
-			
-		# Copia efeitos DoT (se existirem)
-		if "dot_effects" in original_calc and original_calc.dot_effects is Array:
-			# Em vez de copiar diretamente (que pode causar problemas de referência)
-			# vamos recriar os efeitos DoT
-			for dot_effect in original_calc.dot_effects:
-				second_calc.add_dot_effect(
-					dot_effect.get("damage", 0),
-					dot_effect.get("duration", 0),
-					dot_effect.get("interval", 1.0),
-					dot_effect.get("type", "generic")
-				)
+	# NOVO: Obtém as outras estratégias para aplicar
+	var other_strategies = []
+	# Verifica se o shooter é do tipo esperado
+	if shooter is Soldier_Base:
+		# Se for um Soldier_Base, podemos acessar attack_upgrades com segurança
+		for strategy in shooter.attack_upgrades:
+			if not strategy is Talent_11:
+				other_strategies.append(strategy)
+	else:
+		print("AVISO: Atirador não é um Soldier_Base, não foi possível obter upgrades.")
 	
 	# Adiciona a segunda flecha à cena
 	if shooter and shooter.get_parent():
 		shooter.get_parent().call_deferred("add_child", second_arrow)
 		print("Segunda flecha gerada pelo Double Shot")
+		
+		# NOVO: Aplica as outras estratégias à flecha secundária
+		for strategy in other_strategies:
+			if strategy and is_instance_valid(strategy):
+				strategy.apply_upgrade(second_arrow)
+				print("Aplicando estratégia à flecha secundária:", strategy.get_strategy_name() if strategy.has_method("get_strategy_name") else "Estratégia")
 	else:
 		print("ERRO: Não foi possível adicionar a segunda flecha à cena")

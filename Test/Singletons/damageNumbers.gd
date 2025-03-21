@@ -44,7 +44,7 @@ func display_number(value: int, position: Vector2, is_critical: bool = false, da
 		color = "#F22"  # Vermelho para crítico
 	
 	number.label_settings.font_color = color
-	number.label_settings.font_size = 18
+	number.label_settings.font_size = 10
 	number.label_settings.outline_color = "#000"
 	number.label_settings.outline_size = 1
 	
