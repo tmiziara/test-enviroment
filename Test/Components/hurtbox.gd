@@ -6,20 +6,13 @@ class_name Hurtbox
 func _ready():
 	connect("body_entered", Callable(self, "_on_body_entered"))
 
-# No hurtbox.gd
 func _on_body_entered(body):
 	if body.is_in_group("enemies") and body.has_node("HealthComponent"):
-		# Verifica se o projétil tem o talento de Focused Shot
-		if owner_entity.has_meta("check_focused_shot"):
-			var check_method = owner_entity.get_meta("check_focused_shot")
-			check_method.call(owner_entity, body)
+		var health_component = body.get_node("HealthComponent")
 		
-		# Verifica se o calculador de dano tem o talento de Focused Shot
-		if owner_entity.has_node("DmgCalculatorComponent"):
-			var dmg_calc = owner_entity.get_node("DmgCalculatorComponent")
-			if dmg_calc.has_meta("check_focused_shot"):
-				var check_method = dmg_calc.get_meta("check_focused_shot")
-				check_method.call(dmg_calc, body)
+		# Chamada ao método process_on_hit (se existir)
+		if owner_entity.has_method("process_on_hit"):
+			owner_entity.process_on_hit(body)
 		
 		# Pega o pacote de dano calculado
 		var damage_package = owner_entity.get_damage_package()
@@ -33,8 +26,32 @@ func _on_body_entered(body):
 			var is_crit = damage_package.get("is_critical", owner_entity.is_crit)
 			health_component.take_damage(physical_damage, is_crit)
 		
-		# Garante que o projétil seja destruído corretamente
+		# Verifica se o projétil deve ser destruído após atingir um alvo
 		if owner_entity and owner_entity is ProjectileBase:
-			if not owner_entity.piercing:
+			if owner_entity.piercing:
+				# Verifica se o projétil tem um contador de atravessamentos
+				var current_count = 0
+				if owner_entity.has_meta("current_pierce_count"):
+					current_count = owner_entity.get_meta("current_pierce_count")
+				
+				# Incrementa o contador de inimigos atravessados
+				current_count += 1
+				owner_entity.set_meta("current_pierce_count", current_count)
+				
+				# Obtém o limite máximo de atravessamentos adicionais
+				var max_pierce = 1  # Valor padrão para inimigos adicionais
+				if owner_entity.has_meta("piercing_count"):
+					max_pierce = owner_entity.get_meta("piercing_count")
+				
+				print("Flecha atravessou ", current_count, " de ", max_pierce + 1, " inimigos possíveis")
+				
+				# Se já atravessou mais do que o máximo permitido, destrói o projétil
+				# max_pierce = número de inimigos ADICIONAIS, então a flecha pode atingir max_pierce + 1 no total
+				if current_count > max_pierce:
+					print("Limite de atravessamento atingido, destruindo flecha")
+					owner_entity.queue_free()
+			else:
+				# Se não for perfurante, destrói após o primeiro hit
 				owner_entity.queue_free()
+	
 	return body

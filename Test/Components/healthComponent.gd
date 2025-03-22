@@ -208,3 +208,6 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 	# Inicia os timers
 	dot_timer.start()
 	duration_timer.start()
+
+func get_health_percent() -> float:
+	return float(current_health) / max_health

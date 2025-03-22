@@ -59,6 +59,7 @@ func set_level(value: int):
 		if _level > 0:
 			modulate = Color(1.0, 1.0, 1.0)  # Normal
 			current_panel.self_modulate = Color(0.2, 0.8, 0.2, 0.7)  # Verde transparente
+			panel.visible = false
 		else:
 			if prerequisites_met:
 				modulate = Color(1.0, 1.0, 1.0)  # Normal
