@@ -13,6 +13,31 @@ func _on_body_entered(body):
 		print("Body is not an enemy or doesn't have HealthComponent")
 		return
 	
+	# Verificar se este alvo já foi atingido (para suporte ao piercing)
+	if owner_entity.has_meta("hit_targets"):
+		var hit_targets = owner_entity.get_meta("hit_targets")
+		if body in hit_targets:
+			print("Este alvo já foi atingido por esta flecha, ignorando.")
+			return
+			
+		# Adiciona o alvo à lista de alvos atingidos
+		hit_targets.append(body)
+		owner_entity.set_meta("hit_targets", hit_targets)
+		
+		# Atualiza a contagem de penetração
+		if owner_entity.piercing:
+			var current_pierce_count = hit_targets.size() - 1
+			print("Contagem de penetração atual: ", current_pierce_count)
+			
+			# Obter o máximo de penetrações permitidas
+			var max_pierce = 1
+			if owner_entity.has_meta("piercing_count"):
+				max_pierce = owner_entity.get_meta("piercing_count")
+			elif "piercing_count" in owner_entity:
+				max_pierce = owner_entity.piercing_count
+				
+			print("Penetração: ", current_pierce_count, "/", max_pierce)
+	
 	# Check if this is a chain shot arrow that's already processing a ricochet
 	if owner_entity is Arrow and owner_entity.has_method("process_on_hit"):
 		if owner_entity.is_processing_ricochet:
@@ -44,19 +69,29 @@ func _on_body_entered(body):
 		if not owner_entity is Arrow and owner_entity.piercing:
 			# Only handle piercing for non-Arrow projectiles
 			var current_count = 0
-			if owner_entity.has_meta("current_pierce_count"):
-				current_count = owner_entity.get_meta("current_pierce_count")
+			var hit_targets = []
 			
-			current_count += 1
-			owner_entity.set_meta("current_pierce_count", current_count)
+			# Usar a lista de alvos atingidos como contagem de penetração
+			if owner_entity.has_meta("hit_targets"):
+				hit_targets = owner_entity.get_meta("hit_targets")
+				current_count = hit_targets.size() - 1
+			else:
+				# Fallback para o método antigo
+				if owner_entity.has_meta("current_pierce_count"):
+					current_count = owner_entity.get_meta("current_pierce_count")
+				
+				current_count += 1
+				owner_entity.set_meta("current_pierce_count", current_count)
 			
 			var max_pierce = 1
 			if owner_entity.has_meta("piercing_count"):
 				max_pierce = owner_entity.get_meta("piercing_count")
+			elif "piercing_count" in owner_entity:
+				max_pierce = owner_entity.piercing_count
 			
-			print("Non-Arrow pierced ", current_count, " of ", max_pierce + 1, " possible enemies")
+			print("Non-Arrow pierced ", current_count, " of ", max_pierce, " possible enemies")
 			
-			if current_count > max_pierce:
+			if current_count >= max_pierce:
 				print("Piercing limit reached, destroying projectile")
 				owner_entity.queue_free()
 		elif not owner_entity is Arrow:

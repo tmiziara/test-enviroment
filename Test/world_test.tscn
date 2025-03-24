@@ -72,6 +72,6 @@ position = Vector2(451, 409)
 position = Vector2(597, 429)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
-position = Vector2(562, 559)
+position = Vector2(561, 581)
 
 [connection signal="pressed" from="CanvasLayer/TalentButton" to="." method="_on_talent_button_pressed"]
