@@ -4,12 +4,22 @@ class_name Arrow
 # Signals
 signal on_hit(target, projectile)
 
-# Focused Shot properties
+# Focused Shot properties (directly in the class instead of using meta)
 var focused_shot_enabled: bool = false
 var focused_shot_bonus: float = 0.0
-var focused_shot_threshold: float = 0.0
+var focused_shot_threshold: float = 0.75  # Padrão de 75%
 
-# Chain Shot properties
+# Método para configurar o Focused Shot diretamente
+func configure_focused_shot(is_enabled: bool, bonus: float, threshold: float = 0.75) -> void:
+	focused_shot_enabled = is_enabled
+	focused_shot_bonus = bonus
+	focused_shot_threshold = threshold
+	print("Focused Shot configurado:")
+	print("  - Habilitado: ", is_enabled)
+	print("  - Bônus de Dano: ", bonus * 100, "%")
+	print("  - Limiar de Vida: ", threshold * 100, "%")
+
+# Chain Shot properties (restante do código original)
 var chain_shot_enabled: bool = false
 var chain_chance: float = 0.3        # 30% chance to ricochet
 var chain_range: float = 150.0       # Maximum range for finding targets
@@ -28,8 +38,85 @@ func _ready():
 	if not hit_targets:
 		hit_targets = []
 
+# Modifica o método get_damage_package() para melhorar o Focused Shot
+
+func get_damage_package() -> Dictionary:
+	# Call the parent's method to create the base damage package
+	var damage_package = super.get_damage_package()
+	
+	# Debug: Print all relevant information
+	print("=== FOCUSED SHOT DEBUG START ===")
+	print("Focused Shot Enabled: ", focused_shot_enabled)
+	print("Focused Shot Bonus: ", focused_shot_bonus)
+	print("Focused Shot Threshold: ", focused_shot_threshold)
+	
+	# Check if Focused Shot is enabled
+	if focused_shot_enabled:
+		# Try to find the current target
+		var current_target = null
+		if shooter and shooter.has_method("get_current_target"):
+			current_target = shooter.get_current_target()
+		elif has_meta("current_target"):
+			current_target = get_meta("current_target")
+		
+		# If there's a valid target
+		if current_target and current_target.has_node("HealthComponent"):
+			var health_component = current_target.get_node("HealthComponent")
+			
+			# Check if the health component has the necessary methods
+			if "current_health" in health_component and "max_health" in health_component:
+				# Calculate health percentage
+				var health_percent = float(health_component.current_health) / float(health_component.max_health)
+				
+				print("Target Health:")
+				print("  - Current Health: ", health_component.current_health)
+				print("  - Max Health: ", health_component.max_health)
+				print("  - Health Percent: ", health_percent * 100, "%")
+				print("  - Threshold: ", focused_shot_threshold * 100, "%")
+				
+				# If health is above threshold, apply bonus
+				if health_percent >= focused_shot_threshold:
+					print("FOCUSED SHOT ACTIVATED!")
+					
+					# Increase physical damage
+					if "physical_damage" in damage_package:
+						var bonus_physical_damage = int(damage_package["physical_damage"] * focused_shot_bonus)
+						damage_package["physical_damage"] += bonus_physical_damage
+						print("Physical Damage Increased:")
+						print("  - Original: ", damage_package["physical_damage"] - bonus_physical_damage)
+						print("  - Bonus: ", bonus_physical_damage)
+						print("  - New Total: ", damage_package["physical_damage"])
+					
+					# Increase elemental damage
+					if "elemental_damage" in damage_package:
+						for element in damage_package["elemental_damage"]:
+							var bonus_elem_damage = int(damage_package["elemental_damage"][element] * focused_shot_bonus)
+							damage_package["elemental_damage"][element] += bonus_elem_damage
+							print("Elemental Damage Increased:")
+							print("  - Element: ", element)
+							print("  - Original: ", damage_package["elemental_damage"][element] - bonus_elem_damage)
+							print("  - Bonus: ", bonus_elem_damage)
+							print("  - New Total: ", damage_package["elemental_damage"][element])
+						
+					# Add Focused Shot tag
+					if "tags" not in damage_package:
+						damage_package["tags"] = []
+					if "focused_shot" not in damage_package["tags"]:
+						damage_package["tags"].append("focused_shot")
+				else:
+					print("FOCUSED SHOT NOT ACTIVATED - Health below threshold")
+			else:
+				print("ERROR: Health component missing required properties")
+		else:
+			print("ERROR: Invalid target or no HealthComponent")
+	
+	print("=== FOCUSED SHOT DEBUG END ===")
+	
+	return damage_package
+
 # Method called by Hurtbox when the arrow hits a target
 func process_on_hit(target: Node) -> void:
+	set_meta("current_target", target)
 	print("Arrow.process_on_hit called - is_processing_ricochet: ", is_processing_ricochet)
 	
 	# If we're already processing a ricochet, ignore this hit
@@ -136,6 +223,10 @@ func process_on_hit(target: Node) -> void:
 
 # Function that implements Focused Shot logic
 func apply_focused_shot(target: Node) -> void:
+	# Verifica se o Focused Shot está habilitado
+	if not focused_shot_enabled:
+		return
+	
 	# Store original damage values to restore later
 	var original_damage = damage
 	var original_base_damage = 0
@@ -164,8 +255,8 @@ func apply_focused_shot(target: Node) -> void:
 		if health_percent >= focused_shot_threshold:
 			# Apply temporary bonus to projectile damage
 			damage = int(original_damage * (1.0 + focused_shot_bonus))
-			print("Focused Shot activated! Damage increased from", original_damage, "to", damage, 
-				  "(target with", health_percent * 100, "% health)")
+			print("Focused Shot activated! Damage increased from ", original_damage, " to ", damage, 
+				  " (target with ", health_percent * 100, "% health)")
 			
 			# Apply bonus to DmgCalculator if available
 			if has_node("DmgCalculatorComponent"):
@@ -174,7 +265,7 @@ func apply_focused_shot(target: Node) -> void:
 				# Apply bonus to base damage
 				if "base_damage" in dmg_calc:
 					dmg_calc.base_damage = int(original_base_damage * (1.0 + focused_shot_bonus))
-					print("Calculator base damage increased from", original_base_damage, "to", dmg_calc.base_damage)
+					print("Calculator base damage increased from ", original_base_damage, " to ", dmg_calc.base_damage)
 				
 				# Also apply bonus to all elemental damages
 				if "elemental_damage" in dmg_calc:
