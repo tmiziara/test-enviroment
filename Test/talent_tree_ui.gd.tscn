@@ -1,4 +1,4 @@
-[gd_scene load_steps=42 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=43 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
 [ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
@@ -29,6 +29,7 @@
 [ext_resource type="Texture2D" uid="uid://cm5rdp0n4jxtn" path="res://Test/Assets/Icons/ArcherSkill/17.png" id="20_108br"]
 [ext_resource type="Texture2D" uid="uid://e8jfiwnfeyaq" path="res://Test/Assets/Icons/ArcherSkill/18.png" id="21_5sr80"]
 [ext_resource type="Texture2D" uid="uid://byn2hpoaxrk42" path="res://Test/Assets/Icons/ArcherSkill/19.png" id="22_tdwa2"]
+[ext_resource type="Resource" uid="uid://bafqtm6o0sp63" path="res://Test/Strategys/ArcherTalent/Talent_12.tres" id="23_ar87f"]
 [ext_resource type="Texture2D" uid="uid://ipfta00gpbny" path="res://Test/Assets/Icons/ArcherSkill/20.png" id="23_yhr6m"]
 [ext_resource type="Texture2D" uid="uid://bmjtvqeqwvrfl" path="res://Test/Assets/Icons/ArcherSkill/21.png" id="24_1phgv"]
 [ext_resource type="Texture2D" uid="uid://bnib1jybhvxqk" path="res://Test/Assets/Icons/ArcherSkill/22.png" id="25_ir8vh"]
@@ -416,6 +417,7 @@ texture_normal = ExtResource("15_evbns")
 talent_id = 12
 skill_name = "Chain Shot"
 icon = ExtResource("15_evbns")
+talent_strategy = ExtResource("23_ar87f")
 
 [node name="talent_13" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0
