@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Talent_14" load_steps=2 format=3 uid="uid://cgvfdiiknt2nh"]
+
+[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_14.gd" id="1_3q2rs"]
+
+[resource]
+script = ExtResource("1_3q2rs")
+trigger_chance = 0.9
+additional_arrows = 2
+spread_angle = 30.0
+talent_id = 14

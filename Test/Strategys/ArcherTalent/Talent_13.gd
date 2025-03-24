@@ -144,6 +144,37 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 	# Create visual impact effect
 	create_impact_effect(impact_position)
 	
+	if has_meta("enable_splinters") and has_meta("splinter_strategy"):
+		var splinter_strategy = get_meta("splinter_strategy")
+		if splinter_strategy and is_instance_valid(splinter_strategy):
+			# Procura por inimigos atingidos pela flecha
+			var current_scene = Engine.get_main_loop().current_scene
+			var space_state = current_scene.get_world_2d().direct_space_state
+			
+			# Create a circle shape for target detection
+			var circle_shape = CircleShape2D.new()
+			circle_shape.radius = impact_radius
+			
+			var query = PhysicsShapeQueryParameters2D.new()
+			query.shape = circle_shape
+			query.transform = Transform2D(0, impact_position)
+			query.collision_mask = 2  # Enemy layer
+			query.collide_with_bodies = true
+			
+			var results = space_state.intersect_shape(query)
+			
+			# Encontra o primeiro inimigo atingido
+			for result in results:
+				var body = result.collider
+				if body and is_instance_valid(body) and body.is_in_group("enemies"):
+					# Encontrou um alvo - cria fragmentos a partir dele
+					splinter_strategy.process_splinters_at_impact(
+						impact_position, 
+						arrow, 
+						body, 
+						shooter.get_parent()  # A cena pai
+					)
+					break  # Apenas um alvo é suficiente	
 	# Remove shadow - ensuring tween is interrupted first
 	if shadow and is_instance_valid(shadow):
 		# Interrupt tween (if it exists)

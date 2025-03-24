@@ -4,6 +4,25 @@ class_name Arrow
 # Signals
 signal on_hit(target, projectile)
 
+# Arrow Storm properties
+var arrow_storm_enabled: bool = false
+var arrow_storm_trigger_chance: float = 0.1
+var arrow_storm_additional_arrows: int = 2
+var arrow_storm_spread_angle: float = 30.0
+
+# Method to configure Arrow Storm
+func configure_arrow_storm(is_enabled: bool, trigger_chance: float, additional_arrows: int, spread_angle: float) -> void:
+	arrow_storm_enabled = is_enabled
+	arrow_storm_trigger_chance = trigger_chance
+	arrow_storm_additional_arrows = additional_arrows
+	arrow_storm_spread_angle = spread_angle
+	
+	print("Arrow Storm configurado:")
+	print("  - Habilitado: ", is_enabled)
+	print("  - Chance de Trigger: ", trigger_chance * 100, "%")
+	print("  - Flechas Adicionais: ", additional_arrows)
+	print("  - Ângulo de Dispersão: ", spread_angle, " graus")
+	
 # Focused Shot properties (directly in the class instead of using meta)
 var focused_shot_enabled: bool = false
 var focused_shot_bonus: float = 0.0
@@ -407,3 +426,51 @@ func find_chain_target(original_target) -> void:
 		# Otherwise destroy the arrow
 		print("No chain targets and no piercing, destroying arrow")
 		queue_free()
+# Método opcional para tentar spawnar flechas adicionais
+func try_spawn_additional_arrows(target) -> Array:
+	# Verifica se o Arrow Storm está habilitado
+	if not arrow_storm_enabled or randf() > arrow_storm_trigger_chance:
+		return [self]
+	
+	print("Arrow Storm TRIGGERED!")
+	var additional_projectiles = []
+	
+	# Calcula direções para as flechas adicionais
+	var base_direction = direction
+	var half_spread = arrow_storm_spread_angle / 2.0
+	
+	# Cria flechas adicionais
+	for i in range(arrow_storm_additional_arrows):
+		# Calcula ângulo de deslocamento (de -half_spread a +half_spread)
+		var angle_offset = lerp(-half_spread, half_spread, float(i) / (arrow_storm_additional_arrows - 1))
+		
+		# Rotaciona a direção base
+		var rotated_direction = base_direction.rotated(deg_to_rad(angle_offset))
+		
+		# Clona o projétil original
+		var new_projectile = duplicate()
+		
+		# Configura nova direção
+		new_projectile.direction = rotated_direction
+		new_projectile.rotation = rotated_direction.angle()
+		
+		# Reseta velocidade com nova direção
+		new_projectile.velocity = rotated_direction * speed
+		
+		# Adiciona tag de identificação
+		if has_method("add_tag"):
+			new_projectile.add_tag("arrow_storm")
+		elif "tags" in new_projectile:
+			if not "arrow_storm" in new_projectile.tags:
+				new_projectile.tags.append("arrow_storm")
+		
+		# Adiciona à lista de projéteis
+		additional_projectiles.append(new_projectile)
+	
+	# Retorna lista com projétil original + projéteis adicionais
+	print("Arrow Storm: ", additional_projectiles.size() + 1, " arrows spawned")
+	return [self] + additional_projectiles
+
+# Método auxiliar para conversão de graus para radianos
+func deg_to_rad(degrees: float) -> float:
+	return degrees * (PI / 180.0)

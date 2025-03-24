@@ -390,7 +390,7 @@ func get_formatted_description(talent_id: int) -> String:
 		11: "The Archer fires 2 arrows simultaneously instead of 1.",
 		12: "Arrows have a 30% chance to ricochet to another enemy.",
 		13: "Every 10 attacks, the Archer fires 5 arrows in an area.",
-		14: "Attacks have a 10% chance to fire 3 arrows in a cone.",
+		14: "When Arrow Rain hits an enemy, the arrows split into 2 smaller arrows (dealing 25% damage each) that seek nearby foes.",
 		15: "Arrows explode on impact, dealing 50% of the damage in an area.",
 		16: "Critical hits apply bleeding, causing 30% of base damage over 4s.",
 		17: "Criticals create small explosions, dealing 100% damage in an area.",
@@ -464,7 +464,7 @@ func get_formatted_description(talent_id: int) -> String:
 			"tags": ["Physical", "Area"]
 		},
 		14: {
-			"adds": ["Area"],
+			"adds": ["Ricochet"],
 			"tags": ["Physical", "Area"]
 		},
 		15: {
