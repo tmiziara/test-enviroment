@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=46 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
 [ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
@@ -39,6 +39,7 @@
 [ext_resource type="Texture2D" uid="uid://biwe3pu3h3nir" path="res://Test/Assets/Icons/ArcherSkill/24.png" id="27_rogyu"]
 [ext_resource type="Texture2D" uid="uid://dt1y46ac3bjvj" path="res://Test/Assets/Icons/ArcherSkill/25.png" id="28_gc4n2"]
 [ext_resource type="Texture2D" uid="uid://b578fuywitovb" path="res://Test/Assets/Icons/ArcherSkill/26.png" id="29_curf5"]
+[ext_resource type="Resource" uid="uid://c3k5twigg302h" path="res://Test/Strategys/ArcherTalent/Talent_15.tres" id="29_oyohu"]
 [ext_resource type="Texture2D" uid="uid://b7th7fmko5gt8" path="res://Test/Assets/Icons/ArcherSkill/27.png" id="30_j2ums"]
 [ext_resource type="Texture2D" uid="uid://bbegfny4yir4x" path="res://Test/Assets/Icons/ArcherSkill/28.png" id="31_vfsdg"]
 [ext_resource type="Texture2D" uid="uid://wyfj6bkmhhv8" path="res://Test/Assets/Icons/ArcherSkill/29.png" id="32_essnb"]
@@ -455,6 +456,7 @@ texture_normal = ExtResource("18_voe78")
 talent_id = 15
 skill_name = "Arrow Explosion"
 icon = ExtResource("18_voe78")
+talent_strategy = ExtResource("29_oyohu")
 
 [node name="SpecialArrowsPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer"]
 anchors_preset = 0
