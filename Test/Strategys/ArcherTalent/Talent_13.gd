@@ -141,8 +141,6 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 		
 		print("Arrow Rain: Successfully applied damage to ", targets_hit, " targets")
 	
-	# Create visual impact effect
-	create_impact_effect(impact_position)
 	
 	if has_meta("enable_splinters") and has_meta("splinter_strategy"):
 		var splinter_strategy = get_meta("splinter_strategy")
@@ -239,54 +237,6 @@ func apply_damage_to_area(impact_position, damage_amount, is_crit, damage_type, 
 	print("Arrow Rain: Successfully applied direct damage to ", hits, " targets")
 	return hits
 
-func create_impact_effect(position):
-	# Create a simple visual effect at impact point
-	print("Arrow Rain: Creating impact effect at ", position)
-	
-	# Create a Node2D for the effect
-	var effect = Node2D.new()
-	effect.name = "RainImpactEffect"
-	effect.global_position = position
-	
-	# Create a simple visual (a circle sprite)
-	var sprite = Sprite2D.new()
-	
-	# Create a circular image for the impact
-	var img = Image.create(32, 32, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))  # Initially transparent
-	
-	# Draw a colored circle
-	for x in range(32):
-		for y in range(32):
-			# Distance from center
-			var dx = (x - 16) / 16.0
-			var dy = (y - 16) / 16.0
-			var dist = sqrt(dx*dx + dy*dy)
-			
-			# If inside circle
-			if dist <= 1.0:
-				# Impact effect color (yellow/orange)
-				var alpha = 0.8 * (1.0 - dist)
-				img.set_pixel(x, y, Color(1.0, 0.7, 0.0, alpha))
-	
-	# Create texture
-	var texture = ImageTexture.create_from_image(img)
-	sprite.texture = texture
-	
-	# Add sprite to effect
-	effect.add_child(sprite)
-	
-	# Add effect to scene - use Engine.get_main_loop() instead of is_inside_tree
-	var current_scene = Engine.get_main_loop().current_scene
-	if current_scene:
-		current_scene.add_child(effect)
-	
-	# Create a fade-out animation
-	var tween = effect.create_tween()
-	tween.tween_property(sprite, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(effect.queue_free)
-	
-	return effect
 
 # Creates a shadow at impact point
 func create_shadow_at_impact(impact_position, parent_node):
@@ -661,7 +611,41 @@ func spawn_rain_arrows(projectile: Node):
 		for strategy in other_strategies:
 			if strategy and is_instance_valid(strategy):
 				strategy.apply_upgrade(arrow)
+		if projectile.has_meta("has_explosion_effect"):
+			print("Arrow Rain: Propagando efeito de explosão para a flecha da chuva")
+			
+			# Marca a flecha da chuva como tendo efeito de explosão
+			arrow.set_meta("has_explosion_effect", true)
+			
+			# Copia os parâmetros da explosão
+			if projectile.has_meta("explosion_damage_percent"):
+				arrow.set_meta("explosion_damage_percent", projectile.get_meta("explosion_damage_percent"))
+			else:
+				arrow.set_meta("explosion_damage_percent", 0.5)  # Valor padrão
 				
+			if projectile.has_meta("explosion_radius"):
+				arrow.set_meta("explosion_radius", projectile.get_meta("explosion_radius"))
+			else:
+				arrow.set_meta("explosion_radius", 35.0)  # Valor padrão
+			
+			# Tenta encontrar estratégia de explosão no atirador para clonar
+			var found_explosion_strategy = null
+			if shooter and "attack_upgrades" in shooter:
+				for upgrade in shooter.attack_upgrades:
+					# Verifica se é o talento de explosão
+					if upgrade.get_script().get_path().find("Talent_15") >= 0 or \
+					   (upgrade.has_method("get_strategy_name") and upgrade.get_strategy_name() == "Arrow Explosion"):
+						found_explosion_strategy = upgrade
+						break
+			
+			# Aplica referência da estratégia de explosão
+			if found_explosion_strategy:
+				arrow.set_meta("explosion_strategy", weakref(found_explosion_strategy))
+				print("Arrow Rain: Estratégia de explosão aplicada com sucesso à flecha da chuva")
+			elif projectile.has_meta("explosion_strategy"):
+				# Copia da flecha original se disponível
+				arrow.set_meta("explosion_strategy", projectile.get_meta("explosion_strategy"))
+				print("Arrow Rain: Estratégia de explosão copiada da flecha original")
 		# Make sure fire damage and DoT from Talent 6 is properly applied
 		var has_fire = false
 		if arrow.has_node("DmgCalculatorComponent"):
@@ -742,8 +726,6 @@ func spawn_rain_arrows(projectile: Node):
 					arrow_inst
 				)
 				print("Arrow Rain: Applied direct area damage with result: ",direct_hit)
-				print("Arrow Rain: Applied direct area damage with result: ", direct_hit)
-				strategy.create_impact_effect(impact_position)
 			
 			# Handle arrow and shadow if they still exist
 			if arrow_inst and shadow_inst and shooter_inst:

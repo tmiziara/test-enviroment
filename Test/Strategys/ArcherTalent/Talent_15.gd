@@ -269,7 +269,7 @@ func create_explosion_effect(position: Vector2, radius: float, parent: Node) -> 
 	particles.lifetime = 0.5
 	particles.direction = Vector2(0, -1)
 	particles.spread = 180.0
-	particles.gravity = Vector2.ZERO
+	particles.gravity = Vector2(0, 200)
 	particles.initial_velocity_min = radius * 0.8
 	particles.initial_velocity_max = radius * 1.2
 	particles.scale_amount_min = 2.0

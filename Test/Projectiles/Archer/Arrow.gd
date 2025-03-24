@@ -4,12 +4,41 @@ class_name Arrow
 # Signals
 signal on_hit(target, projectile)
 
-# Focused Shot properties
+# Arrow Storm properties
+var arrow_storm_enabled: bool = false
+var arrow_storm_trigger_chance: float = 0.1
+var arrow_storm_additional_arrows: int = 2
+var arrow_storm_spread_angle: float = 30.0
+
+# Method to configure Arrow Storm
+func configure_arrow_storm(is_enabled: bool, trigger_chance: float, additional_arrows: int, spread_angle: float) -> void:
+	arrow_storm_enabled = is_enabled
+	arrow_storm_trigger_chance = trigger_chance
+	arrow_storm_additional_arrows = additional_arrows
+	arrow_storm_spread_angle = spread_angle
+	
+	print("Arrow Storm configurado:")
+	print("  - Habilitado: ", is_enabled)
+	print("  - Chance de Trigger: ", trigger_chance * 100, "%")
+	print("  - Flechas Adicionais: ", additional_arrows)
+	print("  - Ângulo de Dispersão: ", spread_angle, " graus")
+	
+# Focused Shot properties (directly in the class instead of using meta)
 var focused_shot_enabled: bool = false
 var focused_shot_bonus: float = 0.0
-var focused_shot_threshold: float = 0.0
+var focused_shot_threshold: float = 0.75  # Padrão de 75%
 
-# Chain Shot properties
+# Método para configurar o Focused Shot diretamente
+func configure_focused_shot(is_enabled: bool, bonus: float, threshold: float = 0.75) -> void:
+	focused_shot_enabled = is_enabled
+	focused_shot_bonus = bonus
+	focused_shot_threshold = threshold
+	print("Focused Shot configurado:")
+	print("  - Habilitado: ", is_enabled)
+	print("  - Bônus de Dano: ", bonus * 100, "%")
+	print("  - Limiar de Vida: ", threshold * 100, "%")
+
+# Chain Shot properties (restante do código original)
 var chain_shot_enabled: bool = false
 var chain_chance: float = 0.3        # 30% chance to ricochet
 var chain_range: float = 150.0       # Maximum range for finding targets
@@ -28,8 +57,85 @@ func _ready():
 	if not hit_targets:
 		hit_targets = []
 
+# Modifica o método get_damage_package() para melhorar o Focused Shot
+
+func get_damage_package() -> Dictionary:
+	# Call the parent's method to create the base damage package
+	var damage_package = super.get_damage_package()
+	
+	# Debug: Print all relevant information
+	print("=== FOCUSED SHOT DEBUG START ===")
+	print("Focused Shot Enabled: ", focused_shot_enabled)
+	print("Focused Shot Bonus: ", focused_shot_bonus)
+	print("Focused Shot Threshold: ", focused_shot_threshold)
+	
+	# Check if Focused Shot is enabled
+	if focused_shot_enabled:
+		# Try to find the current target
+		var current_target = null
+		if shooter and shooter.has_method("get_current_target"):
+			current_target = shooter.get_current_target()
+		elif has_meta("current_target"):
+			current_target = get_meta("current_target")
+		
+		# If there's a valid target
+		if current_target and current_target.has_node("HealthComponent"):
+			var health_component = current_target.get_node("HealthComponent")
+			
+			# Check if the health component has the necessary methods
+			if "current_health" in health_component and "max_health" in health_component:
+				# Calculate health percentage
+				var health_percent = float(health_component.current_health) / float(health_component.max_health)
+				
+				print("Target Health:")
+				print("  - Current Health: ", health_component.current_health)
+				print("  - Max Health: ", health_component.max_health)
+				print("  - Health Percent: ", health_percent * 100, "%")
+				print("  - Threshold: ", focused_shot_threshold * 100, "%")
+				
+				# If health is above threshold, apply bonus
+				if health_percent >= focused_shot_threshold:
+					print("FOCUSED SHOT ACTIVATED!")
+					
+					# Increase physical damage
+					if "physical_damage" in damage_package:
+						var bonus_physical_damage = int(damage_package["physical_damage"] * focused_shot_bonus)
+						damage_package["physical_damage"] += bonus_physical_damage
+						print("Physical Damage Increased:")
+						print("  - Original: ", damage_package["physical_damage"] - bonus_physical_damage)
+						print("  - Bonus: ", bonus_physical_damage)
+						print("  - New Total: ", damage_package["physical_damage"])
+					
+					# Increase elemental damage
+					if "elemental_damage" in damage_package:
+						for element in damage_package["elemental_damage"]:
+							var bonus_elem_damage = int(damage_package["elemental_damage"][element] * focused_shot_bonus)
+							damage_package["elemental_damage"][element] += bonus_elem_damage
+							print("Elemental Damage Increased:")
+							print("  - Element: ", element)
+							print("  - Original: ", damage_package["elemental_damage"][element] - bonus_elem_damage)
+							print("  - Bonus: ", bonus_elem_damage)
+							print("  - New Total: ", damage_package["elemental_damage"][element])
+						
+					# Add Focused Shot tag
+					if "tags" not in damage_package:
+						damage_package["tags"] = []
+					if "focused_shot" not in damage_package["tags"]:
+						damage_package["tags"].append("focused_shot")
+				else:
+					print("FOCUSED SHOT NOT ACTIVATED - Health below threshold")
+			else:
+				print("ERROR: Health component missing required properties")
+		else:
+			print("ERROR: Invalid target or no HealthComponent")
+	
+	print("=== FOCUSED SHOT DEBUG END ===")
+	
+	return damage_package
+
 # Method called by Hurtbox when the arrow hits a target
 func process_on_hit(target: Node) -> void:
+	set_meta("current_target", target)
 	print("Arrow.process_on_hit called - is_processing_ricochet: ", is_processing_ricochet)
 	
 	# If we're already processing a ricochet, ignore this hit
@@ -40,9 +146,6 @@ func process_on_hit(target: Node) -> void:
 	# Track this target to avoid hitting it again with ricochets
 	if not target in hit_targets:
 		hit_targets.append(target)
-	
-	# Store the last hit target for explosion logic
-	set_meta("last_hit_target", target)
 	
 	# APPLY DAMAGE! Calculate and apply damage to the target
 	if target.has_node("HealthComponent"):
@@ -63,16 +166,8 @@ func process_on_hit(target: Node) -> void:
 	if focused_shot_enabled:
 		apply_focused_shot(target)
 	
-	# Emit signal that can be used by other systems (including Arrow Explosion)
+	# Emit signal that can be used by other systems
 	emit_signal("on_hit", target, self)
-	
-	# Check for explosion effect
-	if has_meta("has_explosion_effect") and has_meta("explosion_strategy"):
-		var strategy_ref = get_meta("explosion_strategy")
-		if strategy_ref and strategy_ref.get_ref():
-			var explosion_strategy = strategy_ref.get_ref()
-			explosion_strategy.create_explosion(self, target)
-			print("Arrow explosion triggered on impact!")
 	
 	# Get the current pierce count if this is a piercing projectile
 	var current_pierce_count = 0
@@ -145,9 +240,12 @@ func process_on_hit(target: Node) -> void:
 			print("No piercing capability, destroying arrow")
 			queue_free()
 
-# Função que implementa Focused Shot logic
+# Function that implements Focused Shot logic
 func apply_focused_shot(target: Node) -> void:
-	# (Código existente mantido como está)
+	# Verifica se o Focused Shot está habilitado
+	if not focused_shot_enabled:
+		return
+	
 	# Store original damage values to restore later
 	var original_damage = damage
 	var original_base_damage = 0
@@ -176,8 +274,8 @@ func apply_focused_shot(target: Node) -> void:
 		if health_percent >= focused_shot_threshold:
 			# Apply temporary bonus to projectile damage
 			damage = int(original_damage * (1.0 + focused_shot_bonus))
-			print("Focused Shot activated! Damage increased from", original_damage, "to", damage, 
-				  "(target with", health_percent * 100, "% health)")
+			print("Focused Shot activated! Damage increased from ", original_damage, " to ", damage, 
+				  " (target with ", health_percent * 100, "% health)")
 			
 			# Apply bonus to DmgCalculator if available
 			if has_node("DmgCalculatorComponent"):
@@ -186,7 +284,7 @@ func apply_focused_shot(target: Node) -> void:
 				# Apply bonus to base damage
 				if "base_damage" in dmg_calc:
 					dmg_calc.base_damage = int(original_base_damage * (1.0 + focused_shot_bonus))
-					print("Calculator base damage increased from", original_base_damage, "to", dmg_calc.base_damage)
+					print("Calculator base damage increased from ", original_base_damage, " to ", dmg_calc.base_damage)
 				
 				# Also apply bonus to all elemental damages
 				if "elemental_damage" in dmg_calc:
@@ -200,7 +298,6 @@ func apply_focused_shot(target: Node) -> void:
 
 # Method to restore original values after applying Focused Shot bonus
 func reset_focused_shot_bonuses(orig_damage: int, orig_base_damage: int, orig_elemental_damage: Dictionary) -> void:
-	# (Código existente mantido como está)
 	# Restore original projectile damage
 	damage = orig_damage
 	
@@ -220,7 +317,6 @@ func reset_focused_shot_bonuses(orig_damage: int, orig_base_damage: int, orig_el
 
 # Finds a new target to chain to after hitting an enemy
 func find_chain_target(original_target) -> void:
-	# (Código existente mantido como está)
 	print("Finding chain target...")
 	
 	# Wait a frame to make sure hit processing is complete
@@ -330,9 +426,52 @@ func find_chain_target(original_target) -> void:
 		# Otherwise destroy the arrow
 		print("No chain targets and no piercing, destroying arrow")
 		queue_free()
+		
+# Método opcional para tentar spawnar flechas adicionais
+func try_spawn_additional_arrows(target) -> Array:
+	# Verifica se o Arrow Storm está habilitado
+	if not arrow_storm_enabled or randf() > arrow_storm_trigger_chance:
+		return [self]
+	
+	print("Arrow Storm TRIGGERED!")
+	var additional_projectiles = []
+	
+	# Calcula direções para as flechas adicionais
+	var base_direction = direction
+	var half_spread = arrow_storm_spread_angle / 2.0
+	
+	# Cria flechas adicionais
+	for i in range(arrow_storm_additional_arrows):
+		# Calcula ângulo de deslocamento (de -half_spread a +half_spread)
+		var angle_offset = lerp(-half_spread, half_spread, float(i) / (arrow_storm_additional_arrows - 1))
+		
+		# Rotaciona a direção base
+		var rotated_direction = base_direction.rotated(deg_to_rad(angle_offset))
+		
+		# Clona o projétil original
+		var new_projectile = duplicate()
+		
+		# Configura nova direção
+		new_projectile.direction = rotated_direction
+		new_projectile.rotation = rotated_direction.angle()
+		
+		# Reseta velocidade com nova direção
+		new_projectile.velocity = rotated_direction * speed
+		
+		# Adiciona tag de identificação
+		if has_method("add_tag"):
+			new_projectile.add_tag("arrow_storm")
+		elif "tags" in new_projectile:
+			if not "arrow_storm" in new_projectile.tags:
+				new_projectile.tags.append("arrow_storm")
+		
+		# Adiciona à lista de projéteis
+		additional_projectiles.append(new_projectile)
+	
+	# Retorna lista com projétil original + projéteis adicionais
+	print("Arrow Storm: ", additional_projectiles.size() + 1, " arrows spawned")
+	return [self] + additional_projectiles
 
-# Helper function to check if this arrow has a specific tag
-func has_tag(tag_name: String) -> bool:
-	if "tags" in self and tags is Array:
-		return tag_name in tags
-	return false
+# Método auxiliar para conversão de graus para radianos
+func deg_to_rad(degrees: float) -> float:
+	return degrees * (PI / 180.0)
