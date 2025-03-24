@@ -1,0 +1,160 @@
+[gd_scene load_steps=22 format=3 uid="uid://dr52dwcmya0ut"]
+
+[ext_resource type="Script" path="res://Test/enemy_test.gd" id="1_d25wl"]
+[ext_resource type="Texture2D" uid="uid://d1grx4h6lygtt" path="res://Test/Assets/enemys/slime/D_Death2.png" id="2_aqd0t"]
+[ext_resource type="Texture2D" uid="uid://jfmyy54uivrr" path="res://Test/Assets/enemys/slime/D_Walk2.png" id="3_xvbhr"]
+[ext_resource type="PackedScene" uid="uid://cvhrkbsgs68ee" path="res://Test/Components/healthbar.tscn" id="4_1ckdd"]
+[ext_resource type="PackedScene" uid="uid://c676llufstx63" path="res://Test/Components/health_component.tscn" id="5_5luq3"]
+[ext_resource type="PackedScene" uid="uid://7111yc5ayq1m" path="res://Test/Components/DefenseComponent.tscn" id="6_r8bh5"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_fypkk"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_43jn7"]
+atlas = ExtResource("2_aqd0t")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wmmxb"]
+atlas = ExtResource("2_aqd0t")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4yv53"]
+atlas = ExtResource("2_aqd0t")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pote8"]
+atlas = ExtResource("2_aqd0t")
+region = Rect2(144, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x5mob"]
+atlas = ExtResource("2_aqd0t")
+region = Rect2(192, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uqxee"]
+atlas = ExtResource("2_aqd0t")
+region = Rect2(240, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ncdf7"]
+atlas = ExtResource("3_xvbhr")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3e431"]
+atlas = ExtResource("3_xvbhr")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_47yvk"]
+atlas = ExtResource("3_xvbhr")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7wrx2"]
+atlas = ExtResource("3_xvbhr")
+region = Rect2(144, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4kvfb"]
+atlas = ExtResource("3_xvbhr")
+region = Rect2(192, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8efeh"]
+atlas = ExtResource("3_xvbhr")
+region = Rect2(240, 0, 48, 48)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_2a2y2"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_43jn7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wmmxb")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4yv53")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pote8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x5mob")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uqxee")
+}],
+"loop": false,
+"name": &"Death",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ncdf7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3e431")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_47yvk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7wrx2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4kvfb")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8efeh")
+}],
+"loop": true,
+"name": &"Walk",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_oesy5"]
+radius = 7.0
+
+[node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
+collision_layer = 3
+collision_mask = 3
+script = ExtResource("1_d25wl")
+
+[node name="Enemy" type="Area2D" parent="."]
+position = Vector2(0, 4)
+collision_layer = 2
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy"]
+visible = false
+shape = SubResource("CircleShape2D_fypkk")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -2)
+sprite_frames = SubResource("SpriteFrames_2a2y2")
+animation = &"Walk"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+position = Vector2(0, 3)
+shape = SubResource("CircleShape2D_oesy5")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_postprocessing = 1
+avoidance_enabled = true
+debug_enabled = true
+debug_path_custom_color = Color(1, 0.156863, 0, 1)
+
+[node name="Healthbar" parent="." instance=ExtResource("4_1ckdd")]
+z_index = 0
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -8.0
+offset_top = -6.0
+offset_right = 8.0
+offset_bottom = -3.0
+grow_horizontal = 2
+
+[node name="DamageNumberOrigin" type="Node2D" parent="."]
+position = Vector2(-1, -12)
+
+[node name="HealthComponent" parent="." instance=ExtResource("5_5luq3")]
+
+[node name="DefenseComponent" parent="." instance=ExtResource("6_r8bh5")]
+armor = 10
+resistance_fire = 0.505
