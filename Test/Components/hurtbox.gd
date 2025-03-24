@@ -13,8 +13,6 @@ func _on_body_entered(body):
 		print("Body is not an enemy or doesn't have HealthComponent")
 		return
 	
-	var health_component = body.get_node("HealthComponent")
-	
 	# Check if this is a chain shot arrow that's already processing a ricochet
 	if owner_entity is Arrow and owner_entity.has_method("process_on_hit"):
 		if owner_entity.is_processing_ricochet:
@@ -25,6 +23,8 @@ func _on_body_entered(body):
 		owner_entity.process_on_hit(body)
 	else:
 		print("Standard projectile hit processing")
+		var health_component = body.get_node("HealthComponent")
+		
 		# Get calculated damage package
 		var damage_package = owner_entity.get_damage_package()
 		
@@ -39,9 +39,10 @@ func _on_body_entered(body):
 			var is_crit = damage_package.get("is_critical", owner_entity.is_crit)
 			health_component.take_damage(physical_damage, is_crit)
 		
-		# Check if the projectile should be destroyed after hitting a target
-		if owner_entity.piercing:
-			# Handle piercing projectile
+		# We no longer need to handle piercing logic here since it's now completely
+		# managed in the Arrow.process_on_hit method for arrows
+		if not owner_entity is Arrow and owner_entity.piercing:
+			# Only handle piercing for non-Arrow projectiles
 			var current_count = 0
 			if owner_entity.has_meta("current_pierce_count"):
 				current_count = owner_entity.get_meta("current_pierce_count")
@@ -53,13 +54,13 @@ func _on_body_entered(body):
 			if owner_entity.has_meta("piercing_count"):
 				max_pierce = owner_entity.get_meta("piercing_count")
 			
-			print("Arrow pierced ", current_count, " of ", max_pierce + 1, " possible enemies")
+			print("Non-Arrow pierced ", current_count, " of ", max_pierce + 1, " possible enemies")
 			
 			if current_count > max_pierce:
-				print("Piercing limit reached, destroying arrow")
+				print("Piercing limit reached, destroying projectile")
 				owner_entity.queue_free()
-		else:
-			# If not piercing, destroy after hit
+		elif not owner_entity is Arrow:
+			# Non-Arrow, non-piercing projectile
 			print("Non-piercing projectile hit, destroying")
 			owner_entity.queue_free()
 	

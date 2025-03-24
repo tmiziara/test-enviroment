@@ -18,6 +18,8 @@ var max_chains: int = 1              # Maximum number of ricochets (1 = one rico
 var current_chains: int = 0          # Current number of ricochet jumps performed
 var hit_targets = []                 # Array to track which targets we've hit (to avoid hitting the same target)
 var is_processing_ricochet: bool = false  # Flag to prevent multiple hits during ricochet processing
+var will_chain: bool = false         # Flag to store if this arrow will chain (calculated only once)
+var chain_calculated: bool = false   # Flag to track if the chain chance has been calculated
 
 func _ready():
 	super._ready()
@@ -39,19 +41,18 @@ func process_on_hit(target: Node) -> void:
 	if not target in hit_targets:
 		hit_targets.append(target)
 	
-	# IMPORTANTE: APLICAR DANO! Esta linha estava faltando
-	# Obtém o pacote de dano e aplica ao alvo
+	# APPLY DAMAGE! Calculate and apply damage to the target
 	if target.has_node("HealthComponent"):
 		var health_component = target.get_node("HealthComponent")
 		var damage_package = get_damage_package()
 		
 		print("Aplicando dano ao alvo: ", damage_package)
 		
-		# Aplicar dano com o pacote completo (incluindo DoTs)
+		# Apply damage with the complete package (including DoTs)
 		if health_component.has_method("take_complex_damage"):
 			health_component.take_complex_damage(damage_package)
 		else:
-			# Fallback para o método antigo se necessário
+			# Fallback to old method if necessary
 			health_component.take_damage(damage_package.get("physical_damage", damage), 
 										damage_package.get("is_critical", is_crit))
 	
@@ -62,28 +63,76 @@ func process_on_hit(target: Node) -> void:
 	# Emit signal that can be used by other systems
 	emit_signal("on_hit", target, self)
 	
-	# AFTER APPLYING DAMAGE, check if this arrow should ricochet (Chain Shot)
+	# Get the current pierce count if this is a piercing projectile
+	var current_pierce_count = 0
+	if piercing and has_meta("current_pierce_count"):
+		current_pierce_count = get_meta("current_pierce_count")
+	
+	# Get the maximum number of piercings
+	var max_pierce = 1
+	if has_meta("piercing_count"):
+		max_pierce = get_meta("piercing_count")
+	
+	# Update piercing count if this is a piercing projectile
+	if piercing:
+		current_pierce_count += 1
+		set_meta("current_pierce_count", current_pierce_count)
+		print("Arrow pierced ", current_pierce_count, " of ", max_pierce + 1, " possible enemies")
+	
+	# Check if this arrow should ricochet (Chain Shot)
 	if chain_shot_enabled and current_chains < max_chains:
-		# NOW set the processing flag to prevent multiple hits during ricochet calculation
-		is_processing_ricochet = true
-		print("Setting is_processing_ricochet to true")
+		# Calculate chain chance only once on the first hit
+		if not chain_calculated:
+			var roll = randf()
+			will_chain = (roll <= chain_chance)
+			chain_calculated = true
+			print("Chain shot chance calculated once: ", roll, " <= ", chain_chance, " = ", will_chain)
 		
-		var roll = randf()
-		if roll <= chain_chance:
-			print("Chain shot chance success: ", roll, " <= ", chain_chance)
+		# If the arrow will chain (determined on first hit)
+		if will_chain:
+			# Set the processing flag to prevent multiple hits during ricochet calculation
+			is_processing_ricochet = true
+			print("Setting is_processing_ricochet to true")
+			
 			# Try to find a new target to chain to
 			call_deferred("find_chain_target", target)
+			# Ricochet takes priority over piercing
+			return
 		else:
-			print("Chain shot chance failed: ", roll, " > ", chain_chance)
-			# No ricochet occurred, destroy the arrow
-			queue_free()
+			print("Arrow will not chain (determined on first hit)")
+			
+			# If it has piercing, check if it should continue
+			if piercing:
+				# Check if piercing limit is reached
+				if current_pierce_count > max_pierce:
+					print("Piercing limit reached, destroying arrow")
+					queue_free()
+				else:
+					print("Continuing with piercing")
+					# Don't destroy the arrow, let it continue
+			else:
+				# No piercing, destroy the arrow
+				print("No piercing, destroying arrow")
+				queue_free()
 	else:
-		# No chain shot capability or max chains reached, destroy the arrow
+		# No chain shot capability or max chains reached, check if it has piercing
 		if not chain_shot_enabled:
-			print("No chain shot capability, destroying arrow")
+			print("No chain shot capability")
+		elif current_chains >= max_chains:
+			print("Max chains reached")
+			
+		if piercing:
+			# Check if piercing limit is reached
+			if current_pierce_count > max_pierce:
+				print("Piercing limit reached, destroying arrow")
+				queue_free()
+			else:
+				print("Continuing with piercing")
+				# Don't destroy the arrow, let it continue
 		else:
-			print("Max chains reached, destroying arrow")
-		queue_free()
+			# No chain shot or piercing, destroy the arrow
+			print("No piercing capability, destroying arrow")
+			queue_free()
 
 # Function that implements Focused Shot logic
 func apply_focused_shot(target: Node) -> void:
@@ -249,4 +298,21 @@ func find_chain_target(original_target) -> void:
 		print("Repositioned arrow at: ", global_position, " heading toward: ", next_target.global_position)
 	else:
 		print("No valid chain targets found within range.")
-		queue_free()  # Destroy arrow if no chain targets
+		# If the arrow also has piercing, let it continue its path
+		if piercing:
+			var current_pierce_count = 0
+			if has_meta("current_pierce_count"):
+				current_pierce_count = get_meta("current_pierce_count")
+			
+			var max_pierce = 1
+			if has_meta("piercing_count"):
+				max_pierce = get_meta("piercing_count")
+			
+			if current_pierce_count <= max_pierce:
+				print("No chain targets, but continuing with piercing")
+				is_processing_ricochet = false
+				return
+		
+		# Otherwise destroy the arrow
+		print("No chain targets and no piercing, destroying arrow")
+		queue_free()
