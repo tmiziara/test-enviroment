@@ -4105,7 +4105,7 @@ visible = false
 texture = ExtResource("2_oeqfw")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="QuiverBehind" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("5_k2kna")
@@ -4116,13 +4116,13 @@ vframes = 8
 texture = ExtResource("3_pcsk4")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="Pants" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("4_bf8xg")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="BowFront" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("2_oeqfw")
@@ -4134,7 +4134,7 @@ visible = false
 texture = ExtResource("5_k2kna")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 27
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {

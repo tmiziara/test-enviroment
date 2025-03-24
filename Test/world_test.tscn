@@ -24,52 +24,52 @@ size_flags_vertical = 4
 theme_override_font_sizes/font_size = 10
 
 [node name="Enemy" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(478, 479)
+position = Vector2(542, 472)
 
 [node name="Enemy2" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(435, 425)
+position = Vector2(563, 438)
 
 [node name="Enemy13" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(396, 454)
+position = Vector2(500, 407)
 
 [node name="Enemy14" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(432, 409)
+position = Vector2(560, 422)
 
 [node name="Enemy15" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(414, 420)
+position = Vector2(542, 433)
 
 [node name="Enemy16" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(394, 430)
+position = Vector2(586, 489)
 
 [node name="Enemy3" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(522, 459)
+position = Vector2(507, 471)
 
 [node name="Enemy4" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(439, 506)
+position = Vector2(503, 499)
 
 [node name="Enemy5" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(397, 492)
+position = Vector2(501, 445)
 
 [node name="Enemy6" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(479, 519)
+position = Vector2(558, 500)
 
 [node name="Enemy7" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(432, 382)
+position = Vector2(560, 395)
 
 [node name="Enemy8" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(381, 409)
+position = Vector2(573, 468)
 
 [node name="Enemy9" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(486, 374)
+position = Vector2(614, 387)
 
 [node name="Enemy10" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(346, 511)
+position = Vector2(450, 464)
 
 [node name="Enemy11" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(347, 456)
+position = Vector2(451, 409)
 
 [node name="Enemy12" parent="." instance=ExtResource("2_uahnj")]
-position = Vector2(469, 416)
+position = Vector2(597, 429)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
 position = Vector2(562, 559)

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Talent_13" load_steps=2 format=3 uid="uid://bq34nnmd7ifkd"]
+
+[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_13.gd" id="1_8ibb5"]
+
+[resource]
+script = ExtResource("1_8ibb5")
+attack_interval = 10
+arrow_count = 5
+radius = 50.0
+damage_per_arrow = 0.5
+min_height = 250.0
+max_height = 300.0
+impact_radius = 25.0
+talent_id = 13

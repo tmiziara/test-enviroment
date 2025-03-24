@@ -1,4 +1,4 @@
-[gd_scene load_steps=43 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=44 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
 [ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
@@ -32,6 +32,7 @@
 [ext_resource type="Resource" uid="uid://bafqtm6o0sp63" path="res://Test/Strategys/ArcherTalent/Talent_12.tres" id="23_ar87f"]
 [ext_resource type="Texture2D" uid="uid://ipfta00gpbny" path="res://Test/Assets/Icons/ArcherSkill/20.png" id="23_yhr6m"]
 [ext_resource type="Texture2D" uid="uid://bmjtvqeqwvrfl" path="res://Test/Assets/Icons/ArcherSkill/21.png" id="24_1phgv"]
+[ext_resource type="Resource" uid="uid://bq34nnmd7ifkd" path="res://Test/Strategys/ArcherTalent/Talent_13.tres" id="25_7ombj"]
 [ext_resource type="Texture2D" uid="uid://bnib1jybhvxqk" path="res://Test/Assets/Icons/ArcherSkill/22.png" id="25_ir8vh"]
 [ext_resource type="Texture2D" uid="uid://c3pr33xwd55qn" path="res://Test/Assets/Icons/ArcherSkill/23.png" id="26_gfuel"]
 [ext_resource type="Texture2D" uid="uid://biwe3pu3h3nir" path="res://Test/Assets/Icons/ArcherSkill/24.png" id="27_rogyu"]
@@ -429,6 +430,7 @@ texture_normal = ExtResource("16_kwscv")
 talent_id = 13
 skill_name = "Arrow Rain"
 icon = ExtResource("16_kwscv")
+talent_strategy = ExtResource("25_7ombj")
 
 [node name="talent_14" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0

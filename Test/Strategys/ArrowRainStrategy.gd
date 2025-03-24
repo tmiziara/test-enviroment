@@ -228,24 +228,6 @@ func spawn_rain_arrows(projectile: Node):
 	var shooter = projectile.shooter
 	if not shooter:
 		return
-	
-	# Define o novo cooldown do ataque
-	if "attack_cooldown" in shooter:
-		# Armazena o cooldown original
-		if not shooter in original_cooldowns:
-			original_cooldowns[shooter] = shooter.attack_cooldown
-		
-		# Aplica o novo cooldown imediatamente
-		shooter.attack_cooldown = original_cooldowns[shooter] * rain_attack_cooldown
-		
-		# Atualiza o timer de ataque diretamente
-		if shooter.has_node("attack_timer") or "attack_timer" in shooter:
-			shooter.attack_timer.wait_time = shooter.attack_cooldown
-		
-		# Se o atirador tem método para atualizar a velocidade de animação, chama-o
-		if shooter.has_method("update_animation_speed"):
-			shooter.update_animation_speed()
-	
 	# Obtém as outras estratégias para aplicar
 	var other_strategies = []
 	if "attack_upgrades" in shooter:
@@ -446,19 +428,3 @@ func apply_upgrade(projectile: Node) -> void:
 	
 	# Remove o projétil original
 	projectile.queue_free()
-
-# Método para restaurar o cooldown original do atirador
-func restore_original_cooldown(shooter):
-	if shooter in original_cooldowns:
-		shooter.attack_cooldown = original_cooldowns[shooter]
-		
-		# Atualiza o timer de ataque
-		if shooter.has_node("attack_timer") or "attack_timer" in shooter:
-			shooter.attack_timer.wait_time = shooter.attack_cooldown
-		
-		# Atualiza a velocidade de animação se o método existir
-		if shooter.has_method("update_animation_speed"):
-			shooter.update_animation_speed()
-		
-		# Remove o registro para economizar memória
-		original_cooldowns.erase(shooter)
