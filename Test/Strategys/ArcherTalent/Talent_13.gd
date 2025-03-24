@@ -76,6 +76,14 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 	# Debug print to track execution
 	print("Arrow Rain: Impact at position ", impact_position)
 	
+	# Verificar se a flecha tem efeito de explosão
+	var has_explosion = arrow.has_meta("has_explosion_effect")
+	var explosion_strategy = null
+	
+	if has_explosion and arrow.has_meta("explosion_strategy"):
+		var explosion_strategy_ref = arrow.get_meta("explosion_strategy")
+		explosion_strategy = explosion_strategy_ref.get_ref() if explosion_strategy_ref is WeakRef else explosion_strategy_ref
+	
 	# Calculate correct damage based on critical hit status
 	var impact_damage = arrow.damage
 	if arrow.is_crit:
@@ -94,6 +102,22 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 	
 	if direct_hits > 0:
 		print("Arrow Rain: Direct damage application successful, hit ", direct_hits, " targets")
+		
+		# Se tiver efeito de explosão e pelo menos um alvo, aplicar explosão
+		if has_explosion and explosion_strategy:
+			print("Arrow Rain: Arrow has explosion effect! Creating explosion...")
+			
+			# Buscar primeiro inimigo atingido para servir como alvo da explosão
+			var enemy_hit = find_enemy_at_position(impact_position, impact_radius)
+			if enemy_hit:
+				# Marcar o último alvo atingido para evitar dano duplo
+				arrow.set_meta("last_hit_target", enemy_hit)
+				
+				# Aplicar efeito de explosão
+				explosion_strategy.create_explosion(arrow, enemy_hit)
+				print("Arrow Rain: Explosion created on enemy at position ", enemy_hit.global_position)
+			else:
+				print("Arrow Rain: No valid targets found for explosion effect")
 	else:
 		print("Arrow Rain: Direct damage failed, trying fallback method")
 		
@@ -116,6 +140,8 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 		
 		# For each enemy in impact zone
 		var targets_hit = 0
+		var first_target = null
+		
 		for result in results:
 			var body = result.collider
 			if body and is_instance_valid(body):
@@ -124,6 +150,10 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 				# Direct damage application without requiring "enemies" group
 				if body.has_node("HealthComponent"):
 					var health = body.get_node("HealthComponent")
+					
+					# Guardamos o primeiro alvo para o efeito de explosão
+					if targets_hit == 0:
+						first_target = body
 					
 					# If complex damage calculation is available
 					if arrow.has_method("get_damage_package"):
@@ -140,6 +170,12 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 						targets_hit += 1
 		
 		print("Arrow Rain: Successfully applied damage to ", targets_hit, " targets")
+		
+		# Aplicar efeito de explosão no primeiro alvo encontrado
+		if has_explosion and explosion_strategy and first_target:
+			print("Arrow Rain: Creating explosion effect on first found target!")
+			arrow.set_meta("last_hit_target", first_target)
+			explosion_strategy.create_explosion(arrow, first_target)
 	
 	
 	if has_meta("enable_splinters") and has_meta("splinter_strategy"):
@@ -185,6 +221,34 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 	# Destroy arrow
 	if arrow and is_instance_valid(arrow):
 		arrow.queue_free()
+
+# Método auxiliar para encontrar um inimigo na posição especificada
+func find_enemy_at_position(position: Vector2, search_radius: float) -> Node:
+	var current_scene = Engine.get_main_loop().current_scene
+	if not current_scene:
+		return null
+		
+	var space_state = current_scene.get_world_2d().direct_space_state
+	
+	# Configurar query de círculo
+	var circle_shape = CircleShape2D.new()
+	circle_shape.radius = search_radius
+	
+	var query = PhysicsShapeQueryParameters2D.new()
+	query.shape = circle_shape
+	query.transform = Transform2D(0, position)
+	query.collision_mask = 2  # Enemy layer
+	query.collide_with_bodies = true
+	
+	var results = space_state.intersect_shape(query)
+	
+	# Retorna o primeiro inimigo válido encontrado
+	for result in results:
+		var body = result.collider
+		if body and is_instance_valid(body) and body.is_in_group("enemies"):
+			return body
+	
+	return null
 
 # Apply direct damage to enemies in the impact area
 func apply_damage_to_area(impact_position, damage_amount, is_crit, damage_type, arrow=null, collision_mask=2):
@@ -415,6 +479,40 @@ func spawn_rain_arrows(projectile: Node):
 	
 	print("Arrow Rain: Starting to spawn arrows")
 	
+	# Verificar se o projétil original tem efeito de explosão (Talent 15)
+	var has_explosion = projectile.has_meta("has_explosion_effect")
+	var explosion_damage_percent = 0.5  # Valor padrão
+	var explosion_radius = 35.0  # Valor padrão
+	var explosion_strategy = null
+	
+	if has_explosion:
+		print("Arrow Rain: Original projectile has explosion effect, propagating to rain arrows")
+		
+		# Copiar parâmetros da explosão
+		if projectile.has_meta("explosion_damage_percent"):
+			explosion_damage_percent = projectile.get_meta("explosion_damage_percent")
+			
+		if projectile.has_meta("explosion_radius"):
+			explosion_radius = projectile.get_meta("explosion_radius")
+			
+		# Tenta obter a estratégia de explosão
+		if projectile.has_meta("explosion_strategy"):
+			var strategy_ref = projectile.get_meta("explosion_strategy")
+			explosion_strategy = strategy_ref.get_ref() if strategy_ref is WeakRef else strategy_ref
+	
+	# Procurar o Talent 15 nas estratégias do arqueiro se não encontrou no projétil
+	if not explosion_strategy and shooter and "attack_upgrades" in shooter:
+		for upgrade in shooter.attack_upgrades:
+			var script_path = upgrade.get_script().get_path()
+			if script_path.find("Talent_15") >= 0 or (upgrade.has_method("get_strategy_name") and upgrade.get_strategy_name() == "Arrow Explosion"):
+				print("Arrow Rain: Found Arrow Explosion strategy in archer's upgrades")
+				explosion_strategy = upgrade
+				has_explosion = true
+				break
+	
+	if has_explosion and explosion_strategy:
+		print("Arrow Rain: Will apply explosion effect to all rain arrows")
+	
 	# Get other strategies to apply (excluding Double Shot and Chain Shot)
 	var other_strategies = []
 	if "attack_upgrades" in shooter:
@@ -604,6 +702,17 @@ func spawn_rain_arrows(projectile: Node):
 			  ", Damage=", arrow.damage, 
 			  ", Fall Time=", fall_time)
 		
+		# Aplicar efeito de explosão se necessário
+		if has_explosion:
+			print("Arrow Rain: Applying explosion effect to this arrow")
+			arrow.set_meta("has_explosion_effect", true)
+			arrow.set_meta("explosion_damage_percent", explosion_damage_percent)
+			arrow.set_meta("explosion_radius", explosion_radius)
+			
+			# Associar estratégia de explosão
+			if explosion_strategy:
+				arrow.set_meta("explosion_strategy", weakref(explosion_strategy))
+		
 		# 3. Replace default physics with controlled movement that hits exactly the target
 		add_custom_physics_process(arrow, impact_position, fall_time)
 		
@@ -611,66 +720,6 @@ func spawn_rain_arrows(projectile: Node):
 		for strategy in other_strategies:
 			if strategy and is_instance_valid(strategy):
 				strategy.apply_upgrade(arrow)
-		if projectile.has_meta("has_explosion_effect"):
-			print("Arrow Rain: Propagando efeito de explosão para a flecha da chuva")
-			
-			# Marca a flecha da chuva como tendo efeito de explosão
-			arrow.set_meta("has_explosion_effect", true)
-			
-			# Copia os parâmetros da explosão
-			if projectile.has_meta("explosion_damage_percent"):
-				arrow.set_meta("explosion_damage_percent", projectile.get_meta("explosion_damage_percent"))
-			else:
-				arrow.set_meta("explosion_damage_percent", 0.5)  # Valor padrão
-				
-			if projectile.has_meta("explosion_radius"):
-				arrow.set_meta("explosion_radius", projectile.get_meta("explosion_radius"))
-			else:
-				arrow.set_meta("explosion_radius", 35.0)  # Valor padrão
-			
-			# Tenta encontrar estratégia de explosão no atirador para clonar
-			var found_explosion_strategy = null
-			if shooter and "attack_upgrades" in shooter:
-				for upgrade in shooter.attack_upgrades:
-					# Verifica se é o talento de explosão
-					if upgrade.get_script().get_path().find("Talent_15") >= 0 or \
-					   (upgrade.has_method("get_strategy_name") and upgrade.get_strategy_name() == "Arrow Explosion"):
-						found_explosion_strategy = upgrade
-						break
-			
-			# Aplica referência da estratégia de explosão
-			if found_explosion_strategy:
-				arrow.set_meta("explosion_strategy", weakref(found_explosion_strategy))
-				print("Arrow Rain: Estratégia de explosão aplicada com sucesso à flecha da chuva")
-			elif projectile.has_meta("explosion_strategy"):
-				# Copia da flecha original se disponível
-				arrow.set_meta("explosion_strategy", projectile.get_meta("explosion_strategy"))
-				print("Arrow Rain: Estratégia de explosão copiada da flecha original")
-		# Make sure fire damage and DoT from Talent 6 is properly applied
-		var has_fire = false
-		if arrow.has_node("DmgCalculatorComponent"):
-			var dmg_calc = arrow.get_node("DmgCalculatorComponent")
-			
-			# Check if elemental_damage exists and has fire damage
-			if "elemental_damage" in dmg_calc and "fire" in dmg_calc.elemental_damage:
-				has_fire = true
-			
-			# Check if any DoT effect is a fire effect
-			if "dot_effects" in dmg_calc:
-				for effect in dmg_calc.dot_effects:
-					if effect.get("type") == "fire":
-						has_fire = true
-						break
-
-		# If we should have fire damage but don't, try to find and apply Talent 6 directly
-		if not has_fire and shooter and "attack_upgrades" in shooter:
-			for upgrade in shooter.attack_upgrades:
-				# Check if it's Talent_6 (Flaming Arrows)
-				if upgrade.get_script().get_path().find("FireArrowStrategy") >= 0 or \
-				   (upgrade.has_method("get_strategy_name") and upgrade.get_strategy_name() == "Flaming Arrows"):
-					print("Arrow Rain: Explicitly applying Flaming Arrows strategy to ensure fire damage")
-					upgrade.apply_upgrade(arrow)
-					break
 		
 		# Add to scene
 		shooter.get_parent().add_child(arrow)
