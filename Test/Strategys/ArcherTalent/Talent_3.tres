@@ -4,4 +4,4 @@
 
 [resource]
 script = ExtResource("1_5w844")
-armor_penetration = 0.53
+armor_penetration = 0.1

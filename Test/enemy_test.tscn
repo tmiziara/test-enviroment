@@ -155,7 +155,6 @@ position = Vector2(-1, -12)
 
 [node name="HealthComponent" parent="." instance=ExtResource("5_5luq3")]
 max_health = 10000
-crit_multiplier = 2.0
 
 [node name="DefenseComponent" parent="." instance=ExtResource("6_r8bh5")]
 armor = 10

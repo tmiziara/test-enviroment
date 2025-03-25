@@ -17,12 +17,6 @@ func configure_arrow_storm(is_enabled: bool, trigger_chance: float, additional_a
 	arrow_storm_additional_arrows = additional_arrows
 	arrow_storm_spread_angle = spread_angle
 	
-	print("Arrow Storm configurado:")
-	print("  - Habilitado: ", is_enabled)
-	print("  - Chance de Trigger: ", trigger_chance * 100, "%")
-	print("  - Flechas Adicionais: ", additional_arrows)
-	print("  - Ângulo de Dispersão: ", spread_angle, " graus")
-	
 # Focused Shot properties (directly in the class instead of using meta)
 var focused_shot_enabled: bool = false
 var focused_shot_bonus: float = 0.0
@@ -33,10 +27,6 @@ func configure_focused_shot(is_enabled: bool, bonus: float, threshold: float = 0
 	focused_shot_enabled = is_enabled
 	focused_shot_bonus = bonus
 	focused_shot_threshold = threshold
-	print("Focused Shot configurado:")
-	print("  - Habilitado: ", is_enabled)
-	print("  - Bônus de Dano: ", bonus * 100, "%")
-	print("  - Limiar de Vida: ", threshold * 100, "%")
 
 # Chain Shot properties (restante do código original)
 var chain_shot_enabled: bool = false
@@ -62,13 +52,6 @@ func _ready():
 func get_damage_package() -> Dictionary:
 	# Call the parent's method to create the base damage package
 	var damage_package = super.get_damage_package()
-	
-	# Debug: Print all relevant information
-	print("=== FOCUSED SHOT DEBUG START ===")
-	print("Focused Shot Enabled: ", focused_shot_enabled)
-	print("Focused Shot Bonus: ", focused_shot_bonus)
-	print("Focused Shot Threshold: ", focused_shot_threshold)
-	
 	# Check if Focused Shot is enabled
 	if focused_shot_enabled:
 		# Try to find the current target
@@ -86,37 +69,18 @@ func get_damage_package() -> Dictionary:
 			if "current_health" in health_component and "max_health" in health_component:
 				# Calculate health percentage
 				var health_percent = float(health_component.current_health) / float(health_component.max_health)
-				
-				print("Target Health:")
-				print("  - Current Health: ", health_component.current_health)
-				print("  - Max Health: ", health_component.max_health)
-				print("  - Health Percent: ", health_percent * 100, "%")
-				print("  - Threshold: ", focused_shot_threshold * 100, "%")
-				
 				# If health is above threshold, apply bonus
 				if health_percent >= focused_shot_threshold:
-					print("FOCUSED SHOT ACTIVATED!")
 					
 					# Increase physical damage
 					if "physical_damage" in damage_package:
 						var bonus_physical_damage = int(damage_package["physical_damage"] * focused_shot_bonus)
 						damage_package["physical_damage"] += bonus_physical_damage
-						print("Physical Damage Increased:")
-						print("  - Original: ", damage_package["physical_damage"] - bonus_physical_damage)
-						print("  - Bonus: ", bonus_physical_damage)
-						print("  - New Total: ", damage_package["physical_damage"])
-					
 					# Increase elemental damage
 					if "elemental_damage" in damage_package:
 						for element in damage_package["elemental_damage"]:
 							var bonus_elem_damage = int(damage_package["elemental_damage"][element] * focused_shot_bonus)
 							damage_package["elemental_damage"][element] += bonus_elem_damage
-							print("Elemental Damage Increased:")
-							print("  - Element: ", element)
-							print("  - Original: ", damage_package["elemental_damage"][element] - bonus_elem_damage)
-							print("  - Bonus: ", bonus_elem_damage)
-							print("  - New Total: ", damage_package["elemental_damage"][element])
-						
 					# Add Focused Shot tag
 					if "tags" not in damage_package:
 						damage_package["tags"] = []
@@ -128,9 +92,6 @@ func get_damage_package() -> Dictionary:
 				print("ERROR: Health component missing required properties")
 		else:
 			print("ERROR: Invalid target or no HealthComponent")
-	
-	print("=== FOCUSED SHOT DEBUG END ===")
-	
 	return damage_package
 
 # Method called by Hurtbox when the arrow hits a target
@@ -183,7 +144,6 @@ func process_on_hit(target: Node) -> void:
 	if piercing:
 		current_pierce_count += 1
 		set_meta("current_pierce_count", current_pierce_count)
-		print("Arrow pierced ", current_pierce_count, " of ", max_pierce + 1, " possible enemies")
 	
 	# Check if this arrow should ricochet (Chain Shot)
 	if chain_shot_enabled and current_chains < max_chains:
@@ -192,13 +152,11 @@ func process_on_hit(target: Node) -> void:
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
 			chain_calculated = true
-			print("Chain shot chance calculated once: ", roll, " <= ", chain_chance, " = ", will_chain)
 		
 		# If the arrow will chain (determined on first hit)
 		if will_chain:
 			# Set the processing flag to prevent multiple hits during ricochet calculation
 			is_processing_ricochet = true
-			print("Setting is_processing_ricochet to true")
 			
 			# Try to find a new target to chain to
 			call_deferred("find_chain_target", target)
@@ -211,14 +169,12 @@ func process_on_hit(target: Node) -> void:
 			if piercing:
 				# Check if piercing limit is reached
 				if current_pierce_count > max_pierce:
-					print("Piercing limit reached, destroying arrow")
 					queue_free()
 				else:
 					print("Continuing with piercing")
 					# Don't destroy the arrow, let it continue
 			else:
 				# No piercing, destroy the arrow
-				print("No piercing, destroying arrow")
 				queue_free()
 	else:
 		# No chain shot capability or max chains reached, check if it has piercing
@@ -230,14 +186,12 @@ func process_on_hit(target: Node) -> void:
 		if piercing:
 			# Check if piercing limit is reached
 			if current_pierce_count > max_pierce:
-				print("Piercing limit reached, destroying arrow")
 				queue_free()
 			else:
 				print("Continuing with piercing")
 				# Don't destroy the arrow, let it continue
 		else:
 			# No chain shot or piercing, destroy the arrow
-			print("No piercing capability, destroying arrow")
 			queue_free()
 
 # Function that implements Focused Shot logic
@@ -284,8 +238,6 @@ func apply_focused_shot(target: Node) -> void:
 				# Apply bonus to base damage
 				if "base_damage" in dmg_calc:
 					dmg_calc.base_damage = int(original_base_damage * (1.0 + focused_shot_bonus))
-					print("Calculator base damage increased from ", original_base_damage, " to ", dmg_calc.base_damage)
-				
 				# Also apply bonus to all elemental damages
 				if "elemental_damage" in dmg_calc:
 					for element_type in original_elemental_damage.keys():
@@ -312,13 +264,9 @@ func reset_focused_shot_bonuses(orig_damage: int, orig_base_damage: int, orig_el
 			for element_type in orig_elemental_damage.keys():
 				if element_type in dmg_calc.elemental_damage:
 					dmg_calc.elemental_damage[element_type] = orig_elemental_damage[element_type]
-	
-	print("Damage values restored after Focused Shot application")
 
 # Finds a new target to chain to after hitting an enemy
 func find_chain_target(original_target) -> void:
-	print("Finding chain target...")
-	
 	# Wait a frame to make sure hit processing is complete
 	await get_tree().process_frame
 	
@@ -353,8 +301,6 @@ func find_chain_target(original_target) -> void:
 	if potential_targets.size() > 0:
 		# Choose a random target from the valid ones
 		var next_target = potential_targets[randi() % potential_targets.size()]
-		print("Chain Shot target found! Ricocheting to new target.")
-		
 		# Apply damage reduction for chained shots if we have DmgCalculatorComponent
 		if has_node("DmgCalculatorComponent"):
 			var dmg_calc = get_node("DmgCalculatorComponent")
@@ -402,12 +348,7 @@ func find_chain_target(original_target) -> void:
 		
 		# Allow hits to be processed again
 		is_processing_ricochet = false
-		print("Setting is_processing_ricochet back to false")
-		
-		# For debugging the position
-		print("Repositioned arrow at: ", global_position, " heading toward: ", next_target.global_position)
 	else:
-		print("No valid chain targets found within range.")
 		# If the arrow also has piercing, let it continue its path
 		if piercing:
 			var current_pierce_count = 0
@@ -419,12 +360,10 @@ func find_chain_target(original_target) -> void:
 				max_pierce = get_meta("piercing_count")
 			
 			if current_pierce_count <= max_pierce:
-				print("No chain targets, but continuing with piercing")
 				is_processing_ricochet = false
 				return
 		
 		# Otherwise destroy the arrow
-		print("No chain targets and no piercing, destroying arrow")
 		queue_free()
 		
 # Método opcional para tentar spawnar flechas adicionais
@@ -433,7 +372,6 @@ func try_spawn_additional_arrows(target) -> Array:
 	if not arrow_storm_enabled or randf() > arrow_storm_trigger_chance:
 		return [self]
 	
-	print("Arrow Storm TRIGGERED!")
 	var additional_projectiles = []
 	
 	# Calcula direções para as flechas adicionais
@@ -469,7 +407,6 @@ func try_spawn_additional_arrows(target) -> Array:
 		additional_projectiles.append(new_projectile)
 	
 	# Retorna lista com projétil original + projéteis adicionais
-	print("Arrow Storm: ", additional_projectiles.size() + 1, " arrows spawned")
 	return [self] + additional_projectiles
 
 # Método auxiliar para conversão de graus para radianos

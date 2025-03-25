@@ -393,7 +393,7 @@ func get_formatted_description(talent_id: int) -> String:
 		14: "When Arrow Rain hits an enemy, the arrows split into 2 smaller arrows (dealing 25% damage each) that seek nearby foes.",
 		15: "Arrows explode on impact, dealing 50% of the damage in an area.",
 		16: "Critical hits apply bleeding, causing 30% of base damage over 4s.",
-		17: "Criticals create small explosions, dealing 100% damage in an area.",
+		17: "Critical hits mark enemies for 4s. Marked enemies take +100% bonus critical damage from all attacks.",
 		18: "Attacks have a 5% chance to fire a spectral arrow that passes through enemies.",
 		19: "Fire damage increases as the enemy's health decreases.",
 		20: "Arrows now pierce through up to 3 enemies.",

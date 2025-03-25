@@ -17,6 +17,8 @@ extends CharacterBody2D
 @export var idle_time: float = 5.0
 @export var soldier_name: String = ""
 @export var soldier_preview: PackedScene
+@export var crit_chance: float
+@export var crit_multi: float
 @export var equipment_slots: Dictionary = {
 	"Weapons": null,  # Arma
 	"Armor": null,   # Armadura

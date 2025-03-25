@@ -482,7 +482,7 @@ offset_right = 230.0
 offset_bottom = 504.0
 texture_normal = ExtResource("20_108br")
 talent_id = 17
-skill_name = "Explosive Arrows"
+skill_name = "Marked for Death"
 icon = ExtResource("20_108br")
 
 [node name="talent_18" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]

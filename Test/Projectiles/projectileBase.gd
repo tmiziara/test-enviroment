@@ -2,7 +2,6 @@ extends CharacterBody2D
 class_name ProjectileBase
 
 @export var damage: int = 10
-@export var crit_chance: float = 0.1
 @export var speed: float = 400.0
 @export var piercing: bool = false
 
@@ -11,9 +10,11 @@ var direction: Vector2 = Vector2.ZERO
 var shooter = null  # Referência ao atirador (arqueiro)
 var dmg_calculator: DmgCalculatorComponent
 var tags: Array = []  # Array para armazenar tags como "fire", "ice", etc.
+var crit_chance: float
 
 func _ready():
-	is_crit = is_critical_hit(crit_chance)
+	crit_chance = shooter.crit_chance
+	is_crit = is_critical_hit(shooter.crit_chance)
 	
 	# Obtém ou cria o calculador de dano
 	dmg_calculator = $DmgCalculatorComponent
@@ -52,7 +53,7 @@ func get_damage_package() -> Dictionary:
 	
 	# Aplica crítico se necessário
 	if is_crit:
-		damage_package["physical_damage"] = int(damage_package["physical_damage"] * 2)
+		damage_package["physical_damage"] = int(damage_package["physical_damage"] * shooter.crit_multi)
 		damage_package["is_critical"] = true
 	else:
 		damage_package["is_critical"] = false
