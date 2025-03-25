@@ -13,6 +13,7 @@ func get_strategy_name() -> String:
 
 # Método principal de aplicação do upgrade
 func apply_upgrade(projectile: Node) -> void:
+	print("Serrated Arrows applied to projectile: ", projectile)
 	print("Aplicando Serrated Arrows - Flechas serrilhadas que causam sangramento em acertos críticos")
 	
 	# Verifica se o projétil já tem efeito de sangramento para evitar duplicação

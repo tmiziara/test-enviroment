@@ -76,6 +76,12 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 	# Debug print to track execution
 	print("Arrow Rain: Impact at position ", impact_position)
 	
+	if arrow.has_signal("on_hit"):
+		var enemy_hit = find_enemy_at_position(impact_position, impact_radius)
+		if enemy_hit and is_instance_valid(enemy_hit):
+			print("Arrow Rain: Emitindo sinal on_hit para callbacks conectados")
+			arrow.emit_signal("on_hit", enemy_hit, arrow)
+			
 	# Verificar se a flecha tem efeito de explosão
 	var has_explosion = arrow.has_meta("has_explosion_effect")
 	var explosion_strategy = null
@@ -93,10 +99,28 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 			var dmg_calc = arrow.get_node("DmgCalculatorComponent")
 			if "crit_multiplier" in dmg_calc:
 				crit_mult = dmg_calc.crit_multiplier
-		
 		impact_damage = int(impact_damage * crit_mult)
 		print("Arrow Rain: Critical hit! Damage increased to ", impact_damage)
-	
+		if arrow.has_meta("has_bleeding_effect") and arrow.is_crit:
+			# Verifica se a flecha tem a estratégia de sangramento
+			if arrow.has_meta("bleeding_strategy"):
+				var bleeding_strategy_ref = arrow.get_meta("bleeding_strategy")
+				var bleeding_strategy = null
+				
+				# Converte a referência fraca para uma referência real
+				if bleeding_strategy_ref is WeakRef:
+					bleeding_strategy = bleeding_strategy_ref.get_ref()
+				else:
+					bleeding_strategy = bleeding_strategy_ref
+					
+				# Se temos uma estratégia válida, procuramos um inimigo e aplicamos o efeito
+				if bleeding_strategy and is_instance_valid(bleeding_strategy):
+					var enemy_hit = find_enemy_at_position(impact_position, impact_radius)
+					if enemy_hit and is_instance_valid(enemy_hit):
+						print("Arrow Rain: Aplicando efeito de sangramento ao acerto crítico!")
+						bleeding_strategy.apply_bleeding_effect(arrow, enemy_hit)
+					else:
+						print("Arrow Rain: Acerto crítico, mas não encontrou inimigo válido para sangramento")
 	# Try our direct damage application first (more reliable)
 	var direct_hits = apply_damage_to_area(impact_position, impact_damage, arrow.is_crit, "arrow_rain", arrow)
 	
@@ -132,6 +156,7 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 		query.transform = Transform2D(0, impact_position)
 		query.collision_mask = 2  # Enemy collision layer
 		query.collide_with_bodies = true
+		
 		
 		# Execute overlap search using direct PhysicsDirectSpaceState2D query
 		var results = []
@@ -209,6 +234,7 @@ func on_arrow_impact(impact_position, arrow, shadow, shooter):
 						shooter.get_parent()  # A cena pai
 					)
 					break  # Apenas um alvo é suficiente	
+
 	# Remove shadow - ensuring tween is interrupted first
 	if shadow and is_instance_valid(shadow):
 		# Interrupt tween (if it exists)
@@ -499,7 +525,7 @@ func spawn_rain_arrows(projectile: Node):
 		if projectile.has_meta("explosion_strategy"):
 			var strategy_ref = projectile.get_meta("explosion_strategy")
 			explosion_strategy = strategy_ref.get_ref() if strategy_ref is WeakRef else strategy_ref
-	
+
 	# Procurar o Talent 15 nas estratégias do arqueiro se não encontrou no projétil
 	if not explosion_strategy and shooter and "attack_upgrades" in shooter:
 		for upgrade in shooter.attack_upgrades:
