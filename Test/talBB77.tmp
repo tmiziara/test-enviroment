@@ -41,7 +41,7 @@
 [ext_resource type="Texture2D" uid="uid://b578fuywitovb" path="res://Test/Assets/Icons/ArcherSkill/26.png" id="29_curf5"]
 [ext_resource type="Resource" uid="uid://c3k5twigg302h" path="res://Test/Strategys/ArcherTalent/Talent_15.tres" id="29_oyohu"]
 [ext_resource type="Texture2D" uid="uid://b7th7fmko5gt8" path="res://Test/Assets/Icons/ArcherSkill/27.png" id="30_j2ums"]
-[ext_resource type="Resource" uid="uid://dndn5nk4wg62e" path="res://Test/Strategys/ArcherTalent/Talent_16.tres" id="31_hxpgo"]
+[ext_resource type="Resource" uid="uid://dndn5nk4wg62e" path="res://Test/Strategys/ArcherTalent/Talent_16.tres" id="31_0c16t"]
 [ext_resource type="Texture2D" uid="uid://bbegfny4yir4x" path="res://Test/Assets/Icons/ArcherSkill/28.png" id="31_vfsdg"]
 [ext_resource type="Texture2D" uid="uid://wyfj6bkmhhv8" path="res://Test/Assets/Icons/ArcherSkill/29.png" id="32_essnb"]
 [ext_resource type="Texture2D" uid="uid://dn26dle6ue1sw" path="res://Test/Assets/Icons/ArcherSkill/30.png" id="33_6s1uf"]
@@ -472,7 +472,7 @@ texture_normal = ExtResource("19_rfep8")
 talent_id = 16
 skill_name = "Serrated Arrows"
 icon = ExtResource("19_rfep8")
-talent_strategy = ExtResource("31_hxpgo")
+talent_strategy = ExtResource("31_0c16t")
 
 [node name="talent_17" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0

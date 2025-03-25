@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Talent_16" load_steps=2 format=3 uid="uid://dndn5nk4wg62e"]
+
+[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_16.gd" id="1_hlswm"]
+
+[resource]
+script = ExtResource("1_hlswm")
+bleeding_damage_percent = 0.3
+bleeding_duration = 4.0
+bleeding_interval = 0.5
+talent_id = 16
