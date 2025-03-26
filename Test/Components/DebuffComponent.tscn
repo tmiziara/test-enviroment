@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://6keapdhfopfk"]
+
+[ext_resource type="Script" uid="uid://bewfwk7pb4ym0" path="res://Test/Components/debuff_component.gd" id="1_ximyb"]
+
+[node name="DebuffComponent" type="Node"]
+script = ExtResource("1_ximyb")

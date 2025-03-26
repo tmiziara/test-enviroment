@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://bdkviwqe7miyl"]
 
 [ext_resource type="Texture2D" uid="uid://csr88qge038y4" path="res://icon.svg" id="1_ysegc"]
-[ext_resource type="Script" path="res://Test/skill_button_test.gd" id="2_5edff"]
+[ext_resource type="Script" uid="uid://5rhm1u385v4y" path="res://Test/skill_button_test.gd" id="2_5edff"]
 
 [node name="skillButton" type="TextureButton" groups=["skill_buttons"]]
 offset_right = 40.0

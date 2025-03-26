@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://cvhrkbsgs68ee"]
+[gd_scene load_steps=7 format=3 uid="uid://cvhrkbsgs68ee"]
 
-[ext_resource type="Script" path="res://Test/Components/healthbar.gd" id="1_2bd8e"]
+[ext_resource type="Script" uid="uid://ipptcft8kdsd" path="res://Test/Components/healthbar.gd" id="1_2bd8e"]
+[ext_resource type="PackedScene" uid="uid://cov3411qkf18n" path="res://Test/Components/DebuffDisplayComponent.tscn" id="2_pescu"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_5n3p2"]
 
@@ -41,6 +42,15 @@ theme_override_styles/background = SubResource("StyleBoxFlat_86vmm")
 theme_override_styles/fill = SubResource("StyleBoxFlat_hru0p")
 value = 80.0
 show_percentage = false
+
+[node name="DebuffDisplayComponent" parent="DamageBar" instance=ExtResource("2_pescu")]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = -12.0
+offset_right = 0.0
+offset_bottom = -2.0
+grow_horizontal = 2
 
 [node name="Timer" type="Timer" parent="."]
 wait_time = 0.4

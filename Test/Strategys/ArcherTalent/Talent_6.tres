@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="FireArrowEnhancedStrategy" load_steps=2 format=3 uid="uid://bk13qo7eoht87"]
+[gd_resource type="Resource" script_class="Talent_6" load_steps=2 format=3 uid="uid://bk13qo7eoht87"]
 
-[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_6.gd" id="1_dd8v5"]
+[ext_resource type="Script" uid="uid://c0efxo2th2rjb" path="res://Test/Strategys/ArcherTalent/Talent_6.gd" id="1_dd8v5"]
 
 [resource]
 script = ExtResource("1_dd8v5")
-fire_damage = 7
-dot_damage_per_tick = 3
+fire_damage_percent = 0.2
+dot_percent_per_tick = 0.05
 dot_duration = 3.0
 dot_interval = 0.5
 talent_id = 6

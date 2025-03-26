@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="Talent_15" load_steps=2 format=3 uid="uid://c3k5twigg302h"]
 
-[ext_resource type="Script" path="res://Test/Strategys/ArcherTalent/Talent_15.gd" id="1_fieql"]
+[ext_resource type="Script" uid="uid://bw3va538i2non" path="res://Test/Strategys/ArcherTalent/Talent_15.gd" id="1_fieql"]
 
 [resource]
 script = ExtResource("1_fieql")

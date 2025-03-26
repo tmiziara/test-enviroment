@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bt3drmokrdmlo"]
 
-[ext_resource type="Script" path="res://Test/Components/Damage/DmgCalculatorComponent.gd" id="1_pgfin"]
+[ext_resource type="Script" uid="uid://bfy471dhkn1vm" path="res://Test/Components/Damage/DmgCalculatorComponent.gd" id="1_pgfin"]
 
 [node name="DmgCalculatorComponent" type="Node"]
 script = ExtResource("1_pgfin")

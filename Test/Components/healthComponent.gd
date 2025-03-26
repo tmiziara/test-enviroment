@@ -2,6 +2,7 @@ extends Node
 class_name HealthComponent
 
 @export var max_health: int = 100  # Vida máxima
+@export var crit_multiplier: float = 3.0  # Dano crítico multiplicado por 2
 
 var current_health: int  # Vida atual
 var active_debuffs = {}  # Dicionário para armazenar debuffs ativos
@@ -10,7 +11,7 @@ var active_dots = {}   # Lista para armazenar DoTs ativos
 # Sinais
 signal health_changed(new_health, amount, is_crit, damage_type)  # Para números de dano
 signal died  # Evento de morte
-
+signal dot_ended(dot_type)
 # Referência ao componente de defesa
 var defense_component = null
 
@@ -202,11 +203,27 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 		dot_timer.queue_free()
 		duration_timer.queue_free()
 		active_dots.erase(dot_type)
+		 # Signal that the DoT has ended
+		emit_signal("dot_ended", dot_type)
 	)
 	
 	# Inicia os timers
 	dot_timer.start()
 	duration_timer.start()
+	
+	# Adiciona o debuff
+	var parent = get_parent()
+	var debuff_component = parent.get_node("DebuffComponent")
+	
+	# Mapeamento de tipos de DoT para tipos de debuff
+	var debuff_type = GlobalDebuffSystem.map_dot_to_debuff_type(dot_type)
+	debuff_component.add_debuff(
+		debuff_type, 
+		duration,
+		{
+			"max_stacks": 1
+		}
+	)
 
 func get_health_percent() -> float:
 	return float(current_health) / max_health

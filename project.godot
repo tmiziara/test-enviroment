@@ -12,12 +12,13 @@ config_version=5
 
 config/name="test enviroment"
 run/main_scene="res://Test/world_test.tscn"
-config/features=PackedStringArray("4.3", "Mobile")
+config/features=PackedStringArray("4.4", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
 DamageNumbers="*res://Test/Singletons/damageNumbers.gd"
+GlobalDebuffSystem="*res://Test/Singletons/global_debuff_system.gd"
 
 [display]
 

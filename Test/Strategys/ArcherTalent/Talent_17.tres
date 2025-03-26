@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Talent_17" load_steps=2 format=3 uid="uid://bx4ob0wu05id1"]
+
+[ext_resource type="Script" uid="uid://b0jw8l7na8rgn" path="res://Test/Strategys/ArcherTalent/Talent_17.gd" id="1_acb5y"]
+
+[resource]
+script = ExtResource("1_acb5y")
+mark_duration = 4.0
+crit_damage_bonus = 1.0
+talent_id = 17

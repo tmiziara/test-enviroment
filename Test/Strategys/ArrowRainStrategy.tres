@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="ArrowRainStrategy" load_steps=2 format=3 uid="uid://b58pd81khesrt"]
 
-[ext_resource type="Script" path="res://Test/Strategys/ArrowRainStrategy.gd" id="1_hvsos"]
+[ext_resource type="Script" uid="uid://c0qkh8d7knwo4" path="res://Test/Strategys/ArrowRainStrategy.gd" id="1_hvsos"]
 
 [resource]
 script = ExtResource("1_hvsos")

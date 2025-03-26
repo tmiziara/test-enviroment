@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://b16odll4w6fmg"]
 
-[ext_resource type="Script" path="res://Test/world_test.gd" id="1_e78mo"]
+[ext_resource type="Script" uid="uid://dodd1imdme2jh" path="res://Test/world_test.gd" id="1_e78mo"]
 [ext_resource type="PackedScene" uid="uid://bcavxefldragy" path="res://Test/archer_test.tscn" id="1_ffwo5"]
 [ext_resource type="PackedScene" uid="uid://clurda8aosh4e" path="res://Test/talent_tree_ui.gd.tscn" id="2_4rk15"]
 [ext_resource type="PackedScene" uid="uid://dr52dwcmya0ut" path="res://Test/enemy_test.tscn" id="2_uahnj"]

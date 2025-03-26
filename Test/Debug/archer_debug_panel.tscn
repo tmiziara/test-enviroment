@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dknruy0w6okvd"]
 
-[ext_resource type="Script" path="res://Test/Debug/archer_debug_panel.gd" id="1_4us1n"]
+[ext_resource type="Script" uid="uid://r5f8s65wne0d" path="res://Test/Debug/archer_debug_panel.gd" id="1_4us1n"]
 
 [node name="ArcherDebugPanel" type="Control"]
 layout_mode = 3
