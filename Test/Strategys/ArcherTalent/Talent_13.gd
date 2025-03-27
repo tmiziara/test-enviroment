@@ -598,35 +598,6 @@ func spawn_rain_arrows(projectile: Node):
 		
 		# Adicionar tag de rain_arrow
 		arrow.add_tag("rain_arrow")
-		
-		# IMPORTANTE: Copiar os componentes e dados do DmgCalculator
-		if projectile.has_node("DmgCalculatorComponent") and arrow.has_node("DmgCalculatorComponent"):
-			var original_dmg_calc = projectile.get_node("DmgCalculatorComponent")
-			var arrow_dmg_calc = arrow.get_node("DmgCalculatorComponent")
-			
-			# Copiar propriedades básicas
-			if "base_damage" in original_dmg_calc:
-				arrow_dmg_calc.base_damage = original_dmg_calc.base_damage
-			
-			# Copiar danos elementais
-			if "elemental_damage" in original_dmg_calc:
-				arrow_dmg_calc.elemental_damage = original_dmg_calc.elemental_damage.duplicate()
-			
-			# Copiar efeitos DoT
-			if "dot_effects" in original_dmg_calc:
-				arrow_dmg_calc.dot_effects = original_dmg_calc.dot_effects.duplicate(true)
-			
-			# Copiar outras propriedades relevantes
-			if "armor_penetration" in original_dmg_calc:
-				arrow_dmg_calc.armor_penetration = original_dmg_calc.armor_penetration
-			
-			if "damage_multiplier" in original_dmg_calc:
-				arrow_dmg_calc.damage_multiplier = original_dmg_calc.damage_multiplier
-			
-			# Copiar TODOS os metadados do DmgCalculator
-			for meta_key in original_dmg_calc.get_meta_list():
-				if original_dmg_calc.has_meta(meta_key):
-					arrow_dmg_calc.set_meta(meta_key, original_dmg_calc.get_meta(meta_key))
 					
 		for strategy in other_strategies:
 			if strategy and is_instance_valid(strategy):
