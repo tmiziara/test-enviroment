@@ -48,17 +48,16 @@ func _ready():
 		hit_targets = []
 
 # Modifica o método get_damage_package() para melhorar o Focused Shot
-
 func get_damage_package() -> Dictionary:
 	# Call the parent's method to create the base damage package
 	var damage_package = super.get_damage_package()
 	
 	# Try to find the current target (will be used by both Focused Shot and Marked for Death)
 	var current_target = null
-	if shooter and shooter.has_method("get_current_target"):
-		current_target = shooter.get_current_target()
-	elif has_meta("current_target"):
+	if has_meta("current_target"):
 		current_target = get_meta("current_target")
+	elif shooter and shooter.has_method("get_current_target"):
+		current_target = shooter.get_current_target()
 	
 	# Check if Focused Shot is enabled
 	if focused_shot_enabled:
@@ -94,55 +93,53 @@ func get_damage_package() -> Dictionary:
 		else:
 			print("ERROR: Invalid target or no HealthComponent")
 	
-	# NEW CODE: Check for Marked for Death effect on target
-	# Only apply if this is a critical hit
+	# Check for Marked for Death effect on target - Only apply if this is a critical hit
 	if current_target and is_instance_valid(current_target) and damage_package.get("is_critical", false):
-		# Check if target has a DebuffComponent and has the MARKED_FOR_DEATH debuff
+		# Explicitly check if this specific target has the mark debuff
+		var has_mark = false
 		if current_target.has_node("DebuffComponent"):
 			var debuff_component = current_target.get_node("DebuffComponent")
-			if debuff_component.has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH):
-				var mark_bonus = current_target.get_meta("mark_crit_bonus", 1.0)
-				print("Target is marked! Applying extra critical damage: +", mark_bonus * 100, "%")
-				
-				# Get the current damage (already includes any Focused Shot bonus)
-				var base_crit_damage = damage_package["physical_damage"]
-				
-				# Apply the mark bonus to physical damage
-				var bonus_damage = int(base_crit_damage * mark_bonus)
-				damage_package["physical_damage"] += bonus_damage
-				
-				print("Physical Damage:")
-				print("  - Current: ", base_crit_damage)
-				print("  - Bonus from Mark: ", bonus_damage)
-				print("  - New Total: ", damage_package["physical_damage"])
-				
-				# Also apply to elemental damage if present
-				if "elemental_damage" in damage_package:
-					for element in damage_package["elemental_damage"]:
-						var base_elem_crit = damage_package["elemental_damage"][element]
-						var bonus_elem = int(base_elem_crit * mark_bonus)
-						damage_package["elemental_damage"][element] += bonus_elem
-						
-						print("Elemental Damage (", element, "):")
-						print("  - Current: ", base_elem_crit)
-						print("  - Bonus from Mark: ", bonus_elem)
-						print("  - New Total: ", damage_package["elemental_damage"][element])
-				
-				# Set damage type to marked_for_death
-				damage_package["damage_type"] = "marked_for_death"
-	
+			has_mark = debuff_component.has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
+		
+		# Only apply bonus if target actually has the mark
+		if has_mark:
+			var mark_bonus = current_target.get_meta("mark_crit_bonus", 1.0)
+			print("Target is marked! Applying extra critical damage: +", mark_bonus * 100, "%")
+			
+			# Get the current damage (already includes any Focused Shot bonus)
+			var base_crit_damage = damage_package["physical_damage"]
+			
+			# Apply the mark bonus to physical damage
+			var bonus_damage = int(base_crit_damage * mark_bonus)
+			damage_package["physical_damage"] += bonus_damage
+			
+			print("Physical Damage:")
+			print("  - Current: ", base_crit_damage)
+			print("  - Bonus from Mark: ", bonus_damage)
+			print("  - New Total: ", damage_package["physical_damage"])
+			
+			# Also apply to elemental damage if present
+			if "elemental_damage" in damage_package:
+				for element in damage_package["elemental_damage"]:
+					var base_elem_crit = damage_package["elemental_damage"][element]
+					var bonus_elem = int(base_elem_crit * mark_bonus)
+					damage_package["elemental_damage"][element] += bonus_elem
+					
+					print("Elemental Damage (", element, "):")
+					print("  - Current: ", base_elem_crit)
+					print("  - Bonus from Mark: ", bonus_elem)
+					print("  - New Total: ", damage_package["elemental_damage"][element])
+			
+			# Set damage type to marked_for_death
+			damage_package["damage_type"] = "marked_for_death"
 	
 	return damage_package
 
 # Method called by Hurtbox when the arrow hits a target
 func process_on_hit(target: Node) -> void:
+	# Set current target for damage calculations
 	set_meta("current_target", target)
 	print("Arrow.process_on_hit called - is_processing_ricochet: ", is_processing_ricochet)
-	
-	var is_marked = false
-	if target.has_node("DebuffComponent"):
-		is_marked = target.get_node("DebuffComponent").has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
-	var damage_type = "marked_for_death" if is_crit and is_marked else ""
 	
 	# If we're already processing a ricochet, ignore this hit
 	if is_processing_ricochet:
@@ -153,9 +150,17 @@ func process_on_hit(target: Node) -> void:
 	if not target in hit_targets:
 		hit_targets.append(target)
 	
+	# Check if target has mark debuff (for damage type display)
+	var is_marked = false
+	if target.has_node("DebuffComponent"):
+		is_marked = target.get_node("DebuffComponent").has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
+	
 	# APPLY DAMAGE! Calculate and apply damage to the target
 	if target.has_node("HealthComponent"):
 		var health_component = target.get_node("HealthComponent")
+		
+		# Recalculate damage package for THIS specific target
+		# This ensures mark bonus is only applied to marked targets
 		var damage_package = get_damage_package()
 		
 		# NOVA LÓGICA: Verificar se devemos aplicar DoT com base na chance
@@ -194,9 +199,10 @@ func process_on_hit(target: Node) -> void:
 			health_component.take_complex_damage(damage_package)
 		else:
 			# Fallback to old method if necessary
+			var damage_type = "marked_for_death" if is_crit and is_marked else ""
 			health_component.take_damage(damage_package.get("physical_damage", damage), 
-										damage_package.get("is_critical", is_crit),
-										damage_type)
+									  damage_package.get("is_critical", is_crit),
+									  damage_type)
 	
 	# Check if Focused Shot is enabled on this arrow
 	if focused_shot_enabled:
