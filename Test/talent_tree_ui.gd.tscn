@@ -1,4 +1,4 @@
-[gd_scene load_steps=48 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=50 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" uid="uid://defmqd8prppkh" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
 [ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
@@ -27,7 +27,7 @@
 [ext_resource type="Texture2D" uid="uid://c8r30foegmkmk" path="res://Test/Assets/Icons/ArcherSkill/15.png" id="18_voe78"]
 [ext_resource type="Texture2D" uid="uid://drcbxap10cxgg" path="res://Test/Assets/Icons/ArcherSkill/16.png" id="19_rfep8"]
 [ext_resource type="Texture2D" uid="uid://cm5rdp0n4jxtn" path="res://Test/Assets/Icons/ArcherSkill/17.png" id="20_108br"]
-[ext_resource type="Texture2D" uid="uid://e8jfiwnfeyaq" path="res://Test/Assets/Icons/ArcherSkill/18.png" id="21_5sr80"]
+[ext_resource type="Texture2D" uid="uid://bhe4n6hva3yx3" path="res://Test/Assets/Icons/ArcherSkill/18.png" id="21_5sr80"]
 [ext_resource type="Texture2D" uid="uid://byn2hpoaxrk42" path="res://Test/Assets/Icons/ArcherSkill/19.png" id="22_tdwa2"]
 [ext_resource type="Resource" uid="uid://bafqtm6o0sp63" path="res://Test/Strategys/ArcherTalent/Talent_12.tres" id="23_ar87f"]
 [ext_resource type="Texture2D" uid="uid://ipfta00gpbny" path="res://Test/Assets/Icons/ArcherSkill/20.png" id="23_yhr6m"]
@@ -46,9 +46,13 @@
 [ext_resource type="Texture2D" uid="uid://wyfj6bkmhhv8" path="res://Test/Assets/Icons/ArcherSkill/29.png" id="32_essnb"]
 [ext_resource type="Texture2D" uid="uid://dn26dle6ue1sw" path="res://Test/Assets/Icons/ArcherSkill/30.png" id="33_6s1uf"]
 [ext_resource type="Resource" uid="uid://bx4ob0wu05id1" path="res://Test/Strategys/ArcherTalent/Talent_17.tres" id="33_lbfb5"]
+[ext_resource type="Resource" uid="uid://bkneyepjq8cjo" path="res://Test/Strategys/ArcherTalent/Talent_18.tres" id="35_40nic"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wr0a4"]
 bg_color = Color(0, 0, 0, 1)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_5w0hd"]
+load_path = "res://.godot/imported/18.png-a906efba5b545014858fabbead56a059.ctex"
 
 [node name="TalentTreeUi" type="Control" groups=["skill_tree"]]
 custom_minimum_size = Vector2(1152, 648)
@@ -493,10 +497,11 @@ offset_left = 350.0
 offset_top = 464.0
 offset_right = 390.0
 offset_bottom = 504.0
-texture_normal = ExtResource("21_5sr80")
+texture_normal = SubResource("CompressedTexture2D_5w0hd")
 talent_id = 18
-skill_name = "Ghost Bow"
+skill_name = "Bloodseeker"
 icon = ExtResource("21_5sr80")
+talent_strategy = ExtResource("35_40nic")
 
 [node name="talent_19" parent="BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
 layout_mode = 0

@@ -37,7 +37,7 @@ func update_debuffs():
 			"res://Test/Assets/Icons/debuffs/fire_icon.png", Color(0.9, 0.5, 0.1))
 			
 		check_debuff_type(GlobalDebuffSystem.DebuffType.BLEEDING, 
-			"res://Test/Assets/Icons/debuffs/bleeding_icon.png", Color(0.8, 0.1, 0.1))
+			"res://Test/Assets/Icons/debuffs/bleeding.png", Color(0.8, 0.1, 0.1))
 
 func check_debuff_type(debuff_type: int, icon_path: String, color: Color):
 	var type_name = str(debuff_type)  # Usamos o número como uma string para a chave
@@ -69,7 +69,7 @@ func check_meta_debuff(debuff_name: String, icon_path: String, color: Color):
 
 func create_debuff_icon(debuff_name: String, icon_path: String, color: Color):
 	var icon = TextureRect.new()
-	icon.custom_minimum_size = Vector2(10, 10)
+	icon.custom_minimum_size = Vector2(16, 16)
 	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -83,7 +83,6 @@ func create_debuff_icon(debuff_name: String, icon_path: String, color: Color):
 		var default_texture = create_default_icon(debuff_name, color)
 		icon.texture = default_texture
 	
-	icon.modulate = color
 	
 	# Adiciona o ícone ao container
 	container.add_child(icon)

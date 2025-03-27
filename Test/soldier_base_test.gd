@@ -25,7 +25,7 @@ extends CharacterBody2D
 	"Ring": null,    # Anel
 	"Amulet": null   # Amuleto
 }
-
+signal target_change(target)
 # Identificador único (UUID)
 var unique_id: String = ""
 
@@ -160,6 +160,9 @@ func _on_body_exited(body):
 			select_closest_target()
 
 func select_closest_target():
+	# Armazena o alvo anterior para comparação
+	var previous_target = current_target
+	
 	mobs_in_range = mobs_in_range.filter(is_instance_valid)
 	if mobs_in_range.is_empty():
 		current_target = null
@@ -167,7 +170,13 @@ func select_closest_target():
 		reset_animation_state()
 		reset_attack()
 		target_position = get_random_point_within_radius()
+		
+		# Emite o sinal se o alvo anterior não era nulo
+		if previous_target != null:
+			emit_signal("target_change", null)
+			
 		return
+	
 	var closest_target = null
 	var closest_distance = INF
 	for mob in mobs_in_range:
@@ -178,9 +187,17 @@ func select_closest_target():
 		if distance < closest_distance and is_target_in_range(mob):
 			closest_distance = distance
 			closest_target = mob
+	
 	current_target = closest_target
+	
+	# Emite o sinal se o alvo mudou
+	if current_target != previous_target:
+		emit_signal("target_change", current_target)
+	
 	if current_target and not is_attacking:
 		attack_timer.start()
+	
+	return current_target
 
 func is_target_in_range(target: CharacterBody2D) -> bool:
 	if not is_instance_valid(target):

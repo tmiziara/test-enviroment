@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://di2ahnuq3kyoi" path="res://Test/Components/DebuffDisplayComponent.gd" id="1_dgam1"]
 
 [node name="DebuffDisplayComponent" type="Control"]
-custom_minimum_size = Vector2(0, 10)
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 3
 anchors_preset = 0
 offset_right = 38.0
@@ -12,7 +12,7 @@ size_flags_vertical = 4
 script = ExtResource("1_dgam1")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
-custom_minimum_size = Vector2(0, 10)
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://crscab7udan3e"
-path="res://.godot/imported/marked_icon.png-d96463e4dc18cece7ace59a8709fd586.ctex"
+uid="uid://bihnfrlpasrmu"
+path="res://.godot/imported/bloodseeker_stack.png-f30b67043f656ff4aafdb93805521c58.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/Assets/Icons/debuffs/marked_icon.png"
-dest_files=["res://.godot/imported/marked_icon.png-d96463e4dc18cece7ace59a8709fd586.ctex"]
+source_file="res://Test/Assets/Icons/buffs/bloodseeker_stack.png"
+dest_files=["res://.godot/imported/bloodseeker_stack.png-f30b67043f656ff4aafdb93805521c58.ctex"]
 
 [params]
 
