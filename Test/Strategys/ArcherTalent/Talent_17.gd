@@ -80,112 +80,66 @@ func enhance_arrow_hit_processing(arrow: Arrow) -> void:
 
 # Apply mark to an enemy on critical hit
 func apply_mark_to_enemy(projectile: Node, target: Node) -> void:
-	print("Applying Marked for Death effect to target")
+	print("Verificando se pode aplicar Marked for Death")
 	
 	# Check if target is valid
 	if not is_instance_valid(target):
 		print("Invalid target for Marked for Death")
 		return
 		
-	# Check if target has a health component
-	if not target.has_node("HealthComponent"):
-		print("Target doesn't have HealthComponent")
+	# Check if target has needed components
+	if not target.has_node("DebuffComponent"):
+		print("Target doesn't have DebuffComponent")
+		return
+	
+	# Get the debuff component
+	var debuff_component = target.get_node("DebuffComponent")
+	var marked_debuff_type = GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH
+	
+	# Only apply if not already marked
+	if debuff_component.has_debuff(marked_debuff_type):
+		print("Alvo já está marcado, não renovando o efeito")
 		return
 	
 	# Get mark parameters
 	var duration = projectile.get_meta("mark_duration", mark_duration)
 	var crit_bonus = projectile.get_meta("crit_damage_bonus", crit_damage_bonus)
 	
-	# Apply the mark to the target
 	print("Applying Marked for Death: +", crit_bonus * 100, "% critical damage for ", duration, " seconds")
+	
+	# Apply the debuff using the debuff component
+	var mark_data = {
+		"crit_bonus": crit_bonus,
+		"max_stacks": 1
+	}
+	
+	# Add the debuff - set can_renew to false to prevent multiple applications
+	debuff_component.add_debuff(marked_debuff_type, duration, mark_data, false)
+	
+	# Set meta data for backward compatibility
 	target.set_meta("marked_for_death", true)
 	target.set_meta("mark_crit_bonus", crit_bonus)
 	
-	# Create mark effect visuals
-	create_mark_visual_effect(target, duration)
-	
-	# Set up a timer to remove the mark after duration
+	# Create a timer to remove the meta data when the debuff expires
+	# Add timer to the target instead of self (the strategy)
 	var timer = Timer.new()
 	timer.name = "MarkTimer"
 	timer.wait_time = duration
 	timer.one_shot = true
 	target.add_child(timer)
 	
-	# Create weak reference to target to prevent errors
-	var target_ref = weakref(target)
-	
+	# Connect to timer timeout
 	timer.timeout.connect(func():
-		var target_obj = target_ref.get_ref()
-		if target_obj and is_instance_valid(target_obj):
-			# Remove mark
-			if target_obj.has_meta("marked_for_death"):
-				target_obj.remove_meta("marked_for_death")
-			if target_obj.has_meta("mark_crit_bonus"):
-				target_obj.remove_meta("mark_crit_bonus")
+		if is_instance_valid(target):
+			# Remove mark meta data
+			if target.has_meta("marked_for_death"):
+				target.remove_meta("marked_for_death")
+			if target.has_meta("mark_crit_bonus"):
+				target.remove_meta("mark_crit_bonus")
 			print("Marked for Death effect expired")
-			
-			# Remove any mark visual effects
-			for child in target_obj.get_children():
-				if child.name == "MarkVisualEffect":
-					child.queue_free()
-					break
+		
 		# Self cleanup
 		timer.queue_free()
 	)
 	timer.start()
-
-# Create visual effect for the mark
-func create_mark_visual_effect(target: Node, duration: float) -> void:
-	# Create a Node2D for the effect
-	var effect = Node2D.new()
-	effect.name = "MarkVisualEffect"
-	effect.position = Vector2(0, -20)  # Position above the enemy
-	target.add_child(effect)
-	
-	# Create the mark sprite
-	var mark_sprite = Sprite2D.new()
-	
-	# Create a simple arrow icon for the mark
-	var img = Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))  # Initially transparent
-	
-	# Draw a red skull-like shape
-	for x in range(16):
-		for y in range(16):
-			# Skull shape pattern
-			var dx = x - 8
-			var dy = y - 8
-			var dist = sqrt(dx*dx + dy*dy)
-			
-			# Create skull shape
-			if (dist < 7 and dist > 5) or (abs(dx) < 3 and y > 8 and y < 12) or (abs(dy) < 2 and abs(dx) < 5 and y < 7):
-				img.set_pixel(x, y, Color(0.8, 0.1, 0.1, 0.9))  # Bright red
-	
-	# Create texture
-	var texture = ImageTexture.create_from_image(img)
-	mark_sprite.texture = texture
-	effect.add_child(mark_sprite)
-	
-	# Add a pulsing effect animation
-	var script = GDScript.new()
-	script.source_code = """
-	extends Node2D
-	
-	var time = 0
-	var pulse_speed = 3.0
-	var pulse_min = 0.8
-	var pulse_max = 1.2
-	
-	func _process(delta):
-		time += delta * pulse_speed
-		var pulse = pulse_min + (pulse_max - pulse_min) * (0.5 + 0.5 * sin(time))
-		scale = Vector2(pulse, pulse)
-		
-		# Add a spinning effect
-		rotation += delta * 0.5
-		
-		# Ensure the effect stays above the enemy
-		if get_parent() and is_instance_valid(get_parent()):
-			position = Vector2(0, -20)
-	"""
-	effect.set_script(script)
+  

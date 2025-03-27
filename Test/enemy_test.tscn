@@ -158,7 +158,6 @@ max_health = 10000
 
 [node name="DefenseComponent" parent="." instance=ExtResource("6_r8bh5")]
 armor = 10
-resistance_fire = 0.505
 
 [node name="DebuffComponent" parent="." instance=ExtResource("7_y648p")]
 

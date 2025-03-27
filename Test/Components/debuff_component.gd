@@ -15,9 +15,12 @@ func _ready():
 	if health_component:
 		health_component.connect("dot_ended", _on_dot_ended)
 # Adiciona ou atualiza um debuff
-func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}) -> void:
+func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_renew: bool = true) -> void:
 	var existing_debuff = active_debuffs.get(debuff_type)
-	
+		# Se já existe um debuff deste tipo e não pode renovar, retorna
+	if existing_debuff and not can_renew:
+		print("Debuff existente não pode ser renovado")
+		return
 	# Remove o timer existente se houver
 	if debuff_type in active_timers:
 		var old_timer = active_timers[debuff_type]

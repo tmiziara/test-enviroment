@@ -2,7 +2,7 @@ extends Node
 class_name HealthComponent
 
 @export var max_health: int = 100  # Vida máxima
-@export var crit_multiplier: float = 3.0  # Dano crítico multiplicado por 2
+
 
 var current_health: int  # Vida atual
 var active_debuffs = {}  # Dicionário para armazenar debuffs ativos
