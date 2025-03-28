@@ -24,8 +24,9 @@ func _ready():
 	if shooter and "crit_chance" in shooter:
 		crit_chance = shooter.crit_chance
 	
-	# Determine if this shot is critical
+	# Cálculo de crítico
 	is_crit = is_critical_hit(crit_chance)
+	print("Critical Hit Calculated: ", is_crit, " (Chance: ", crit_chance, ")")
 	
 	# Get or create damage calculator
 	dmg_calculator = $DmgCalculatorComponent

@@ -142,31 +142,42 @@ func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
 
 # Versão melhorada do método apply_dot
 func apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic"):
+	# Log de diagnóstico
+	print("Applying DOT: ", dot_type)
+	print("Original Damage: ", damage)
+	print("Duration: ", duration)
+	print("Interval: ", interval)
+
 	# Verifica se o componente de defesa pode reduzir o DoT
 	if defense_component and defense_component.has_method("reduce_dot_damage"):
 		damage = defense_component.reduce_dot_damage(damage, dot_type)
+		print("Damage after reduction: ", damage)
 	
 	# Se o dano for reduzido a zero ou menos, não aplica o DoT
 	if damage <= 0:
+		print("Damage reduced to 0 or less - DoT not applied")
 		return
 	
 	# Verifica se já existe um DoT desse tipo
 	if dot_type in active_dots:
+		var existing_dot = active_dots[dot_type]
+		
 		# Atualiza o dano se o novo for maior
-		if damage > active_dots[dot_type].damage:
-			active_dots[dot_type].damage = damage
+		if damage > existing_dot.damage:
+			existing_dot.damage = damage
+			print("Updated existing DoT damage to: ", damage)
 		
 		# Renova o timer de duração
-		if active_dots[dot_type].duration_timer and is_instance_valid(active_dots[dot_type].duration_timer):
-			active_dots[dot_type].duration_timer.stop()
-			active_dots[dot_type].duration_timer.wait_time = duration
-			active_dots[dot_type].duration_timer.start()
+		if existing_dot.duration_timer and is_instance_valid(existing_dot.duration_timer):
+			existing_dot.duration_timer.stop()
+			existing_dot.duration_timer.wait_time = duration
+			existing_dot.duration_timer.start()
+			print("Renewed existing DoT duration")
 		
 		# Não cria um novo DoT, apenas retorna
 		return
 	
 	# Se não existe um DoT desse tipo, cria um novo
-	
 	# Cria um timer para aplicar o dano periodicamente
 	var dot_timer = Timer.new()
 	dot_timer.wait_time = interval
@@ -188,23 +199,52 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 		"duration_timer": duration_timer
 	}
 	
-	# Conecta os sinais dos timers
-	dot_timer.timeout.connect(func():
+	# Função para processar dano periódico
+	var damage_func = func():
 		# Aplica dano periódico, já considerando as resistências
-		take_damage(damage, false, dot_type)
-		if dot_type == "fire":
-			# Aqui você poderia adicionar efeitos visuais específicos para fogo
-			pass
-	)
+		var dot_damage = damage
+		
+		# Verificação adicional de dano
+		if defense_component and defense_component.has_method("reduce_dot_damage"):
+			dot_damage = defense_component.reduce_dot_damage(dot_damage, dot_type)
+		
+		if dot_damage > 0:
+			# Adiciona tag de dano para identificação
+			var damage_type = dot_type if dot_type != "generic" else ""
+			take_damage(dot_damage, false, damage_type)
+			
+			# Log de diagnóstico
+			print("DoT Tick: ", dot_type, " damage: ", dot_damage)
+			
+			# Efeitos visuais específicos
+			match dot_type:
+				"fire":
+					# Adicionar efeito visual de fogo
+					pass
+				"bleeding":
+					# Adicionar efeito visual de sangramento
+					pass
+	
+	# Conecta os sinais dos timers
+	dot_timer.timeout.connect(damage_func)
 	
 	duration_timer.timeout.connect(func():
 		# Remove o DoT após o término da duração
-		dot_timer.stop()
-		dot_timer.queue_free()
-		duration_timer.queue_free()
+		if is_instance_valid(dot_timer):
+			dot_timer.stop()
+			dot_timer.queue_free()
+		
+		if is_instance_valid(duration_timer):
+			duration_timer.queue_free()
+		
+		# Remove das dots ativas
 		active_dots.erase(dot_type)
-		 # Signal that the DoT has ended
+		
+		# Emite sinal de que o DoT terminou
 		emit_signal("dot_ended", dot_type)
+		
+		# Log de diagnóstico
+		print("DoT ", dot_type, " ended")
 	)
 	
 	# Inicia os timers
@@ -213,17 +253,32 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 	
 	# Adiciona o debuff
 	var parent = get_parent()
-	var debuff_component = parent.get_node("DebuffComponent")
+	var debuff_component = parent.get_node_or_null("DebuffComponent")
 	
-	# Mapeamento de tipos de DoT para tipos de debuff
-	var debuff_type = GlobalDebuffSystem.map_dot_to_debuff_type(dot_type)
-	debuff_component.add_debuff(
-		debuff_type, 
-		duration,
-		{
-			"max_stacks": 1
-		}
-	)
+	# Verificação de segurança para o DebuffComponent
+	if debuff_component:
+		# Mapeamento de tipos de DoT para tipos de debuff
+		var debuff_type = GlobalDebuffSystem.map_dot_to_debuff_type(dot_type)
+		
+		# Log de diagnóstico
+		print("Mapped Debuff Type: ", debuff_type)
+		
+		# Verifica se o tipo de debuff é válido
+		if debuff_type != GlobalDebuffSystem.DebuffType.NONE:
+			debuff_component.add_debuff(
+				debuff_type, 
+				duration,
+				{
+					"max_stacks": 1,
+					"source_damage": damage  # Opcional: adiciona informação de origem
+				}
+			)
+			
+			print("Debuff added: ", debuff_type)
+	else:
+		print("WARNING: No DebuffComponent found")
 
+	# Log final
+	print("DoT Application Complete")
 func get_health_percent() -> float:
 	return float(current_health) / max_health
