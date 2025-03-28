@@ -257,22 +257,15 @@ func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 	if not arrow:
 		return null
 	
-	# Reset completo
-	reset_projectile(arrow)
+	# Simplify reset - just clear key properties but don't apply talents yet
+	if arrow.has_method("reset_for_reuse"):
+		arrow.reset_for_reuse()
 	
-	# Configura o atirador
+	# Set shooter reference but let caller handle talent application
 	arrow.shooter = archer
 	
-	# Verifica se o arqueiro tem um gerenciador de talentos
-	# IMPORTANTE: Use apenas um método, não ambos!
-	if archer.has_node("ArcherTalentManager"):
-		var talent_manager = archer.get_node("ArcherTalentManager")
-		print("Aplicando talentos VIA TALENT MANAGER")
-		talent_manager.apply_talents_to_projectile(arrow)
-	else:
-		print("WARNING: Archer não tem TalentManager, não aplicando talentos")
-	
 	return arrow
+	
 # Retorna uma flecha ao seu pool de arqueiro
 func return_arrow_to_pool(arrow: Node) -> void:
 	if not is_pooled(arrow) or not arrow.shooter:

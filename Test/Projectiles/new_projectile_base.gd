@@ -63,6 +63,11 @@ func get_damage_package() -> Dictionary:
 			"tags": tags
 		}
 	
+	# Log dmg_calculator state before calculation
+	print("DmgCalculator state before calculation:")
+	print("- base_damage: " + str(dmg_calculator.base_damage))
+	print("- damage_multiplier: " + str(dmg_calculator.damage_multiplier))
+	
 	var damage_package = dmg_calculator.calculate_damage()
 	
 	# Apply critical if needed
@@ -78,6 +83,9 @@ func get_damage_package() -> Dictionary:
 	
 	# Add projectile tags to damage package
 	damage_package["tags"] = tags
+	
+	# Log final package
+	print("ProjectileBase final damage package: " + str(damage_package))
 		
 	return damage_package
 

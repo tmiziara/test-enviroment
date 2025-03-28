@@ -100,22 +100,45 @@ func spawn_arrow():
 	
 	# Check if pool system is available
 	if ProjectilePool and ProjectilePool.instance:
-		# Get arrow from pool using the talent manager-aware method
-		print("Obtendo flecha do pool, estratégias serão aplicadas automaticamente")
+		# Get arrow from pool
 		var arrow = ProjectilePool.instance.get_arrow_for_archer(self)
 		
 		if arrow:
-			# Only set position and direction
+			# Reset arrow
+			if arrow.has_method("reset_for_reuse"):
+				arrow.reset_for_reuse()
+			
+			# Set basic properties
 			arrow.global_position = arrow_spawn.global_position
 			arrow.direction = (current_target.global_position - arrow_spawn.global_position).normalized()
 			arrow.rotation = arrow.direction.angle()
 			
+			# IMPORTANT: Set shooter BEFORE applying talents
+			arrow.shooter = self
+			
+			# CRÍTICO: Certifique-se de que o DmgCalculator é inicializado corretamente
+			if arrow.has_node("DmgCalculatorComponent"):
+				var dmg_calc = arrow.get_node("DmgCalculatorComponent")
+				dmg_calc.initialize_from_shooter(self)
+				print("Inicializando main_stat do atirador: " + str(dmg_calc.main_stat))
+			
+			# NOW calculate critical hit based on archer stats
+			if "crit_chance" in self and arrow.has_method("is_critical_hit"):
+				arrow.crit_chance = self.crit_chance
+				arrow.is_crit = arrow.is_critical_hit(arrow.crit_chance)
+			
+			# Apply talents using talent manager
+			if talent_manager:
+				arrow = talent_manager.apply_talents_to_projectile(arrow)
+			else:
+				# Fallback only if talent_manager is null
+				for upgrade in attack_upgrades:
+					if upgrade:
+						upgrade.apply_upgrade(arrow)
+			
 			# Ensure arrow is visible and active
 			arrow.visible = true
 			arrow.set_physics_process(true)
-			
-			# IMPORTANTE: NÃO aplique talentos manualmente aqui,
-			# pois eles já foram aplicados pelo sistema de pool
 			
 			return
 	
@@ -131,11 +154,17 @@ func spawn_arrow():
 	# IMPORTANT: Set the shooter BEFORE adding the arrow to the tree
 	arrow.shooter = self
 	
+	# CRITICAL FIX: Calculate critical hit after shooter is set
+	if "crit_chance" in self and arrow.has_method("is_critical_hit"):
+		arrow.crit_chance = self.crit_chance
+		arrow.is_crit = arrow.is_critical_hit(arrow.crit_chance)
+		print("Critical hit calculation: ", arrow.is_crit, " (chance: ", arrow.crit_chance, ")")
+	
 	# Initialize DmgCalculator before applying upgrades
 	if arrow.dmg_calculator:
 		arrow.dmg_calculator.initialize_from_shooter(self)
 	
-	# Apply upgrades consistently using talent manager - APENAS UMA VEZ
+	# Apply upgrades consistently using talent manager
 	if talent_manager:
 		print("Aplicando talentos via talent_manager no método fallback")
 		arrow = talent_manager.apply_talents_to_projectile(arrow)

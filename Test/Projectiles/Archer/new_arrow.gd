@@ -54,9 +54,12 @@ func _ready():
 
 # Override get_damage_package to handle special arrow effects
 func get_damage_package() -> Dictionary:
+	# Log the current damage values for debugging
+	print("NewArrow.get_damage_package - Current damage: " + str(damage))
 	# Call parent's method to create base damage package
 	var damage_package = super.get_damage_package()
-	
+	# Log the package for debugging
+	print("Base damage package: " + str(damage_package))
 	# Find current target for effects
 	var current_target = null
 	if has_meta("current_target"):
@@ -71,7 +74,8 @@ func get_damage_package() -> Dictionary:
 	# Process Marked for Death effect for critical hits
 	if current_target and is_instance_valid(current_target) and damage_package.get("is_critical", false):
 		damage_package = apply_mark_bonus(damage_package, current_target)
-	
+		
+	print("Final damage package: " + str(damage_package))
 	return damage_package
 	
 # Apply Focused Shot bonus to damage package
@@ -400,12 +404,8 @@ func find_chain_target(original_target) -> void:
 		else:
 			queue_free()
 
-# Completely rewrite the reset_for_reuse method
 func reset_for_reuse() -> void:
-	print("Resetting arrow for reuse")
-	
-	# CRITICAL FIX: Reset critical hit flag
-	is_crit = false
+	# IMPORTANT: Don't reset critical hit yet
 	
 	# Clear all states
 	current_chains = 0
@@ -413,19 +413,18 @@ func reset_for_reuse() -> void:
 	will_chain = false
 	is_processing_ricochet = false
 	hit_targets.clear()
-	tags.clear()
+	
+	# Don't clear tags yet - will be repopulated by talents
 	velocity = Vector2.ZERO
-# Reset damage to base value from archer
-	if shooter and shooter.has_method("get_weapon_damage"):
-		damage = shooter.get_weapon_damage()
-	else:
-		damage = 10  # Fallback
+	
+	# Reset damage to base value
+	damage = 10  # Use your base arrow damage
 	
 	# Reset DmgCalculator
 	if has_node("DmgCalculatorComponent"):
 		var dmg_calc = get_node("DmgCalculatorComponent")
-		# Complete reset of calculator
-		dmg_calc.base_damage = 10  # Reset to base damage
+		# Reset apenas os valores que NÃO vêm do atirador
+		dmg_calc.base_damage = 10  # Base damage padrão
 		dmg_calc.damage_multiplier = 1.0
 		dmg_calc.armor_penetration = 0.0
 		dmg_calc.elemental_damage = {}
@@ -445,12 +444,14 @@ func reset_for_reuse() -> void:
 	# Reset physics processing
 	set_physics_process(true)
 	
-	# Clear all metadata except pooled flag
+	# Clear all metadata EXCEPT certain keys
 	var meta_list = get_meta_list()
 	for meta in meta_list:
 		if meta != "pooled" and meta != "initialized":
 			remove_meta(meta)
-
+	
+	# We'll recalculate critical hit AFTER shooter is set
+	tags.clear()  # Now clear tags after preserving important metadata
 # Helper method to check if arrow is from pool
 func is_pooled() -> bool:
 	return has_meta("pooled") and get_meta("pooled") == true

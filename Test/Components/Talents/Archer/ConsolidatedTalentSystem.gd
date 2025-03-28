@@ -215,42 +215,49 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	print("ConsolidatedTalentSystem: Applying compiled effects to projectile")
 	
-	if not is_instance_valid(projectile):
-		print("ERROR: Invalid projectile provided to apply_compiled_effects")
-		return
-		
-	# Apply basic stats
+	# Apply basic stats with proper logging
 	if "damage" in projectile:
 		var original_damage = projectile.damage
-		projectile.damage = int(projectile.damage * effects.damage_multiplier)
-		print("Damage updated: ", original_damage, " -> ", projectile.damage)
+		# Apply damage multiplier properly
+		projectile.damage = int(original_damage * effects.damage_multiplier)
+		print("Damage updated: " + str(original_damage) + " -> " + str(projectile.damage))
 	
 	if "crit_chance" in projectile:
 		var original_crit = projectile.crit_chance
 		projectile.crit_chance = min(projectile.crit_chance + effects.crit_chance_bonus, 1.0)
-		print("Crit chance updated: ", original_crit, " -> ", projectile.crit_chance)
+		print("Crit chance updated: " + str(original_crit) + " -> " + str(projectile.crit_chance))
+	
+	# CRITICAL: Update the DmgCalculator component
+	if projectile.has_node("DmgCalculatorComponent"):
+		var dmg_calc = projectile.get_node("DmgCalculatorComponent")
+		
+		# Apply damage multiplier to base_damage
+		if "base_damage" in dmg_calc:
+			var original_base = dmg_calc.base_damage
+			dmg_calc.base_damage = int(original_base * effects.damage_multiplier)
+			print("DmgCalc base damage updated: " + str(original_base) + " -> " + str(dmg_calc.base_damage))
+		
+		# Also set the damage_multiplier properly
+		if "damage_multiplier" in dmg_calc:
+			var original_mult = dmg_calc.damage_multiplier
+			dmg_calc.damage_multiplier = effects.damage_multiplier
+			print("DmgCalc multiplier updated: " + str(original_mult) + " -> " + str(dmg_calc.damage_multiplier))
+		
+		# Apply armor penetration
+		if effects.armor_penetration > 0:
+			dmg_calc.armor_penetration = effects.armor_penetration
+			print("DmgCalc armor penetration set to: " + str(dmg_calc.armor_penetration))
+			projectile.add_tag("armor_piercing")
 	
 	# Apply attack tags
 	_ensure_tags_array(projectile)
 	
-	# Setup DmgCalculator component
-	var dmg_calc = null
-	if projectile.has_node("DmgCalculatorComponent"):
-		dmg_calc = projectile.get_node("DmgCalculatorComponent")
+	# Apply fire damage
+	if effects.fire_damage_percent > 0:
+		projectile.add_tag("fire")
 		
-		# Initialize if needed
-		if projectile.shooter:
-			dmg_calc.initialize_from_shooter(projectile.shooter)
-			
-		# Apply armor penetration
-		if effects.armor_penetration > 0:
-			dmg_calc.armor_penetration = effects.armor_penetration
-			projectile.add_tag("armor_piercing")
-			print("Added armor penetration: ", effects.armor_penetration)
-			
-		# Apply fire damage
-		if effects.fire_damage_percent > 0:
-			projectile.add_tag("fire")
+		if projectile.has_node("DmgCalculatorComponent"):
+			var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 			
 			if not "elemental_damage" in dmg_calc:
 				dmg_calc.elemental_damage = {}
@@ -261,7 +268,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 			else:
 				dmg_calc.elemental_damage["fire"] = fire_damage
 				
-			print("Added fire damage: ", fire_damage)
+			print("Fire damage added: " + str(fire_damage))
 				
 			# Apply fire DoT
 			if effects.fire_dot_damage_percent > 0:
@@ -274,14 +281,14 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 					"chance": effects.fire_dot_chance
 				}
 				dmg_calc.set_meta("fire_dot_data", dot_data)
-				print("Added fire DoT: ", dot_damage, " per tick")
+				print("Fire DoT configured: " + str(dot_damage) + " damage per tick")
 	
 	# Apply piercing
 	if effects.piercing_count > 0:
 		projectile.piercing = true
 		projectile.set_meta("piercing_count", effects.piercing_count)
 		projectile.add_tag("piercing")
-		print("Added piercing: ", effects.piercing_count, " count")
+		print("Piercing enabled: " + str(effects.piercing_count) + " targets")
 		
 		# For physical projectiles, disable collision with enemies
 		if projectile is CharacterBody2D:
@@ -290,17 +297,18 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	# Apply Chain Shot
 	if effects.can_chain:
 		_setup_chain_shot(projectile, effects)
-		print("Added chain shot capability")
+		print("Chain Shot enabled: " + str(effects.chain_chance * 100) + "% chance, " + str(effects.max_chains) + " max chains")
 	
 	# Apply Focused Shot
-	if effects.focused_shot_enabled and projectile is Arrow:
-		projectile.configure_focused_shot(true, effects.focused_shot_bonus, effects.focused_shot_threshold)
-		print("Added Focused Shot to Arrow")
-	elif effects.focused_shot_enabled:
-		projectile.set_meta("focused_shot_enabled", true)
-		projectile.set_meta("focused_shot_bonus", effects.focused_shot_bonus)
-		projectile.set_meta("focused_shot_threshold", effects.focused_shot_threshold)
-		print("Added Focused Shot via metadata")
+	if effects.focused_shot_enabled:
+		if projectile is Arrow:
+			projectile.configure_focused_shot(true, effects.focused_shot_bonus, effects.focused_shot_threshold)
+		else:
+			projectile.set_meta("focused_shot_enabled", true)
+			projectile.set_meta("focused_shot_bonus", effects.focused_shot_bonus)
+			projectile.set_meta("focused_shot_threshold", effects.focused_shot_threshold)
+		projectile.add_tag("focused_shot")
+		print("Focused Shot enabled: " + str(effects.focused_shot_bonus * 100) + "% damage boost above " + str(effects.focused_shot_threshold * 100) + "% health")
 	
 	# Apply Bleeding on crit
 	if effects.bleed_on_crit:
@@ -309,7 +317,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("bleeding_duration", effects.bleed_duration)
 		projectile.set_meta("bleeding_interval", effects.bleed_interval)
 		projectile.add_tag("bleeding")
-		print("Added bleeding on crit effect")
+		print("Bleeding on crit enabled: " + str(effects.bleed_damage_percent * 100) + "% damage over " + str(effects.bleed_duration) + "s")
 	
 	# Apply Marked for Death
 	if effects.mark_enabled:
@@ -317,7 +325,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("mark_duration", effects.mark_duration)
 		projectile.set_meta("mark_crit_bonus", effects.mark_crit_bonus)
 		projectile.add_tag("marked_for_death")
-		print("Added Marked for Death effect")
+		print("Marked for Death enabled: " + str(effects.mark_crit_bonus * 100) + "% crit bonus for " + str(effects.mark_duration) + "s")
 	
 	# Apply Explosion
 	if effects.explosion_enabled:
@@ -325,7 +333,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("explosion_damage_percent", effects.explosion_damage_percent)
 		projectile.set_meta("explosion_radius", effects.explosion_radius)
 		projectile.add_tag("explosive")
-		print("Added explosion effect")
+		print("Explosion enabled: " + str(effects.explosion_damage_percent * 100) + "% damage in " + str(effects.explosion_radius) + " radius")
 	
 	# Apply Splinter
 	if effects.can_splinter:
@@ -334,7 +342,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("splinter_damage_percent", effects.splinter_damage_percent)
 		projectile.set_meta("splinter_range", effects.splinter_range)
 		projectile.add_tag("splinter")
-		print("Added splinter effect")
+		print("Splinter enabled: " + str(effects.splinter_count) + " splinters, " + str(effects.splinter_damage_percent * 100) + "% damage each")
 	
 	# Apply Bloodseeker
 	if effects.bloodseeker_enabled:
@@ -342,7 +350,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("damage_increase_per_stack", effects.bloodseeker_bonus_per_stack)
 		projectile.set_meta("max_stacks", effects.bloodseeker_max_stacks)
 		projectile.add_tag("bloodseeker")
-		print("Added bloodseeker effect")
+		print("Bloodseeker enabled: " + str(effects.bloodseeker_bonus_per_stack * 100) + "% damage per stack, max " + str(effects.bloodseeker_max_stacks) + " stacks")
 		
 		# Apply current bonus if archer has stacks
 		if projectile.shooter and projectile.shooter.has_meta("bloodseeker_data"):
@@ -350,12 +358,15 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 			var stacks = data.get("stacks", 0)
 			if stacks > 0:
 				var bonus = effects.bloodseeker_bonus_per_stack * stacks
+				var pre_bonus_damage = projectile.damage
 				projectile.damage = int(projectile.damage * (1 + bonus))
-				if dmg_calc and "damage_multiplier" in dmg_calc:
-					dmg_calc.damage_multiplier *= (1 + bonus)
-				print("Applied current bloodseeker stacks: ", stacks, " with bonus: ", bonus)
+				print("Applied Bloodseeker stacks: " + str(stacks) + " (" + str(pre_bonus_damage) + " -> " + str(projectile.damage) + ")")
 				
-	print("Finished applying compiled talent effects")
+				if projectile.has_node("DmgCalculatorComponent"):
+					var dmg_calc = projectile.get_node("DmgCalculatorComponent")
+					if "damage_multiplier" in dmg_calc:
+						dmg_calc.damage_multiplier *= (1 + bonus)
+						print("Applied Bloodseeker multiplier: " + str(dmg_calc.damage_multiplier))
 
 # Setup chain shot functionality
 func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:

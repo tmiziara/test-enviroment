@@ -16,14 +16,24 @@ var dot_effects: Array = []
 
 # Retorna o dano calculado com todos os modificadores
 func calculate_damage() -> Dictionary:
+	print("DmgCalculatorComponent.calculate_damage called")
+	print("- base_damage: " + str(base_damage))
+	print("- weapon_damage: " + str(weapon_damage))
+	print("- main_stat: " + str(main_stat))
+	print("- main_stat_multiplier: " + str(main_stat_multiplier))
+	print("- damage_multiplier: " + str(damage_multiplier))
+	
 	# Cálculo base
 	var total_damage = base_damage + weapon_damage
+	print("- damage after weapon: " + str(total_damage))
 	
 	# Adiciona bonus do atributo principal
 	total_damage += int(main_stat * main_stat_multiplier)
+	print("- damage after main stat: " + str(total_damage))
 	
 	# Aplica multiplicadores
 	total_damage = int(total_damage * damage_multiplier)
+	print("- damage after multiplier: " + str(total_damage))
 	
 	# Garantia de dano mínimo
 	total_damage = max(total_damage, 1)  # Sempre causa pelo menos 1 de dano
@@ -37,18 +47,21 @@ func calculate_damage() -> Dictionary:
 		"dot_effects": dot_effects  # Adiciona os efeitos DoT ao pacote
 	}
 	
+	print("- final damage package: " + str(damage_package))
+	
 	return damage_package
 
 # Define os atributos base do projétil baseado no atirador
 func initialize_from_shooter(shooter):
-	
 	if shooter.has_method("get_main_stat"):
 		main_stat = shooter.get_main_stat()
+		print("DmgCalculator: main_stat inicializado para " + str(main_stat))
 	else:
 		print("DmgCalculator: Atirador não tem método get_main_stat")
 	
 	if shooter.has_method("get_weapon_damage"):
 		weapon_damage = shooter.get_weapon_damage()
+		print("DmgCalculator: weapon_damage inicializado para " + str(weapon_damage))
 	else:
 		print("DmgCalculator: Atirador não tem método get_weapon_damage")
 

@@ -65,6 +65,7 @@ func refresh_talents():
 
 func apply_talents_to_projectile(projectile: Node) -> Node:
 	print("ArcherTalentManager: apply_talents_to_projectile called")
+	
 	# Check for valid archer
 	if not archer:
 		push_error("ArcherTalentManager: Cannot apply talents - archer is null")
@@ -75,24 +76,27 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 		print("Initializing talent system in apply_talents_to_projectile")
 		initialize_talent_system()
 	
-	if not talent_system:
-		push_error("ArcherTalentManager: Cannot apply talents - talent system initialization failed")
-		return projectile
-	
-	# SEMPRE recompile os efeitos para garantir valores atualizados
+	# IMPORTANT: Always recompile effects to ensure they're current
 	print("FORÇANDO recompilação de efeitos para garantir valores corretos")
 	current_effects = talent_system.compile_effects()
 	
 	if current_effects:
+		print("Compilando efeitos a partir de " + str(archer.attack_upgrades.size()) + " estratégias:")
+		# Log which strategies are being processed
+		for strategy in archer.attack_upgrades:
+			if strategy:
+				print("- Processando estratégia: " + strategy.get_strategy_name())
+		
 		print("Applying compiled effects to projectile")
 		talent_system.apply_compiled_effects(projectile, current_effects)
+		print("Finished applying compiled talent effects")
 		
-		# Print detailed info about the applied effects for debugging
+		# Log the applied effects for debugging
 		print("Applied talent effects:")
-		print("- Damage multiplier:", current_effects.damage_multiplier)
-		print("- Crit chance bonus:", current_effects.crit_chance_bonus)
-		print("- Armor penetration:", current_effects.armor_penetration)
-		print("- Arrow tags:", projectile.tags)
+		print("- Damage multiplier:" + str(current_effects.damage_multiplier))
+		print("- Crit chance bonus:" + str(current_effects.crit_chance_bonus))
+		print("- Armor penetration:" + str(current_effects.armor_penetration))
+		print("- Arrow tags:" + str(projectile.tags))
 		
 		# Check for special abilities
 		if "arrow_rain_enabled" in current_effects and current_effects.arrow_rain_enabled:
