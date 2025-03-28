@@ -1,5 +1,5 @@
 extends CharacterBody2D
-class_name ProjectileBase
+class_name NewProjectileBase
 
 @export var damage: int = 10
 @export var speed: float = 400.0
