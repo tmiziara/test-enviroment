@@ -229,7 +229,7 @@ func _update_connection_colors():
 	_update_connection_lines()
 # Nova função para atualizar as linhas de conexão
 func _update_connection_lines():
-	var connections_layer = $"BackgroundPanel/MainLayout/SkillTreeArea/ScrollContSkillTreeScroll ainer/SkillsContainer/ConnectionsLayer"
+	var connections_layer = $"BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"
 	
 	for connection in connections_layer.get_children():
 		if connection is Line2D:
@@ -394,7 +394,7 @@ func get_formatted_description(talent_id: int) -> String:
 		15: "Arrows explode on impact, dealing 50% of the damage in an area.",
 		16: "Critical hits apply bleeding, causing 30% of base damage over 4s.",
 		17: "Critical hits mark enemies for 4s. Marked enemies take +100% bonus critical damage from all attacks.",
-		18: "Attacks have a 5% chance to fire a spectral arrow that passes through enemies.",
+		18: "Consecutive hits on the same enemy increase damage by +10% (max 5 stacks). Resets when switching targets.",
 		19: "Fire damage increases as the enemy's health decreases.",
 		20: "Arrows now pierce through up to 3 enemies.",
 		21: "Enemies with less than 15% health receive double damage.",
@@ -480,8 +480,8 @@ func get_formatted_description(talent_id: int) -> String:
 			"tags": ["Physical", "Explosive", "Area"]
 		},
 		18: {
-			"adds": ["Spectral", "Piercing"],
-			"tags": ["Physical", "Spectral", "Piercing"]
+			"adds": ["Stack"],
+			"tags": ["Physical", "Stack"]
 		},
 		19: {
 			"adds": ["Execute"],

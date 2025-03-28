@@ -6,6 +6,7 @@ enum DebuffType {
 	BURNING,
 	FREEZING,
 	STUNNED,
+	KNOCKED,
 	SLOWED,
 	BLEEDING,
 	POISONED,
@@ -83,3 +84,25 @@ static func map_debuff_to_dot_type(debuff_type: int) -> String:
 			return "poison"
 		_:
 			return "generic"
+
+# Adicione este método para ajudar no processamento de interações
+static func process_movement_control_interactions(entity, damage_type: String, damage_amount: int) -> int:
+	var modified_damage = damage_amount
+	
+	# Verifica se a entidade tem MovementControlComponent
+	var movement_control = entity.get_node_or_null("MovementControlComponent")
+	if not movement_control:
+		return modified_damage
+		
+	# Exemplos de interações:
+	# 1. Dano de fogo tem 20% de chance de stunnar por 1 segundo
+	if damage_type == "fire" and randf() <= 0.2:
+		movement_control.apply_stun(1.0)
+	
+	# 2. Dano de gelo tem 50% de chance de knockback
+	if damage_type == "ice" and randf() <= 0.5:
+		# Calcula direção do knockback (afastando da fonte do dano)
+		var direction = Vector2.RIGHT  # Substitua pela direção adequada
+		movement_control.apply_knockback(direction, min(damage_amount * 10, 200))
+		
+	return modified_damage
