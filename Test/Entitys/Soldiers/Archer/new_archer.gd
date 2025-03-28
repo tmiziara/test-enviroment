@@ -40,6 +40,22 @@ func _ready():
 	
 	# Apply talent effects
 	apply_talent_effects()
+	
+	# Inicializa o pool de flechas para este arqueiro depois que o nó estiver pronto
+	call_deferred("_initialize_arrow_pool")
+
+# Método adicionado para inicializar o pool de forma segura
+func _initialize_arrow_pool() -> void:
+	# Verifica se o sistema de pool está disponível
+	if ProjectilePool and ProjectilePool.instance:
+		# Carrega a cena da flecha
+		var arrow_scene = preload("res://Test/Projectiles/Archer/Arrow.tscn")
+		if arrow_scene:
+			# Cria o nome do pool baseado no ID do arqueiro
+			var pool_name = "arrow_" + str(get_instance_id())
+			
+			# Cria o pool com uma quantidade inicial de flechas
+			ProjectilePool.instance.create_pool(pool_name, arrow_scene, get_parent(), 20)
 
 func _physics_process(delta):
 	super._physics_process(delta)
@@ -83,6 +99,37 @@ func spawn_arrow():
 	if not current_target or not is_instance_valid(current_target):
 		return  
 	
+	# Check if pool system is available
+	if ProjectilePool and ProjectilePool.instance:
+		# Get arrow from pool
+		var arrow = ProjectilePool.get_arrow(self)
+		
+		if arrow:
+			# Configure the arrow
+			arrow.global_position = arrow_spawn.global_position
+			arrow.direction = (current_target.global_position - arrow_spawn.global_position).normalized()
+			arrow.rotation = arrow.direction.angle()
+			
+			# The talent effects have already been applied by the pooling system
+			
+			# Ensure physics is enabled
+			arrow.set_physics_process(true)
+			
+			# If arrow has reset_for_reuse method, call it
+			if arrow.has_method("reset_for_reuse"):
+				arrow.reset_for_reuse()
+			
+			# Make sure arrow is visible
+			arrow.visible = true
+			
+			# Track bloodseeker stacks if enabled
+			if current_target and has_meta("bloodseeker_data"):
+				talent_manager.apply_bloodseeker_hit(current_target)
+				
+			# Arrow is already in the scene
+			return
+	
+	# Fall back to original method if pool system unavailable or failed
 	var arrow_scene = preload("res://Test/Projectiles/Archer/Arrow.tscn")  
 	var arrow = arrow_scene.instantiate() as NewProjectileBase  
 	
@@ -136,6 +183,9 @@ func apply_talent_effects():
 	
 	# Refresh talent system after changes
 	talent_manager.refresh_talents()
+	
+	# Mark that talents have been updated - important for pool system
+	set_meta("talents_updated", true)
 
 func reset_talent_effects():
 	# Clear existing upgrades
@@ -175,3 +225,13 @@ func get_weapon_damage() -> int:
 	if "Weapons" in equipment_slots and equipment_slots["Weapons"] != null:
 		return equipment_slots["Weapons"].damage
 	return 10  # Default damage if no weapon equipped
+	
+# Cleanup pools when archer is removed
+func _exit_tree():
+	if ProjectilePool and ProjectilePool.instance:
+		# Clean up any pools specific to this archer
+		var pool_name = "arrow_" + str(get_instance_id())
+		
+		# Return all projectiles to pool first
+		if ProjectilePool.instance.pools.has(pool_name):
+			ProjectilePool.instance.return_all_projectiles(pool_name)

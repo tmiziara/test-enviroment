@@ -1,9 +1,6 @@
 extends NewProjectileBase
 class_name NewArrow
 
-# Signals
-signal on_hit(target, projectile)
-
 # Arrow Storm properties
 var arrow_storm_enabled: bool = false
 var arrow_storm_trigger_chance: float = 0.1
@@ -41,11 +38,19 @@ var will_chain: bool = false         # Flag to store if this arrow will chain
 var chain_calculated: bool = false   # Flag to track if chain chance has been calculated
 
 func _ready():
+	# If this is a pooled arrow being reused, skip standard initialization
+	if is_pooled() and has_meta("initialized"):
+		return
+		
 	super._ready()
 	
 	# Initialize hit_targets array if not already done
 	if not hit_targets:
 		hit_targets = []
+		
+	# Mark as initialized for pooled objects
+	if is_pooled():
+		set_meta("initialized", true)
 
 # Override get_damage_package to handle special arrow effects
 func get_damage_package() -> Dictionary:
@@ -211,10 +216,17 @@ func process_on_hit(target: Node) -> void:
 			
 		# Check if piercing limit reached
 		if current_pierce_count >= max_pierce:
-			queue_free()
+			# Check if using pooling
+			if is_pooled():
+				return_to_pool()
+			else:
+				queue_free()
 	else:
-		# No chain shot or piercing, destroy arrow
-		queue_free()
+		# No chain shot or piercing, handle cleanup
+		if is_pooled():
+			return_to_pool()
+		else:
+			queue_free()
 
 # Process effects from talents that trigger on hit
 func process_talent_effects(target: Node) -> void:
@@ -373,5 +385,83 @@ func find_chain_target(original_target) -> void:
 				is_processing_ricochet = false
 				return
 		
-		# Otherwise destroy arrow
+		# Clean up arrow
+		if is_pooled():
+			return_to_pool()
+		else:
+			queue_free()
+
+# Method to reset the arrow for reuse from pool
+func reset_for_reuse() -> void:
+	# Reset chain shot properties
+	current_chains = 0
+	chain_calculated = false
+	will_chain = false
+	is_processing_ricochet = false
+	
+	# Clear hit targets
+	hit_targets.clear()
+	
+	# Reset tags
+	tags.clear()
+	
+	# Reset velocity and direction 
+	velocity = Vector2.ZERO
+	
+	# Reset damage calculator
+	if has_node("DmgCalculatorComponent"):
+		var dmg_calc = get_node("DmgCalculatorComponent")
+		dmg_calc.damage_multiplier = 1.0
+		dmg_calc.armor_penetration = 0.0
+		dmg_calc.elemental_damage = {}
+		dmg_calc.additional_effects = []
+		dmg_calc.dot_effects = []
+		
+		# Re-initialize with shooter if available
+		if shooter:
+			dmg_calc.initialize_from_shooter(shooter)
+	
+	# Recalculate critical hit
+	if shooter and "crit_chance" in shooter:
+		crit_chance = shooter.crit_chance
+		is_crit = is_critical_hit(crit_chance)
+	
+	# Disconnect any signal connections
+	var connections = get_signal_connection_list("on_hit")
+	for connection in connections:
+		disconnect("on_hit", connection.callable)
+	
+	# Reset collision
+	if has_node("Hurtbox"):
+		var hurtbox = get_node("Hurtbox")
+		hurtbox.monitoring = true
+		hurtbox.monitorable = true
+	
+	# Reset collision layers
+	collision_layer = 4  # Projectile layer
+	collision_mask = 2   # Enemy layer
+	
+	# Reset physics processing
+	set_physics_process(true)
+	
+	# Clean metadata except pooled flag
+	var meta_list = get_meta_list()
+	for meta in meta_list:
+		if meta != "pooled" and meta != "initialized":
+			remove_meta(meta)
+
+# Helper method to check if arrow is from pool
+func is_pooled() -> bool:
+	return has_meta("pooled") and get_meta("pooled") == true
+
+# Helper method to return arrow to pool
+func return_to_pool() -> void:
+	if not is_pooled() or not shooter:
+		queue_free()
+		return
+	
+	# Return to appropriate pool
+	if ProjectilePool and ProjectilePool.instance:
+		ProjectilePool.instance.return_arrow_to_pool(self)
+	else:
 		queue_free()

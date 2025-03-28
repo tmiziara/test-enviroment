@@ -1,5 +1,5 @@
 extends CharacterBody2D
-class_name ProjectileBase
+class_name NewProjectileBase
 
 @export var damage: int = 10
 @export var speed: float = 400.0
@@ -15,6 +15,11 @@ var crit_chance: float = 0.1  # Default value, overridden by shooter's value
 signal on_hit(target, projectile)  # Signal emitted when hitting a target
 
 func _ready():
+	# Skip initialization if this is a pooled object being reused
+	# The pool system will handle initialization for reused objects
+	if has_meta("pooled") and get_meta("pooled") and has_meta("initialized"):
+		return
+		
 	# Get critical chance from shooter if available
 	if shooter and "crit_chance" in shooter:
 		crit_chance = shooter.crit_chance
@@ -34,6 +39,10 @@ func _ready():
 	# Initialize with shooter if available
 	if shooter:
 		dmg_calculator.initialize_from_shooter(shooter)
+		
+	# Mark as initialized to avoid duplicate initialization
+	if has_meta("pooled") and get_meta("pooled"):
+		set_meta("initialized", true)
 
 func _physics_process(delta):
 	velocity = direction * speed
@@ -96,4 +105,65 @@ func process_on_hit(target: Node) -> void:
 	
 	# Handle piercing (base implementation)
 	if not piercing:
-		queue_free()
+		# Check if using pooling
+		if ProjectilePool and ProjectilePool.instance and is_pooled():
+			ProjectilePool.instance.return_arrow_to_pool(self)
+		else:
+			queue_free()
+			
+# Method to check if projectile is from pool
+func is_pooled() -> bool:
+	return has_meta("pooled") and get_meta("pooled") == true
+
+# Reset projectile for reuse from pool
+func reset_for_reuse() -> void:
+	# Reset critical hit status
+	if shooter and "crit_chance" in shooter:
+		crit_chance = shooter.crit_chance
+		is_crit = is_critical_hit(crit_chance)
+	else:
+		crit_chance = 0.1  # Default value
+		is_crit = false
+	
+	# Reset velocity and direction
+	velocity = Vector2.ZERO
+	
+	# Clear tags
+	tags.clear()
+	
+	# Reset DmgCalculatorComponent
+	if dmg_calculator:
+		dmg_calculator.base_damage = damage
+		dmg_calculator.damage_multiplier = 1.0
+		dmg_calculator.armor_penetration = 0.0
+		dmg_calculator.elemental_damage = {}
+		dmg_calculator.additional_effects = []
+		dmg_calculator.dot_effects = []
+		
+		# Reinitialize with shooter if available
+		if shooter:
+			dmg_calculator.initialize_from_shooter(shooter)
+	
+	# Disconnect any signal connections
+	var connections = get_signal_connection_list("on_hit")
+	for connection in connections:
+		disconnect("on_hit", connection.callable)
+	
+	# Reset collision behavior
+	if has_node("Hurtbox"):
+		var hurtbox = get_node("Hurtbox")
+		hurtbox.monitoring = true
+		hurtbox.monitorable = true
+	
+	# Reset collision layers
+	collision_layer = 4  # Projectile layer
+	collision_mask = 2   # Enemy layer
+	
+	# Reset physics
+	set_physics_process(true)
+	
+	# Keep metadata "pooled" but remove other metadata
+	var meta_list = get_meta_list()
+	for meta in meta_list:
+		if meta != "pooled" and meta != "initialized":
+			remove_meta(meta)
