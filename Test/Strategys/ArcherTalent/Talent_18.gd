@@ -191,34 +191,22 @@ func apply_current_bloodseeker_bonus(projectile: Node, shooter: Node) -> void:
 # Static variable to track the display node
 static var stack_display_node: Node = null
 
-# Create visual effect to show stacks on player
-func create_stack_visual_on_player(player: Node, stacks: int) -> void:
-	if not is_instance_valid(player):
-		return
-	
-	# First, always remove any existing stack display
-	if stack_display_node != null and is_instance_valid(stack_display_node):
-		stack_display_node.queue_free()
-		stack_display_node = null
-	
-	# Don't show anything for 0 stacks
-	if stacks <= 0:
-		return
-	
-	# Create a custom Control node instead of HBoxContainer to have precise control
+# Modificação para o Talent_18.gd para integrar visualização personalizada
+
+# Função que cria um nó visual personalizado para os stacks
+func create_custom_stack_visual(stacks: int) -> Control:
+	# Criar container para a visualização personalizada
 	var container = Control.new()
-	container.name = "BloodseekerStackDisplay"
-	container.position = Vector2(-40, -40)  # Position above the player
-	container.z_index = 100
+	container.name = "BloodseekerStacksVisual"
 	
-	# Define the total width we want (16 pixels per stack)
-	var total_width = 16 * min(stacks, max_stacks)
-	container.custom_minimum_size = Vector2(total_width, 16)
-	
-	# Number of stacks to display (limited to max_stacks)
+	# Número de stacks a exibir (limitado ao máximo)
 	var actual_stacks = min(stacks, max_stacks)
 	
-	# Create a single TextureRect to display all stacks together
+	# Define a largura total que queremos (16 pixels por stack)
+	var total_width = 16 * actual_stacks
+	container.custom_minimum_size = Vector2(total_width, 16)
+	
+	# Cria um único TextureRect para exibir todos os stacks juntos
 	var single_icon = TextureRect.new()
 	single_icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH
 	single_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
@@ -226,56 +214,99 @@ func create_stack_visual_on_player(player: Node, stacks: int) -> void:
 	single_icon.size_flags_vertical = Control.SIZE_FILL
 	single_icon.custom_minimum_size = Vector2(total_width, 16)
 	
-	# The atlas texture path
+	# O caminho da textura
 	var texture_path = "res://Test/Assets/Icons/buffs/bloodseeker_stack.png"
 	
 	if ResourceLoader.exists(texture_path):
-		# Load the texture with all stacks
+		# Carrega a textura com todos os stacks
 		var base_texture = load(texture_path)
 		
-		# Create a new texture to hold just the stacks we need
+		# Cria uma nova textura para conter apenas os stacks que precisamos
 		var image = Image.new()
 		image.copy_from(base_texture.get_image())
 		
-		# Crop the image to include only the stacks we need
-		# If the image has all stacks horizontally (each 204px wide)
+		# Recorta a imagem para incluir apenas os stacks necessários
+		# Se a imagem tiver todos os stacks horizontalmente (cada 204px de largura)
 		var cropped_image = Image.create(204 * actual_stacks, image.get_height(), false, image.get_format())
 		
-		# Copy only the parts we need (the active stacks)
+		# Copia apenas as partes que precisamos (os stacks ativos)
 		for i in range(actual_stacks):
 			var src_rect = Rect2(i * 204, 0, 204, image.get_height())
 			cropped_image.blit_rect(image, src_rect, Vector2(i * 204, 0))
 			
-		# Create texture from the cropped image
+		# Cria textura a partir da imagem recortada
 		var cropped_texture = ImageTexture.create_from_image(cropped_image)
 		single_icon.texture = cropped_texture
 	else:
-		# Fallback for missing texture
+		# Fallback para textura ausente
 		var color_rect = ColorRect.new()
 		color_rect.color = Color(1.0, 0.2, 0.2)
-		single_icon.add_child(color_rect)
 		color_rect.size = Vector2(total_width, 16)
+		single_icon.add_child(color_rect)
 	
-	# Add the icon to the container
+	# Adiciona o ícone ao container
 	container.add_child(single_icon)
 	
-	# Add to player and store reference
-	player.add_child(container)
-	stack_display_node = container
-	
-	# Add a pulsing animation for the new stack
-	var tween = container.create_tween()
-	tween.tween_property(container, "scale", Vector2(1.2, 1.2), 0.25)
-	tween.tween_property(container, "scale", Vector2(1.0, 1.0), 0.25)
-	
-	# If we've reached max stacks, make it more prominent
+	# Adiciona efeito visual se alcançou o máximo de stacks
 	if stacks >= max_stacks:
-		# Create a special animation for max stacks
+		# Tween para destacar visuamente com cor
 		var max_stack_tween = container.create_tween()
 		max_stack_tween.tween_property(container, "modulate", Color(1.0, 0.5, 0.0, 1.0), 0.3)
 		max_stack_tween.tween_property(container, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.3)
-		max_stack_tween.set_loops(2)  # Flash twice to indicate max stacks
+		max_stack_tween.set_loops(2)  # Pisca duas vezes para indicar stacks máximos
+	
+	return container
 
+# Função modificada para criar e atualizar o visual de stacks
+func create_stack_visual_on_player(player: Node, stacks: int) -> void:
+	if not is_instance_valid(player):
+		return
+	
+	# Procura o BuffDisplayContainer
+	var buff_container = null
+	
+	# Primeiro tenta encontrar pelo nome
+	buff_container = player.get_node_or_null("BuffDisplayContainer")
+	
+	# Se não encontrou, tenta pela metadata
+	if not buff_container and player.has_meta("buff_container"):
+		buff_container = player.get_meta("buff_container")
+	
+	# Se não houver stacks, remove qualquer exibição existente
+	if stacks <= 0:
+		if buff_container and buff_container.has_method("remove_buff"):
+			buff_container.remove_buff("bloodseeker")
+		elif stack_display_node != null and is_instance_valid(stack_display_node):
+			stack_display_node.queue_free()
+			stack_display_node = null
+		return
+	
+	# Se encontramos o BuffDisplayContainer
+	if buff_container and buff_container.has_method("add_buff"):
+		# Cria o nó visual personalizado
+		var custom_stack_visual = create_custom_stack_visual(stacks)
+		
+		# Passa o nó visual para o BuffDisplayContainer
+		buff_container.add_buff("bloodseeker", custom_stack_visual)
+	else:
+		# Fallback: criar e posicionar o stack visual diretamente
+		if stack_display_node != null and is_instance_valid(stack_display_node):
+			stack_display_node.queue_free()
+		
+		var custom_stack_visual = create_custom_stack_visual(stacks)
+		custom_stack_visual.position = Vector2(0, -40) # Posiciona acima do jogador
+		custom_stack_visual.z_index = 100
+		
+		# Adiciona animação de surgimento
+		var tween = custom_stack_visual.create_tween()
+		tween.tween_property(custom_stack_visual, "scale", Vector2(1.2, 1.2), 0.25)
+		tween.tween_property(custom_stack_visual, "scale", Vector2(1.0, 1.0), 0.25)
+		
+		# Armazena a referência e adiciona ao jogador
+		player.add_child(custom_stack_visual)
+		stack_display_node = custom_stack_visual
+	
+		
 # Função para conectar ao sinal target_change
 func connect_to_target_change(shooter: Node) -> void:
 	# Evitar conexões duplicadas

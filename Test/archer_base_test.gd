@@ -6,6 +6,8 @@ extends Soldier_Base
 var unlocked_talents = {0: true}  # O talento 0 (básico) já está desbloqueado
 var talent_points = 10
 @export var attack_upgrades: Array[BaseProjectileStrategy] = []
+@onready var buff_display_container: BuffDisplayContainer = $BuffDisplayContainer
+
 
 func _ready():
 	# Inicializa unlocked_talents se não existir

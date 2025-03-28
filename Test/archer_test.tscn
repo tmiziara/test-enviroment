@@ -1,4 +1,4 @@
-[gd_scene load_steps=56 format=3 uid="uid://bcavxefldragy"]
+[gd_scene load_steps=58 format=3 uid="uid://bcavxefldragy"]
 
 [ext_resource type="Script" uid="uid://dwh5dg0t4c06t" path="res://Test/archer_base_test.gd" id="1_7fdqo"]
 [ext_resource type="Texture2D" uid="uid://7mrtyfyknm00" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_6tla_bo01_v01.png" id="2_oeqfw"]
@@ -9,6 +9,8 @@
 [ext_resource type="Texture2D" uid="uid://dc77ixsj23hih" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_0bas_humn_v00.png" id="7_2opj6"]
 [ext_resource type="Texture2D" uid="uid://bhoajenuietjd" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_1out_boxr_v01.png" id="8_uqrf1"]
 [ext_resource type="Texture2D" uid="uid://fapklicwnmhf" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_7tlb_qv01_v01.png" id="9_vneyq"]
+[ext_resource type="PackedScene" uid="uid://cvhrkbsgs68ee" path="res://Test/Components/healthbar.tscn" id="10_qjh7y"]
+[ext_resource type="PackedScene" uid="uid://re84ig1gbgry" path="res://Test/Components/BuffDisplayContainer.tscn" id="11_3pymg"]
 
 [sub_resource type="Resource" id="Resource_1dqe7"]
 metadata/__load_path__ = "res://assets/Bows/Bows000.png"
@@ -4106,7 +4108,7 @@ visible = false
 texture = ExtResource("2_oeqfw")
 hframes = 8
 vframes = 8
-frame = 26
+frame = 25
 
 [node name="QuiverBehind" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("5_k2kna")
@@ -4117,13 +4119,13 @@ vframes = 8
 texture = ExtResource("3_pcsk4")
 hframes = 8
 vframes = 8
-frame = 26
+frame = 25
 
 [node name="Pants" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("4_bf8xg")
 hframes = 8
 vframes = 8
-frame = 26
+frame = 25
 
 [node name="BowFront" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("2_oeqfw")
@@ -4135,7 +4137,7 @@ visible = false
 texture = ExtResource("5_k2kna")
 hframes = 8
 vframes = 8
-frame = 26
+frame = 25
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -4169,6 +4171,14 @@ shape = SubResource("CircleShape2D_uilrr")
 [node name="Aim" type="Marker2D" parent="." groups=["player"]]
 
 [node name="AttackTimer" type="Timer" parent="."]
+
+[node name="Healthbar" parent="." instance=ExtResource("10_qjh7y")]
+offset_left = -5.0
+offset_top = 14.0
+offset_right = 11.0
+offset_bottom = 18.0
+
+[node name="BuffDisplayContainer" parent="." instance=ExtResource("11_3pymg")]
 
 [connection signal="body_entered" from="AreaDetection" to="." method="_on_body_entered"]
 [connection signal="body_exited" from="AreaDetection" to="." method="_on_body_exited"]
