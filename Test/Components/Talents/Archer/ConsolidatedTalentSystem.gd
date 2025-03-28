@@ -302,13 +302,13 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	
 	# Apply Focused Shot
 	if effects.focused_shot_enabled:
-		if projectile is Arrow:
-			projectile.configure_focused_shot(true, effects.focused_shot_bonus, effects.focused_shot_threshold)
-		else:
-			projectile.set_meta("focused_shot_enabled", true)
-			projectile.set_meta("focused_shot_bonus", effects.focused_shot_bonus)
-			projectile.set_meta("focused_shot_threshold", effects.focused_shot_threshold)
+		# Adiciona tag e meta para identificação
 		projectile.add_tag("focused_shot")
+		# Configurações do Focused Shot
+		projectile.set_meta("focused_shot_enabled", true)
+		projectile.set_meta("focused_shot_bonus", effects.focused_shot_bonus)
+		projectile.set_meta("focused_shot_threshold", effects.focused_shot_threshold)
+		
 		print("Focused Shot enabled: " + str(effects.focused_shot_bonus * 100) + "% damage boost above " + str(effects.focused_shot_threshold * 100) + "% health")
 	
 	# Apply Bleeding on crit
