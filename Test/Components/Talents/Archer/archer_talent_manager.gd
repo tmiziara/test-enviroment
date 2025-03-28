@@ -11,48 +11,107 @@ var talent_system: ConsolidatedTalentSystem
 var attack_counter: int = 0
 
 # Store compiled effects
-var current_effects: ConsolidatedTalentSystem.CompiledEffects
+var current_effects
 
 func _init(archer_ref: Soldier_Base = null):
 	if archer_ref:
 		archer = archer_ref
+		
+func _ready():
+	# If archer wasn't set in _init, try to get from parent
+	if not archer:
+		var parent = get_parent()
+		if parent is Soldier_Base:
+			archer = parent
+			
+	# Validate archer reference and initialize talent system
+	if archer:
+		initialize_talent_system()
+	else:
+		push_error("ArcherTalentManager: No archer reference provided")
+
+# Separate method for talent system initialization
+func initialize_talent_system():
+	if archer and not talent_system:
 		talent_system = ConsolidatedTalentSystem.new(archer)
+		# Initial compilation of effects
+		if talent_system:
+			current_effects = talent_system.compile_effects()
+		
 # Call this when upgrading the archer with new talents
 func refresh_talents():
+	if not archer:
+		push_error("ArcherTalentManager: Cannot refresh talents - archer is null")
+		return
+		
+	if not talent_system:
+		initialize_talent_system()
+		
+	if not talent_system:
+		push_error("ArcherTalentManager: Cannot refresh talents - failed to initialize talent system")
+		return
+		
+	# Update talent effects
 	archer.set_meta("talents_updated", true)
+	
+	# Try to get compiled effects
 	current_effects = talent_system.compile_effects()
 	
-	# Apply range multiplier immediately
-	if current_effects.range_multiplier != 1.0:
-		archer.attack_range *= current_effects.range_multiplier
+	# Apply range multiplier immediately if available
+	if current_effects and "range_multiplier" in current_effects:
+		if current_effects.range_multiplier != 1.0:
+			archer.attack_range *= current_effects.range_multiplier
 
 # Apply all talents to a projectile
 func apply_talents_to_projectile(projectile: Node) -> Node:
+	print("ArcherTalentManager: apply_talents_to_projectile called")
+	# Check for valid archer
+	if not archer:
+		push_error("ArcherTalentManager: Cannot apply talents - archer is null")
+		return projectile
+	
+	# Ensure talent system is initialized
+	if not talent_system:
+		print("Initializing talent system in apply_talents_to_projectile")
+		initialize_talent_system()
+	
+	if not talent_system:
+		push_error("ArcherTalentManager: Cannot apply talents - talent system initialization failed")
+		return projectile
+	
 	# Recompile effects if needed
 	if not current_effects:
+		print("Compiling effects in apply_talents_to_projectile")
 		current_effects = talent_system.compile_effects()
 	
-	# Apply effects
-	talent_system.apply_compiled_effects(projectile, current_effects)
+	if current_effects:
+		print("Applying compiled effects to projectile")
+		talent_system.apply_compiled_effects(projectile, current_effects)
+				# Print some info about the effects
+		print("Arrow talent effects - crit: ", projectile.is_crit, 
+			  ", damage: ", projectile.damage, 
+			  ", tags: ", projectile.tags)
 	
-	# Check for arrow rain
-	var triggered_rain = false
-	if current_effects.arrow_rain_enabled:
-		attack_counter += 1
-		if attack_counter >= current_effects.arrow_rain_interval:
-			attack_counter = 0
-			talent_system.spawn_arrow_rain(projectile, current_effects)
-			triggered_rain = true
-	
-	# Check for double shot
-	if current_effects.double_shot_enabled:
-		talent_system.spawn_double_shot(projectile, current_effects)
-	
+		# Check for arrow rain
+		if "arrow_rain_enabled" in current_effects and current_effects.arrow_rain_enabled:
+			attack_counter += 1
+			if attack_counter >= current_effects.arrow_rain_interval:
+				attack_counter = 0
+				talent_system.spawn_arrow_rain(projectile, current_effects)
+		
+		# Check for double shot
+		if "double_shot_enabled" in current_effects and current_effects.double_shot_enabled:
+			talent_system.spawn_double_shot(projectile, current_effects)
+	else:
+		print("ERROR: current_effects is null, talents not applied")
 	return projectile
 
 # Apply bloodseeker stacks to a target
 func apply_bloodseeker_hit(target: Node):
-	if not current_effects or not current_effects.bloodseeker_enabled:
+	if not archer or not target or not is_instance_valid(target):
+		return
+		
+	if not current_effects or not "bloodseeker_enabled" in current_effects or not current_effects.bloodseeker_enabled:
 		return
 		
 	# Initialize data structure if needed
@@ -88,6 +147,9 @@ func apply_bloodseeker_hit(target: Node):
 
 # Create a visual indicator for bloodseeker stacks
 func create_stack_visual(player: Node, stacks: int, max_stacks: int):
+	if not player or not is_instance_valid(player):
+		return
+		
 	# First remove any existing indicator
 	remove_stack_visual(player)
 	
@@ -143,6 +205,9 @@ func create_stack_visual(player: Node, stacks: int, max_stacks: int):
 
 # Remove stack visual
 func remove_stack_visual(player: Node):
+	if not player or not is_instance_valid(player):
+		return
+		
 	if player.has_meta("bloodseeker_visual"):
 		var visual = player.get_meta("bloodseeker_visual")
 		if visual and is_instance_valid(visual):
@@ -151,7 +216,7 @@ func remove_stack_visual(player: Node):
 
 # Reset bloodseeker stacks when changing targets
 func reset_bloodseeker_stacks():
-	if not archer.has_meta("bloodseeker_data"):
+	if not archer or not archer.has_meta("bloodseeker_data"):
 		return
 		
 	var data = archer.get_meta("bloodseeker_data")

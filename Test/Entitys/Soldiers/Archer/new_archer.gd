@@ -94,10 +94,9 @@ func spawn_arrow_after_delay(delay: float):
 			spawn_arrow()
 			reset_attack())
 
-# Spawn the arrow and apply upgrades
 func spawn_arrow():
 	if not current_target or not is_instance_valid(current_target):
-		return  
+		return
 	
 	# Check if pool system is available
 	if ProjectilePool and ProjectilePool.instance:
@@ -105,28 +104,34 @@ func spawn_arrow():
 		var arrow = ProjectilePool.get_arrow(self)
 		
 		if arrow:
-			# Configure the arrow
+			# Reset arrow
+			if arrow.has_method("reset_for_reuse"):
+				arrow.reset_for_reuse()
+			
+			# Set basic properties
 			arrow.global_position = arrow_spawn.global_position
 			arrow.direction = (current_target.global_position - arrow_spawn.global_position).normalized()
 			arrow.rotation = arrow.direction.angle()
 			
-			# The talent effects have already been applied by the pooling system
+			# Set shooter BEFORE calculating critical hit
+			arrow.shooter = self
 			
-			# Ensure physics is enabled
+			# NOW calculate critical hit based on archer stats
+			if "crit_chance" in self and arrow.has_method("is_critical_hit"):
+				arrow.crit_chance = self.crit_chance
+				arrow.is_crit = arrow.is_critical_hit(arrow.crit_chance)
+				print("Critical hit calculation: ", arrow.is_crit, " (chance: ", arrow.crit_chance, ")")
+			
+			# MANUALLY apply talents to avoid relying on talent_manager
+			print("Manually applying talents")
+			for upgrade in attack_upgrades:
+				if upgrade:
+					upgrade.apply_upgrade(arrow)
+			
+			# Ensure arrow is visible and active
+			arrow.visible = true
 			arrow.set_physics_process(true)
 			
-			# If arrow has reset_for_reuse method, call it
-			if arrow.has_method("reset_for_reuse"):
-				arrow.reset_for_reuse()
-			
-			# Make sure arrow is visible
-			arrow.visible = true
-			
-			# Track bloodseeker stacks if enabled
-			if current_target and has_meta("bloodseeker_data"):
-				talent_manager.apply_bloodseeker_hit(current_target)
-				
-			# Arrow is already in the scene
 			return
 	
 	# Fall back to original method if pool system unavailable or failed

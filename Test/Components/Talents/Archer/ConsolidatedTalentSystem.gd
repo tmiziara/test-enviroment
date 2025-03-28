@@ -79,9 +79,15 @@ func _init(archer_ref: Soldier_Base):
 func compile_effects() -> CompiledEffects:
 	var effects = CompiledEffects.new()
 	
+	# Validate archer reference
+	if not archer:
+		push_error("ConsolidatedTalentSystem: No archer reference")
+		return effects
+	
 	# Limpa o cache se o arqueiro tiver os talentos atualizados
 	if archer.has_meta("talents_updated"):
-		compiled_effects.clear()
+		if compiled_effects != null: # Add this null check
+			compiled_effects.clear()
 		archer.remove_meta("talents_updated")
 	
 	# Verifica se já temos efeitos compilados no cache

@@ -95,9 +95,19 @@ func return_projectile(pool_name: String, projectile: Node) -> void:
 	if index >= 0:
 		pool.active.remove_at(index)
 	
-	# Reseta o projétil
-	projectile.process_mode = Node.PROCESS_MODE_DISABLED
-	projectile.visible = false
+	# Reseta o projétil - use call_deferred para propriedades físicas
+	projectile.call_deferred("set", "process_mode", Node.PROCESS_MODE_DISABLED)
+	projectile.call_deferred("set", "visible", false)
+	
+	# Reset collision properties safely
+	if projectile is CollisionObject2D:
+		projectile.call_deferred("set", "monitoring", false)
+		projectile.call_deferred("set", "monitorable", false)
+	
+	# For CharacterBody2D, reset collision layers
+	if projectile is CharacterBody2D:
+		projectile.call_deferred("set", "collision_layer", 0)
+		projectile.call_deferred("set", "collision_mask", 0)
 	
 	# Adiciona ao array de disponíveis
 	pool.available.append(projectile)
@@ -132,45 +142,44 @@ func reset_projectile(projectile: Node) -> void:
 		if "base_damage" in projectile:
 			projectile.damage = projectile.base_damage
 	
-	# Se for um Arrow, reseta propriedades específicas
+	# Reseta DmgCalculatorComponent
+	if projectile.has_node("DmgCalculatorComponent"):
+		var dmg_calc = projectile.get_node("DmgCalculatorComponent")
+		dmg_calc.damage_multiplier = 1.0
+		dmg_calc.armor_penetration = 0.0
+		dmg_calc.elemental_damage = {}
+		dmg_calc.additional_effects = []
+		dmg_calc.dot_effects = []
+	
+	# Se for um Arrow, usa seu método específico
 	if projectile.has_method("reset_for_reuse"):
 		projectile.reset_for_reuse()
 	else:
-		# Reset genérico se não houver um método específico
-		# Tags
+		# Reset genérico
+		# Reseta tags
 		if "tags" in projectile:
-			projectile.tags = []
-			
+			projectile.tags.clear()
+		
 		# Reseta a física
 		projectile.set_physics_process(true)
 		
 		# Reseta o Hurtbox se existir
 		if projectile.has_node("Hurtbox"):
 			var hurtbox = projectile.get_node("Hurtbox")
-			hurtbox.monitoring = true
-			hurtbox.monitorable = true
+			hurtbox.call_deferred("set", "monitoring", true)
+			hurtbox.call_deferred("set", "monitorable", true)
 		
-		# Reseta colisões
+		# Reseta colisões - use call_deferred
 		if projectile is CharacterBody2D:
-			projectile.collision_layer = 4  # Camada de projéteis
-			projectile.collision_mask = 2   # Camada de inimigos
+			projectile.call_deferred("set", "collision_layer", 4)
+			projectile.call_deferred("set", "collision_mask", 2)
 			
 			# Ativa todos os shapes de colisão
 			for child in projectile.get_children():
 				if child is CollisionShape2D or child is CollisionPolygon2D:
-					child.disabled = false
-					
-		# DmgCalculatorComponent
-		if projectile.has_node("DmgCalculatorComponent"):
-			var dmg_calc = projectile.get_node("DmgCalculatorComponent")
-			# Reseta multiplicadores
-			dmg_calc.damage_multiplier = 1.0
-			dmg_calc.armor_penetration = 0.0
-			dmg_calc.elemental_damage = {}
-			dmg_calc.additional_effects = []
-			dmg_calc.dot_effects = []
+					child.call_deferred("set", "disabled", false)
 	
-	# Remove metadados aplicados por talentos
+	# Limpa metadados, exceto pooled e initialized
 	_clear_meta_properties(projectile)
 
 # Expande o pool criando mais instâncias

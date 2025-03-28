@@ -391,60 +391,52 @@ func find_chain_target(original_target) -> void:
 		else:
 			queue_free()
 
-# Method to reset the arrow for reuse from pool
+# Completely rewrite the reset_for_reuse method
 func reset_for_reuse() -> void:
-	# Reset chain shot properties
+	print("Resetting arrow for reuse")
+	
+	# CRITICAL FIX: Reset critical hit flag
+	is_crit = false
+	
+	# Clear all states
 	current_chains = 0
 	chain_calculated = false
 	will_chain = false
 	is_processing_ricochet = false
-	
-	# Clear hit targets
 	hit_targets.clear()
-	
-	# Reset tags
 	tags.clear()
-	
-	# Reset velocity and direction 
 	velocity = Vector2.ZERO
 	
-	# Reset damage calculator
+	# Reset damage to base value
+	damage = 10  # Use your base arrow damage
+	
+	# Reset DmgCalculator
 	if has_node("DmgCalculatorComponent"):
 		var dmg_calc = get_node("DmgCalculatorComponent")
+		# Complete reset of calculator
+		dmg_calc.base_damage = 10  # Reset to base damage
 		dmg_calc.damage_multiplier = 1.0
 		dmg_calc.armor_penetration = 0.0
 		dmg_calc.elemental_damage = {}
 		dmg_calc.additional_effects = []
 		dmg_calc.dot_effects = []
-		
-		# Re-initialize with shooter if available
-		if shooter:
-			dmg_calc.initialize_from_shooter(shooter)
 	
-	# Recalculate critical hit
-	if shooter and "crit_chance" in shooter:
-		crit_chance = shooter.crit_chance
-		is_crit = is_critical_hit(crit_chance)
+	# DON'T recalculate critical hit yet - do it after shooter is set
 	
-	# Disconnect any signal connections
-	var connections = get_signal_connection_list("on_hit")
-	for connection in connections:
-		disconnect("on_hit", connection.callable)
-	
-	# Reset collision
+	# Reset collision properties safely
 	if has_node("Hurtbox"):
 		var hurtbox = get_node("Hurtbox")
-		hurtbox.monitoring = true
-		hurtbox.monitorable = true
+		hurtbox.set_deferred("monitoring", true)
+		hurtbox.set_deferred("monitorable", true)
 	
 	# Reset collision layers
-	collision_layer = 4  # Projectile layer
-	collision_mask = 2   # Enemy layer
+	set_deferred("collision_layer", 4)  # Projectile layer
+	set_deferred("collision_mask", 2)   # Enemy layer
 	
 	# Reset physics processing
 	set_physics_process(true)
 	
-	# Clean metadata except pooled flag
+	# Clear all metadata except pooled flag
 	var meta_list = get_meta_list()
 	for meta in meta_list:
 		if meta != "pooled" and meta != "initialized":

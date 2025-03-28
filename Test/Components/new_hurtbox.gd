@@ -13,37 +13,18 @@ func _on_body_entered(body):
 		print("Body is not an enemy or doesn't have HealthComponent")
 		return
 	
-	# Verificação de alvos atingidos para piercing
+	# Check if this target has already been hit (for piercing support)
 	if owner_entity.has_meta("hit_targets"):
 		var hit_targets = owner_entity.get_meta("hit_targets")
 		if body in hit_targets:
-			print("Este alvo já foi atingido por esta flecha, ignorando.")
+			print("This target has already been hit by this projectile, ignoring.")
 			return
 			
-		# Adiciona o alvo à lista de alvos atingidos
+		# Add target to hit targets list
 		hit_targets.append(body)
 		owner_entity.set_meta("hit_targets", hit_targets)
-		
-		# Atualiza a contagem de penetração
-		if owner_entity.piercing:
-			var current_pierce_count = hit_targets.size() - 1
-			print("Contagem de penetração atual: ", current_pierce_count)
-			
-			# Obtém o máximo de penetrações permitidas 
-			# Usa a nova forma de obter piercing_count
-			var max_pierce = 1
-			if owner_entity.has_meta("piercing_count"):
-				max_pierce = owner_entity.get_meta("piercing_count")
-			
-			print("Penetração: ", current_pierce_count, "/", max_pierce)
-			
-			# Verifica se atingiu o limite de penetração
-			if current_pierce_count >= max_pierce:
-				print("Limite de penetração alcançado, destruindo projétil")
-				owner_entity.queue_free()
-				return
 	
-	# Processamento de hit para Arrow
+	# Process hit for Arrow
 	if owner_entity is NewArrow and owner_entity.has_method("process_on_hit"):
 		if owner_entity.is_processing_ricochet:
 			print("Arrow is currently processing ricochet - ignoring hit")
@@ -52,27 +33,27 @@ func _on_body_entered(body):
 		print("Calling Arrow.process_on_hit")
 		owner_entity.process_on_hit(body)
 	else:
+		# Standard projectile hit processing
 		print("Standard projectile hit processing")
 		var health_component = body.get_node("HealthComponent")
 		
-		# Obtém o pacote de dano calculado
+		# Get calculated damage package
 		var damage_package = owner_entity.get_damage_package()
 		
-		# Aplica dano ao inimigo (incluindo DoTs)
+		# Apply damage to enemy (including DoTs)
 		if health_component.has_method("take_complex_damage"):
 			print("Applying complex damage")
 			health_component.take_complex_damage(damage_package)
 		else:
-			# Fallback para método antigo
+			# Fallback to old method
 			print("Applying simple damage")
 			var physical_damage = damage_package.get("physical_damage", owner_entity.damage)
 			var is_crit = damage_package.get("is_critical", owner_entity.is_crit)
 			health_component.take_damage(physical_damage, is_crit)
 		
-		# Destrói o projétil não-Arrow se não for piercing
-		if not owner_entity is NewArrow:
-			if not owner_entity.piercing:
-				print("Non-piercing projectile hit, destroying")
-				owner_entity.queue_free()
+		# Destroy non-Arrow projectile if not piercing
+		if not owner_entity.piercing:
+			print("Non-piercing projectile hit, destroying")
+			owner_entity.queue_free()
 	
 	return body
