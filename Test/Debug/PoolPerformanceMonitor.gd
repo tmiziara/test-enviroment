@@ -19,6 +19,11 @@ var last_update_time: int = 0
 # Interface (opcional)
 var debug_label: Label = null
 
+func _process(_delta):
+	# Atualiza a label a cada frame se estiver visível
+	if debug_label and debug_label.visible:
+		_update_debug_interface()
+		
 func _init():
 	# Configura temporizador de atualização
 	update_timer = Timer.new()
@@ -32,7 +37,12 @@ func _init():
 	
 	# Inicializa a interface de debug (opcional)
 	_setup_debug_interface()
-
+# Modifique o _ready() para configurar a interface
+func _ready():
+	print("PoolPerformanceMonitor inicializado!")
+	
+	# Use call_deferred para garantir que a cena esteja completamente carregada
+	call_deferred("_setup_debug_interface")
 # Hook para se conectar ao sistema de pooling
 func connect_to_pool_system(pool_system: ProjectilePoolSystem) -> void:
 	# Monitora cada pool no sistema
@@ -122,34 +132,71 @@ func _update_stats() -> void:
 
 # Configura uma interface visual para depuração
 func _setup_debug_interface() -> void:
-	# Este é um exemplo básico - você pode expandir conforme necessário
+	# Adicione verificações mais robustas
+	if not is_inside_tree():
+		print("ERRO: Nó não está dentro de uma árvore")
+		return
+
+	# Cria a label
 	debug_label = Label.new()
 	debug_label.name = "PoolStatsLabel"
 	debug_label.position = Vector2(10, 10)
-	debug_label.text = "Pool Stats: Inicializando..."
+	debug_label.size = Vector2(300, 200)
 	
-	# Adiciona ao CanvasLayer para ser visível na tela
+	# Configurações de estilo
+	debug_label.add_theme_font_size_override("font_size", 16)
+	debug_label.add_theme_color_override("font_color", Color.WHITE)
+	debug_label.add_theme_color_override("font_background_color", Color(0, 0, 0, 0.5))
+	
+	# Cria CanvasLayer
 	var canvas_layer = CanvasLayer.new()
 	canvas_layer.name = "PoolStatsLayer"
-	canvas_layer.layer = 100  # Renderiza acima de tudo
-	add_child(canvas_layer)
-	canvas_layer.add_child(debug_label)
+	canvas_layer.layer = 100
+	
+	# Adiciona ao owner da cena atual
+	var root = get_tree().root
+	if root:
+		root.add_child(canvas_layer)
+		canvas_layer.add_child(debug_label)
+		debug_label.visible = false  # Começa invisível
+		print("Debug label criada e adicionada")
+	else:
+		print("ERRO: Não foi possível encontrar a root da cena")
 
-# Atualiza a interface de debug
+# Método auxiliar para adicionar a layer de debug
+func _add_debug_layer(canvas_layer: CanvasLayer, background: ColorRect, label: Label) -> void:
+	# Adiciona ao root de forma segura
+	if get_tree() and get_tree().root:
+		get_tree().root.add_child(canvas_layer)
+		
+		# Adiciona background e label ao CanvasLayer
+		canvas_layer.add_child(background)
+		canvas_layer.add_child(label)
+		
+		# Torna a label visível por padrão
+		label.visible = true
+		
+		print("Debug layer adicionada à cena")
+	else:
+		print("ERRO: Não foi possível adicionar debug layer")
+	
 func _update_debug_interface() -> void:
 	if not debug_label:
 		return
 	
-	var text = "== POOL STATS ==\n"
-	text += "Total Reuse: " + str(total_reuse_count) + " (" + str(reuse_per_second) + "/s)\n"
-	text += "Total Create: " + str(total_create_count) + " (" + str(create_per_second) + "/s)\n\n"
+	var text = "== POOL PERFORMANCE ==\n"
+	text += "Total Reuses: " + str(total_reuse_count) + "\n"
+	text += "Total Creates: " + str(total_create_count) + "\n"
 	
-	for pool_name in pool_stats.keys():
-		var stats = pool_stats[pool_name]
-		text += pool_name + ":\n"
-		text += "  Active: " + str(stats["active_count"]) + " / " + str(stats["total_count"]) + "\n"
-		text += "  Peak: " + str(stats["peak_active"]) + " | Avg: " + str(stats["average_active"]) + "\n"
-		text += "  Reuse/Create: " + str(stats["reuse_count"]) + "/" + str(stats["create_count"]) + "\n"
+	# Adiciona sempre algo, mesmo que não haja pools
+	if pool_stats.size() == 0:
+		text += "No pools created yet\n"
+	else:
+		for pool_name in pool_stats.keys():
+			var stats = pool_stats[pool_name]
+			text += "\n" + pool_name + ":\n"
+			text += "  Active: " + str(stats["active_count"]) + "\n"
+			text += "  Peak: " + str(stats["peak_active"]) + "\n"
 	
 	debug_label.text = text
 

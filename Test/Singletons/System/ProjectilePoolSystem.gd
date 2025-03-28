@@ -40,9 +40,15 @@ class Pool:
 
 # Inicializa o sistema
 func _ready():
-	# O sistema fica pronto para ser usado, mas não
-	# cria nenhum pool automaticamente
-	pass
+	print("ProjectilePoolSystem inicializado, tentando conectar monitor")
+	
+	# Use o nome exato do singleton
+	var performance_monitor = get_tree().root.get_node_or_null("PoolPerformanceMonitor2")
+	if performance_monitor:
+		print("Monitor de desempenho encontrado, conectando...")
+		performance_monitor.connect_to_pool_system(self)
+	else:
+		print("ERRO: Monitor de desempenho NÃO ENCONTRADO")
 
 # Cria um novo pool
 func create_pool(name: String, scene: PackedScene, parent: Node = self, initial_count: int = 0) -> void:

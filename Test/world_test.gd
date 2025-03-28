@@ -10,6 +10,7 @@ func _ready():
 	# Carrega a cena do painel de debug se não for atribuído no Inspector
 	if not debug_panel_scene:
 		debug_panel_scene = load("res://archer_debug_panel.tscn")
+
 	# Instancia o painel de debug
 	debug_panel = debug_panel_scene.instantiate()
 	$CanvasLayer.add_child(debug_panel)
@@ -48,3 +49,19 @@ func _on_talent_button_pressed():
 	
 	# Adiciona à cena
 	$CanvasLayer.add_child(talent_tree_instance)
+
+func _unhandled_input(event):
+	if event.is_action_pressed("toggle_performance_monitor"):
+		# Use o nome exato do singleton como está configurado
+		var performance_monitor = get_tree().root.get_node_or_null("PoolPerformanceMonitor2")
+		
+		if performance_monitor:
+			if performance_monitor.debug_label:
+				# Alterna a visibilidade
+				performance_monitor.debug_label.visible = !performance_monitor.debug_label.visible
+				print("Visibilidade do monitor: ", performance_monitor.debug_label.visible)
+			
+			# Tenta imprimir o resumo
+			print(performance_monitor.get_stats_summary())
+		else:
+			print("ERRO CRÍTICO: Monitor de desempenho NÃO ENCONTRADO")
