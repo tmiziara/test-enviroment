@@ -154,7 +154,7 @@ grow_horizontal = 2
 position = Vector2(-1, -12)
 
 [node name="HealthComponent" parent="." instance=ExtResource("5_5luq3")]
-max_health = 200
+max_health = 1000
 
 [node name="DefenseComponent" parent="." instance=ExtResource("6_r8bh5")]
 armor = 10

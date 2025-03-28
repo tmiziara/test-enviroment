@@ -318,7 +318,6 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("bleeding_duration", effects.bleed_duration)
 		projectile.set_meta("bleeding_interval", effects.bleed_interval)
 		projectile.add_tag("bleeding")
-		print("Bleeding on crit enabled: " + str(effects.bleed_damage_percent * 100) + "% damage over " + str(effects.bleed_duration) + "s")
 	
 	# Apply Marked for Death
 	if effects.mark_enabled:
