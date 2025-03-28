@@ -75,7 +75,6 @@ class CompiledEffects:
 func _init(archer_ref: Soldier_Base):
 	archer = archer_ref
 
-# Compila todos os efeitos das estratégias em um único objeto
 func compile_effects() -> CompiledEffects:
 	var effects = CompiledEffects.new()
 	
@@ -84,23 +83,18 @@ func compile_effects() -> CompiledEffects:
 		push_error("ConsolidatedTalentSystem: No archer reference")
 		return effects
 	
-	# Limpa o cache se o arqueiro tiver os talentos atualizados
-	if archer.has_meta("talents_updated"):
-		if compiled_effects != null: # Add this null check
-			compiled_effects.clear()
-		archer.remove_meta("talents_updated")
-	
-	# Verifica se já temos efeitos compilados no cache
-	var cache_key = _generate_cache_key()
-	if cache_key in compiled_effects:
-		return compiled_effects[cache_key]
+	# Limpa SEMPRE o cache para garantir valores atualizados
+	compiled_effects.clear()
 	
 	# Processa cada estratégia e compila os efeitos
+	print("Compilando efeitos a partir de ", archer.attack_upgrades.size(), " estratégias:")
 	for strategy in archer.attack_upgrades:
-		_apply_strategy_effects(strategy, effects)
+		if strategy:
+			var strategy_name = strategy.get_script().get_path().get_file().get_basename()
+			print("- Processando estratégia: ", strategy_name)
+			_apply_strategy_effects(strategy, effects)
 	
-	# Armazena no cache
-	compiled_effects[cache_key] = effects
+	# Retorna os efeitos compilados
 	return effects
 
 # Gera uma chave única para o cache baseada nos talentos ativos
@@ -218,17 +212,23 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 		
 	# Could add more strategies as needed
 
-# Aplica os efeitos compilados a um projétil
 func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
+	print("ConsolidatedTalentSystem: Applying compiled effects to projectile")
+	
 	if not is_instance_valid(projectile):
+		print("ERROR: Invalid projectile provided to apply_compiled_effects")
 		return
 		
 	# Apply basic stats
 	if "damage" in projectile:
+		var original_damage = projectile.damage
 		projectile.damage = int(projectile.damage * effects.damage_multiplier)
+		print("Damage updated: ", original_damage, " -> ", projectile.damage)
 	
 	if "crit_chance" in projectile:
+		var original_crit = projectile.crit_chance
 		projectile.crit_chance = min(projectile.crit_chance + effects.crit_chance_bonus, 1.0)
+		print("Crit chance updated: ", original_crit, " -> ", projectile.crit_chance)
 	
 	# Apply attack tags
 	_ensure_tags_array(projectile)
@@ -246,6 +246,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		if effects.armor_penetration > 0:
 			dmg_calc.armor_penetration = effects.armor_penetration
 			projectile.add_tag("armor_piercing")
+			print("Added armor penetration: ", effects.armor_penetration)
 			
 		# Apply fire damage
 		if effects.fire_damage_percent > 0:
@@ -254,27 +255,33 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 			if not "elemental_damage" in dmg_calc:
 				dmg_calc.elemental_damage = {}
 				
+			var fire_damage = int(projectile.damage * effects.fire_damage_percent)
 			if "fire" in dmg_calc.elemental_damage:
-				dmg_calc.elemental_damage["fire"] += int(projectile.damage * effects.fire_damage_percent)
+				dmg_calc.elemental_damage["fire"] += fire_damage
 			else:
-				dmg_calc.elemental_damage["fire"] = int(projectile.damage * effects.fire_damage_percent)
+				dmg_calc.elemental_damage["fire"] = fire_damage
+				
+			print("Added fire damage: ", fire_damage)
 				
 			# Apply fire DoT
 			if effects.fire_dot_damage_percent > 0:
+				var dot_damage = int(projectile.damage * effects.fire_dot_damage_percent)
 				var dot_data = {
-					"damage_per_tick": int(projectile.damage * effects.fire_dot_damage_percent),
+					"damage_per_tick": dot_damage,
 					"duration": effects.fire_dot_duration,
 					"interval": effects.fire_dot_interval,
 					"type": "fire",
 					"chance": effects.fire_dot_chance
 				}
 				dmg_calc.set_meta("fire_dot_data", dot_data)
+				print("Added fire DoT: ", dot_damage, " per tick")
 	
 	# Apply piercing
 	if effects.piercing_count > 0:
 		projectile.piercing = true
 		projectile.set_meta("piercing_count", effects.piercing_count)
 		projectile.add_tag("piercing")
+		print("Added piercing: ", effects.piercing_count, " count")
 		
 		# For physical projectiles, disable collision with enemies
 		if projectile is CharacterBody2D:
@@ -283,14 +290,17 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	# Apply Chain Shot
 	if effects.can_chain:
 		_setup_chain_shot(projectile, effects)
+		print("Added chain shot capability")
 	
 	# Apply Focused Shot
 	if effects.focused_shot_enabled and projectile is Arrow:
 		projectile.configure_focused_shot(true, effects.focused_shot_bonus, effects.focused_shot_threshold)
+		print("Added Focused Shot to Arrow")
 	elif effects.focused_shot_enabled:
 		projectile.set_meta("focused_shot_enabled", true)
 		projectile.set_meta("focused_shot_bonus", effects.focused_shot_bonus)
 		projectile.set_meta("focused_shot_threshold", effects.focused_shot_threshold)
+		print("Added Focused Shot via metadata")
 	
 	# Apply Bleeding on crit
 	if effects.bleed_on_crit:
@@ -299,6 +309,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("bleeding_duration", effects.bleed_duration)
 		projectile.set_meta("bleeding_interval", effects.bleed_interval)
 		projectile.add_tag("bleeding")
+		print("Added bleeding on crit effect")
 	
 	# Apply Marked for Death
 	if effects.mark_enabled:
@@ -306,6 +317,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("mark_duration", effects.mark_duration)
 		projectile.set_meta("mark_crit_bonus", effects.mark_crit_bonus)
 		projectile.add_tag("marked_for_death")
+		print("Added Marked for Death effect")
 	
 	# Apply Explosion
 	if effects.explosion_enabled:
@@ -313,6 +325,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("explosion_damage_percent", effects.explosion_damage_percent)
 		projectile.set_meta("explosion_radius", effects.explosion_radius)
 		projectile.add_tag("explosive")
+		print("Added explosion effect")
 	
 	# Apply Splinter
 	if effects.can_splinter:
@@ -321,6 +334,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("splinter_damage_percent", effects.splinter_damage_percent)
 		projectile.set_meta("splinter_range", effects.splinter_range)
 		projectile.add_tag("splinter")
+		print("Added splinter effect")
 	
 	# Apply Bloodseeker
 	if effects.bloodseeker_enabled:
@@ -328,6 +342,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("damage_increase_per_stack", effects.bloodseeker_bonus_per_stack)
 		projectile.set_meta("max_stacks", effects.bloodseeker_max_stacks)
 		projectile.add_tag("bloodseeker")
+		print("Added bloodseeker effect")
 		
 		# Apply current bonus if archer has stacks
 		if projectile.shooter and projectile.shooter.has_meta("bloodseeker_data"):
@@ -338,6 +353,9 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 				projectile.damage = int(projectile.damage * (1 + bonus))
 				if dmg_calc and "damage_multiplier" in dmg_calc:
 					dmg_calc.damage_multiplier *= (1 + bonus)
+				print("Applied current bloodseeker stacks: ", stacks, " with bonus: ", bonus)
+				
+	print("Finished applying compiled talent effects")
 
 # Setup chain shot functionality
 func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:

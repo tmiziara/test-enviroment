@@ -30,6 +30,7 @@ func _ready():
 	else:
 		push_error("ArcherTalentManager: No archer reference provided")
 
+
 # Separate method for talent system initialization
 func initialize_talent_system():
 	if archer and not talent_system:
@@ -62,7 +63,6 @@ func refresh_talents():
 		if current_effects.range_multiplier != 1.0:
 			archer.attack_range *= current_effects.range_multiplier
 
-# Apply all talents to a projectile
 func apply_talents_to_projectile(projectile: Node) -> Node:
 	print("ArcherTalentManager: apply_talents_to_projectile called")
 	# Check for valid archer
@@ -79,20 +79,22 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 		push_error("ArcherTalentManager: Cannot apply talents - talent system initialization failed")
 		return projectile
 	
-	# Recompile effects if needed
-	if not current_effects:
-		print("Compiling effects in apply_talents_to_projectile")
-		current_effects = talent_system.compile_effects()
+	# SEMPRE recompile os efeitos para garantir valores atualizados
+	print("FORÇANDO recompilação de efeitos para garantir valores corretos")
+	current_effects = talent_system.compile_effects()
 	
 	if current_effects:
 		print("Applying compiled effects to projectile")
 		talent_system.apply_compiled_effects(projectile, current_effects)
-				# Print some info about the effects
-		print("Arrow talent effects - crit: ", projectile.is_crit, 
-			  ", damage: ", projectile.damage, 
-			  ", tags: ", projectile.tags)
-	
-		# Check for arrow rain
+		
+		# Print detailed info about the applied effects for debugging
+		print("Applied talent effects:")
+		print("- Damage multiplier:", current_effects.damage_multiplier)
+		print("- Crit chance bonus:", current_effects.crit_chance_bonus)
+		print("- Armor penetration:", current_effects.armor_penetration)
+		print("- Arrow tags:", projectile.tags)
+		
+		# Check for special abilities
 		if "arrow_rain_enabled" in current_effects and current_effects.arrow_rain_enabled:
 			attack_counter += 1
 			if attack_counter >= current_effects.arrow_rain_interval:
@@ -104,8 +106,9 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 			talent_system.spawn_double_shot(projectile, current_effects)
 	else:
 		print("ERROR: current_effects is null, talents not applied")
+	
 	return projectile
-
+	
 # Apply bloodseeker stacks to a target
 func apply_bloodseeker_hit(target: Node):
 	if not archer or not target or not is_instance_valid(target):

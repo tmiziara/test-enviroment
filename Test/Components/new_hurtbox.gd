@@ -31,6 +31,12 @@ func _on_body_entered(body):
 			return
 		
 		print("Calling Arrow.process_on_hit")
+		
+		# IMPORTANTE: desabilite temporariamente o monitoramento para evitar hits múltiplos
+		# enquanto processa este hit e decide se deve continuar
+		set_deferred("monitoring", false)
+		
+		# Após hit, process_on_hit vai reativar monitoramento se apropriado
 		owner_entity.process_on_hit(body)
 	else:
 		# Standard projectile hit processing
@@ -54,6 +60,10 @@ func _on_body_entered(body):
 		# Destroy non-Arrow projectile if not piercing
 		if not owner_entity.piercing:
 			print("Non-piercing projectile hit, destroying")
-			owner_entity.queue_free()
+			# Use pool system if available
+			if owner_entity.has_method("return_to_pool") and owner_entity.has_meta("pooled"):
+				owner_entity.return_to_pool()
+			else:
+				owner_entity.queue_free()
 	
 	return body

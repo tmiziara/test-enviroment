@@ -239,7 +239,6 @@ func get_arrow_with_talents(pool_name: String, archer: Soldier_Base, talent_mana
 	
 	return projectile
 
-# Solução mais simplificada para o caso específico do Archer:
 func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 	# Nome do pool para flechas do arqueiro
 	var pool_name = "arrow_" + str(archer.get_instance_id())
@@ -265,17 +264,15 @@ func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 	arrow.shooter = archer
 	
 	# Verifica se o arqueiro tem um gerenciador de talentos
+	# IMPORTANTE: Use apenas um método, não ambos!
 	if archer.has_node("ArcherTalentManager"):
 		var talent_manager = archer.get_node("ArcherTalentManager")
+		print("Aplicando talentos VIA TALENT MANAGER")
 		talent_manager.apply_talents_to_projectile(arrow)
 	else:
-		# Aplicação manual de estratégias
-		for upgrade in archer.attack_upgrades:
-			if upgrade:
-				upgrade.apply_upgrade(arrow)
+		print("WARNING: Archer não tem TalentManager, não aplicando talentos")
 	
 	return arrow
-
 # Retorna uma flecha ao seu pool de arqueiro
 func return_arrow_to_pool(arrow: Node) -> void:
 	if not is_pooled(arrow) or not arrow.shooter:

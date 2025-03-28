@@ -206,7 +206,7 @@ func process_on_hit(target: Node) -> void:
 			call_deferred("find_chain_target", target)
 			return
 	
-	# Handle Piercing
+	# Handle Piercing - corrigido:
 	if piercing:
 		var current_pierce_count = hit_targets.size() - 1
 		var max_pierce = 1
@@ -216,17 +216,26 @@ func process_on_hit(target: Node) -> void:
 			
 		# Check if piercing limit reached
 		if current_pierce_count >= max_pierce:
-			# Check if using pooling
+			# Destroy only if limit reached
 			if is_pooled():
 				return_to_pool()
 			else:
 				queue_free()
-	else:
-		# No chain shot or piercing, handle cleanup
-		if is_pooled():
-			return_to_pool()
 		else:
-			queue_free()
+			# Continue através do inimigo - adicione este bloco
+			print("Continuing through enemy, pierce count: ", current_pierce_count, "/", max_pierce)
+			
+			# Reposiciona flecha ligeiramente além do inimigo para evitar colisão imediata
+			global_position += direction * 15  
+			
+			# Reativa a hurtbox temporariamente desativada durante a colisão
+			if has_node("Hurtbox"):
+				var hurtbox = get_node("Hurtbox")
+				hurtbox.set_deferred("monitoring", true)
+				hurtbox.set_deferred("monitorable", true)
+				
+			# Garante que a física continue funcionando
+			set_physics_process(true)
 
 # Process effects from talents that trigger on hit
 func process_talent_effects(target: Node) -> void:
@@ -406,9 +415,11 @@ func reset_for_reuse() -> void:
 	hit_targets.clear()
 	tags.clear()
 	velocity = Vector2.ZERO
-	
-	# Reset damage to base value
-	damage = 10  # Use your base arrow damage
+# Reset damage to base value from archer
+	if shooter and shooter.has_method("get_weapon_damage"):
+		damage = shooter.get_weapon_damage()
+	else:
+		damage = 10  # Fallback
 	
 	# Reset DmgCalculator
 	if has_node("DmgCalculatorComponent"):
@@ -420,8 +431,6 @@ func reset_for_reuse() -> void:
 		dmg_calc.elemental_damage = {}
 		dmg_calc.additional_effects = []
 		dmg_calc.dot_effects = []
-	
-	# DON'T recalculate critical hit yet - do it after shooter is set
 	
 	# Reset collision properties safely
 	if has_node("Hurtbox"):
