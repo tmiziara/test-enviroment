@@ -147,39 +147,48 @@ func apply_mark_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
 
 # Override the process_on_hit method for advanced arrow functionality
 func process_on_hit(target: Node) -> void:
-	# Set current target for damage calculations
+	print("Arrow process_on_hit called")
+	print("Pooled status: ", is_pooled())
+	print("Shooter: ", shooter)
+	print("Piercing: ", piercing)
+	
+	# Variável para controlar destruição da flecha
+	var should_destroy = true
+	
+	# Define o alvo atual para cálculos de dano
 	set_meta("current_target", target)
 	
-	# If already processing a ricochet, ignore this hit
+	# Se já estiver processando um ricochet, ignora este hit
 	if is_processing_ricochet:
+		print("Already processing ricochet - ignoring hit")
 		return
 	
-	# Track this target
+	# Adiciona o alvo à lista de alvos atingidos
 	if not target in hit_targets:
 		hit_targets.append(target)
 	
-	# Calculate and apply damage
+	# Calcula e aplica dano
 	if target.has_node("HealthComponent"):
 		var health_component = target.get_node("HealthComponent")
 		
-		# Get damage package specific to this target
+		# Obtém o pacote de dano específico para este alvo
 		var damage_package = get_damage_package()
 		
-		# Process DoT effects from fire arrows
+		# Processa efeitos DoT de flechas de fogo
 		if has_node("DmgCalculatorComponent"):
 			var dmg_calc = get_node("DmgCalculatorComponent")
 			
-			# Apply fire DoT if configured
+			# Aplica DoT de fogo se configurado
 			if dmg_calc.has_meta("fire_dot_data"):
 				var dot_data = dmg_calc.get_meta("fire_dot_data")
 				var dot_chance = dot_data.get("chance", 0.0)
 				
-				# Roll for DoT chance
+				# Rola para chance de DoT
 				if randf() <= dot_chance:
 					if "dot_effects" not in damage_package:
 						damage_package["dot_effects"] = []
 					
-					# Add DoT effect
+					# Adiciona efeito DoT
 					damage_package["dot_effects"].append({
 						"damage": dot_data.get("damage_per_tick", 1),
 						"duration": dot_data.get("duration", 3.0),
@@ -187,59 +196,84 @@ func process_on_hit(target: Node) -> void:
 						"type": dot_data.get("type", "fire")
 					})
 		
-		# Apply damage with the complete package
+		# Aplica dano com o pacote completo
 		health_component.take_complex_damage(damage_package)
 	
-	# Emit signal for talent systems
+	# Emite sinal para sistemas de talentos
 	emit_signal("on_hit", target, self)
 	
-	# Process talent effects
+	# Processa efeitos de talentos
 	process_talent_effects(target)
 	
-	# Handle Chain Shot
+	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
-		# Calculate chain chance only once on first hit
+		print("Chain shot enabled and can ricochet")
 		if not chain_calculated:
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
 			chain_calculated = true
 		
-		# If arrow will chain
 		if will_chain:
+			print("Arrow will chain")
 			is_processing_ricochet = true
 			call_deferred("find_chain_target", target)
-			return
+			should_destroy = false  # Permite que a flecha continue
 	
-	# Handle Piercing - corrigido:
+	# Verifica Piercing
 	if piercing:
+		print("Piercing enabled")
 		var current_pierce_count = hit_targets.size() - 1
 		var max_pierce = 1
 		
 		if has_meta("piercing_count"):
 			max_pierce = get_meta("piercing_count")
 			
-		# Check if piercing limit reached
-		if current_pierce_count >= max_pierce:
-			# Destroy only if limit reached
-			if is_pooled():
-				return_to_pool()
-			else:
-				queue_free()
-		else:
-			# Continue através do inimigo - adicione este bloco
-			print("Continuing through enemy, pierce count: ", current_pierce_count, "/", max_pierce)
-			
-			# Reposiciona flecha ligeiramente além do inimigo para evitar colisão imediata
-			global_position += direction * 15  
-			
-			# Reativa a hurtbox temporariamente desativada durante a colisão
+		print("Pierce count: ", current_pierce_count, "/", max_pierce)    
+		if current_pierce_count < max_pierce:
+			# Prepara para próximo hit
 			if has_node("Hurtbox"):
 				var hurtbox = get_node("Hurtbox")
+				# Usa set_deferred para evitar erros de bloqueio
 				hurtbox.set_deferred("monitoring", true)
 				hurtbox.set_deferred("monitorable", true)
-				
-			# Garante que a física continue funcionando
-			set_physics_process(true)
+			
+			# Move a flecha ligeiramente para frente para evitar ficar preso
+			global_position += direction * 10
+			
+			# Mantém a velocidade e direção originais
+			velocity = direction * speed
+			
+			should_destroy = false  # Permite que a flecha continue
+		else:
+			print("Max pierce count reached")
+	
+	# Destruição final
+	if should_destroy:
+		print("Arrow should be destroyed")
+		
+		# Desabilita física e visibilidade
+		set_physics_process(false)
+		visible = false
+		
+		# Desabilita colisões usando set_deferred
+		if has_node("Hurtbox"):
+			var hurtbox = get_node("Hurtbox")
+			hurtbox.set_deferred("monitoring", false)
+			hurtbox.set_deferred("monitorable", false)
+		
+		set_deferred("collision_layer", 0)
+		set_deferred("collision_mask", 0)
+		velocity = Vector2.ZERO
+		
+		# Retorna ao pool com pequeno delay
+		if is_pooled():
+			print("Returning to pool")
+			get_tree().create_timer(0.1).timeout.connect(func():
+				return_to_pool()
+			)
+		else:
+			print("Queuing free")
+			queue_free()
 
 # Process effects from talents that trigger on hit
 func process_talent_effects(target: Node) -> void:
@@ -458,12 +492,25 @@ func is_pooled() -> bool:
 
 # Helper method to return arrow to pool
 func return_to_pool() -> void:
+	print("Attempting to return arrow to pool")
+	print("Is pooled: ", is_pooled())
+	print("Shooter: ", shooter)
+	print("Shooter type: ", typeof(shooter))
+	print("Shooter has instance method: ", shooter.has_method("get_instance_id"))
+	
 	if not is_pooled() or not shooter:
+		print("Cannot return to pool - queuing free")
 		queue_free()
 		return
 	
+	# Log de verificação do pool
+	print("ProjectilePool exists: ", ProjectilePool != null)
+	print("ProjectilePool instance exists: ", ProjectilePool.instance != null)
+	
 	# Return to appropriate pool
 	if ProjectilePool and ProjectilePool.instance:
+		print("Attempting to return arrow via pool method")
 		ProjectilePool.instance.return_arrow_to_pool(self)
 	else:
+		print("No pool instance - queuing free")
 		queue_free()

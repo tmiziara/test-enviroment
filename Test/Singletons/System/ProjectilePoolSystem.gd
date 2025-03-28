@@ -53,23 +53,30 @@ func create_pool(name: String, scene: PackedScene, parent: Node = self, initial_
 	var count = initial_count if initial_count > 0 else pre_instantiate_count
 	pools[name] = Pool.new(scene, parent, count)
 
-# Obtém um projétil do pool
 func get_projectile(pool_name: String) -> Node:
+	print("Getting projectile from pool: ", pool_name)
+	
 	# Verifica se o pool existe
 	if not pool_name in pools:
 		printerr("Pool não existe: ", pool_name)
 		return null
 		
 	var pool = pools[pool_name]
+	print("Available projectiles in pool: ", pool.available.size())
 	
 	# Se não houver objetos disponíveis, expande o pool
 	if pool.available.size() == 0:
+		print("No available projectiles, expanding pool")
 		_expand_pool(pool_name)
 	
 	# Retorna um objeto do pool
 	if pool.available.size() > 0:
 		var projectile = pool.available.pop_back()
 		pool.active.append(projectile)
+		
+		print("Projectile retrieved from pool")
+		projectile.set_meta("pooled", true)
+		
 		projectile.process_mode = Node.PROCESS_MODE_INHERIT
 		projectile.visible = true
 		
@@ -79,6 +86,7 @@ func get_projectile(pool_name: String) -> Node:
 		return projectile
 	
 	# Se ainda não houver objetos disponíveis (máximo atingido)
+	print("No projectiles available in pool")
 	return null
 
 # Devolve um projétil ao pool
@@ -240,45 +248,71 @@ func get_arrow_with_talents(pool_name: String, archer: Soldier_Base, talent_mana
 	return projectile
 
 func get_arrow_for_archer(archer: Soldier_Base) -> Node:
+	print("Getting arrow for archer: ", archer.get_instance_id())
+	
 	# Nome do pool para flechas do arqueiro
 	var pool_name = "arrow_" + str(archer.get_instance_id())
+	print("Pool name: ", pool_name)
+	print("Pools available: ", pools.keys())
 	
 	# Verifica se o pool existe, caso contrário cria
 	if not pool_name in pools:
+		print("Pool does not exist, creating new pool")
 		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
 		if not arrow_scene:
 			printerr("Não foi possível carregar a cena da flecha")
 			return null
 			
 		create_pool(pool_name, arrow_scene, archer.get_parent())
+		print("Pool created successfully")
 	
 	# Obtém uma flecha do pool
 	var arrow = get_projectile(pool_name)
 	if not arrow:
+		print("Could not get projectile from pool")
 		return null
+	
+	# Log de status da flecha
+	print("Arrow retrieved from pool")
+	print("Arrow is pooled status: ", arrow.has_meta("pooled"))
+	
+	# Garante que a flecha tenha a flag "pooled"
+	arrow.set_meta("pooled", true)
 	
 	# Simplify reset - just clear key properties but don't apply talents yet
 	if arrow.has_method("reset_for_reuse"):
+		print("Resetting arrow for reuse")
 		arrow.reset_for_reuse()
 	
 	# Set shooter reference but let caller handle talent application
 	arrow.shooter = archer
 	
+	print("Arrow shooter set: ", arrow.shooter == archer)
+	
 	return arrow
 	
 # Retorna uma flecha ao seu pool de arqueiro
+# No método return_arrow_to_pool() em ProjectilePoolSystem.gd
 func return_arrow_to_pool(arrow: Node) -> void:
+	print("Attempting to return arrow to pool")
+	print("Is pooled: ", is_pooled(arrow))
+	print("Has shooter: ", arrow.shooter != null)
+	
 	if not is_pooled(arrow) or not arrow.shooter:
-		# Se não for do pool ou não tiver atirador, ignora
+		print("Cannot return to pool - ignoring")
 		return
 		
 	var archer = arrow.shooter
 	var pool_name = "arrow_" + str(archer.get_instance_id())
 	
+	print("Pool name: ", pool_name)
+	print("Pool exists: ", pool_name in pools)
+	
 	# Verifica se o pool existe
 	if not pool_name in pools:
-		printerr("Pool não existe: ", pool_name)
+		print("ERROR: Pool não existe")
 		return
 	
 	# Devolve ao pool
+	print("Returning projectile to pool")
 	return_projectile(pool_name, arrow)

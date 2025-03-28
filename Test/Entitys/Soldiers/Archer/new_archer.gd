@@ -44,8 +44,11 @@ func _ready():
 	# Inicializa o pool de flechas para este arqueiro depois que o nó estiver pronto
 	call_deferred("_initialize_arrow_pool")
 
-# Método adicionado para inicializar o pool de forma segura
 func _initialize_arrow_pool() -> void:
+	print("Initializing arrow pool for archer")
+	print("ProjectilePool exists: ", ProjectilePool != null)
+	print("ProjectilePool instance exists: ", ProjectilePool.instance != null)
+	
 	# Verifica se o sistema de pool está disponível
 	if ProjectilePool and ProjectilePool.instance:
 		# Carrega a cena da flecha
@@ -53,9 +56,11 @@ func _initialize_arrow_pool() -> void:
 		if arrow_scene:
 			# Cria o nome do pool baseado no ID do arqueiro
 			var pool_name = "arrow_" + str(get_instance_id())
+			print("Pool name: ", pool_name)
 			
 			# Cria o pool com uma quantidade inicial de flechas
 			ProjectilePool.instance.create_pool(pool_name, arrow_scene, get_parent(), 20)
+			print("Pool created successfully")
 
 func _physics_process(delta):
 	super._physics_process(delta)

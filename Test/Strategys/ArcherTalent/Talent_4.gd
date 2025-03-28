@@ -8,7 +8,7 @@ class_name Talent_4
 # Nome amigável para o painel de debug
 func get_strategy_name() -> String:
 	return "PiercingShotStrategy"
-
+	
 func apply_upgrade(projectile: Node) -> void:
 	print("Aplicando upgrade de Piercing Shot - atravessa ", piercing_count, " inimigo(s) adicional(is)")
 	
@@ -19,8 +19,6 @@ func apply_upgrade(projectile: Node) -> void:
 		elif not "piercing" in projectile.tags:
 			projectile.tags.append("piercing")
 	
-	# Com o ConsolidatedTalentSystem, as configurações de piercing 
-	# serão processadas no método compile_effects() do sistema de talentos
 	# Adiciona metadados para referência futura
 	projectile.set_meta("piercing_count", piercing_count)
 	

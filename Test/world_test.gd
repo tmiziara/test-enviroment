@@ -10,7 +10,6 @@ func _ready():
 	# Carrega a cena do painel de debug se não for atribuído no Inspector
 	if not debug_panel_scene:
 		debug_panel_scene = load("res://archer_debug_panel.tscn")
-	
 	# Instancia o painel de debug
 	debug_panel = debug_panel_scene.instantiate()
 	$CanvasLayer.add_child(debug_panel)

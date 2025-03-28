@@ -283,15 +283,16 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 				dmg_calc.set_meta("fire_dot_data", dot_data)
 				print("Fire DoT configured: " + str(dot_damage) + " damage per tick")
 	
-	# Apply piercing
+	# Aplica piercing
 	if effects.piercing_count > 0:
+		print("Applying piercing: ", effects.piercing_count)
 		projectile.piercing = true
 		projectile.set_meta("piercing_count", effects.piercing_count)
 		projectile.add_tag("piercing")
-		print("Piercing enabled: " + str(effects.piercing_count) + " targets")
 		
-		# For physical projectiles, disable collision with enemies
+		# Para projéteis físicos, desabilita colisão com inimigos
 		if projectile is CharacterBody2D:
+			print("Disabling collision with enemies for piercing")
 			projectile.set_collision_mask_value(2, false)  # Layer 2 = enemy layer
 	
 	# Apply Chain Shot
