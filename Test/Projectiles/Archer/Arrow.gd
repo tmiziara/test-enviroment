@@ -2,7 +2,7 @@ extends ProjectileBase
 class_name Arrow
 
 # Signals
-signal on_hit(target, projectile)
+signal on_hit1(target, projectile)
 
 # Arrow Storm properties
 var arrow_storm_enabled: bool = false

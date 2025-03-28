@@ -59,8 +59,8 @@ func get_damage_package() -> Dictionary:
 	elif shooter and shooter.has_method("get_current_target"):
 		current_target = shooter.get_current_target()
 	
-	# Process Focused Shot if enabled
-	if focused_shot_enabled and current_target and is_instance_valid(current_target):
+	# Process Focused Shot if enabled via metadata
+	if has_meta("focused_shot_enabled") and current_target and is_instance_valid(current_target):
 		damage_package = apply_focused_shot_bonus(damage_package, current_target)
 	
 	# Process Marked for Death effect for critical hits
@@ -68,13 +68,18 @@ func get_damage_package() -> Dictionary:
 		damage_package = apply_mark_bonus(damage_package, current_target)
 	
 	return damage_package
-
+	
 # Apply Focused Shot bonus to damage package
 func apply_focused_shot_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
-	if not focused_shot_enabled or not target.has_node("HealthComponent"):
+	# Use metadata to get Focused Shot parameters
+	if not has_meta("focused_shot_enabled") or not target.has_node("HealthComponent"):
 		return damage_package
-		
+	
 	var health_component = target.get_node("HealthComponent")
+	
+	# Get Focused Shot parameters from metadata
+	var focused_shot_threshold = get_meta("focused_shot_threshold", 0.75)
+	var focused_shot_bonus = get_meta("focused_shot_bonus", 0.3)
 	
 	# Check if target meets health threshold
 	var health_percent = float(health_component.current_health) / health_component.max_health
@@ -83,19 +88,21 @@ func apply_focused_shot_bonus(damage_package: Dictionary, target: Node) -> Dicti
 		if "physical_damage" in damage_package:
 			var bonus_physical = int(damage_package["physical_damage"] * focused_shot_bonus)
 			damage_package["physical_damage"] += bonus_physical
-			
+			print("Focused Shot: Physical damage increased by ", bonus_physical)
+		
 		# Apply to elemental damage
 		if "elemental_damage" in damage_package:
 			for element in damage_package["elemental_damage"]:
 				var bonus_elem = int(damage_package["elemental_damage"][element] * focused_shot_bonus)
 				damage_package["elemental_damage"][element] += bonus_elem
-				
+				print("Focused Shot: Elemental damage for ", element, " increased by ", bonus_elem)
+		
 		# Add tag
 		if "tags" not in damage_package:
 			damage_package["tags"] = []
 		if "focused_shot" not in damage_package["tags"]:
 			damage_package["tags"].append("focused_shot")
-			
+	
 	return damage_package
 
 # Apply Mark for Death bonus to critical hits

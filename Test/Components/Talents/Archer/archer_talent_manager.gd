@@ -13,10 +13,10 @@ var attack_counter: int = 0
 # Store compiled effects
 var current_effects: ConsolidatedTalentSystem.CompiledEffects
 
-func _init(archer_ref: Soldier_Base):
-	archer = archer_ref
-	talent_system = ConsolidatedTalentSystem.new(archer)
-
+func _init(archer_ref: Soldier_Base = null):
+	if archer_ref:
+		archer = archer_ref
+		talent_system = ConsolidatedTalentSystem.new(archer)
 # Call this when upgrading the archer with new talents
 func refresh_talents():
 	archer.set_meta("talents_updated", true)

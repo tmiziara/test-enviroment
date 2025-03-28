@@ -84,7 +84,7 @@ func spawn_arrow():
 		return  
 	
 	var arrow_scene = preload("res://Test/Projectiles/Archer/Arrow.tscn")  
-	var arrow = arrow_scene.instantiate() as ProjectileBase  
+	var arrow = arrow_scene.instantiate() as NewProjectileBase  
 	
 	# Arrow configuration
 	arrow.global_position = arrow_spawn.global_position  
