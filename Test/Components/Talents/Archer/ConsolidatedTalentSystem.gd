@@ -348,11 +348,12 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		print("- fire_dot_chance: ", effects.fire_dot_chance)
 		if projectile.has_node("DmgCalculatorComponent"):
 			var dmg_calc = projectile.get_node("DmgCalculatorComponent")
+			var total_damage = dmg_calc.calculate_damage()
 			
 			if not "elemental_damage" in dmg_calc:
 				dmg_calc.elemental_damage = {}
 				
-			var fire_damage = int(projectile.damage * effects.fire_damage_percent)
+			var fire_damage = int(total_damage["physical_damage"] * effects.fire_damage_percent)
 			if "fire" in dmg_calc.elemental_damage:
 				dmg_calc.elemental_damage["fire"] += fire_damage
 			else:
@@ -367,7 +368,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 				print("Calculating DoT damage from base_damage: " + str(base_damage))
 				
 				# Calcular o dano do DoT corretamente
-				var dot_damage = int(base_damage * effects.fire_dot_damage_percent)
+				var dot_damage = int(total_damage["physical_damage"] * effects.fire_dot_damage_percent)
 				
 				# Garantir valor mínimo de 1 para o dano do DoT
 				if dot_damage <= 0:

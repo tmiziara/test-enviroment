@@ -11,9 +11,10 @@ var active_debuffs: Dictionary = {}
 var active_timers: Dictionary = {}
 
 func _ready():
-	var health_component = get_parent().get_node("HealthComponent")
+	var health_component = get_parent().get_node_or_null("HealthComponent")
 	if health_component:
 		health_component.connect("dot_ended", _on_dot_ended)
+
 # Adiciona ou atualiza um debuff
 func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_renew: bool = true) -> void:
 	# Diagnóstico inicial
@@ -82,25 +83,24 @@ func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_re
 
 		# Obtém o HealthComponent
 		var parent = get_parent()
-		var health_component = parent.get_node_or_null("HealthComponent")
-
-		# Verifica se existe HealthComponent
-		if health_component:
+		
+		# Verifica se existe HealthComponent e se o DoTManager está disponível
+		var dot_manager = get_node_or_null("/root/DoTManager")
+		if dot_manager and dot_manager.has_method("has_dot_type") and parent and is_instance_valid(parent):
 			# Mapeia o debuff para tipo de DoT
 			var dot_type = GlobalDebuffSystem.map_debuff_to_dot_type(debuff_type)
 			print("Mapped DoT type: ", dot_type)
 
 			# Verifica se o DoT ainda está ativo
-			if not (dot_type in health_component.active_dots):
+			if dot_type != "" and dot_manager.has_dot_type(parent, dot_type):
+				print("DoT ainda ativo - agendando verificação periódica")
+				schedule_debuff_check(debuff_type)
+			else:
 				print("No active DoT found - removing debuff")
 				remove_debuff(debuff_type)
-			else:
-				# DoT ainda ativo, agenda verificação periódica
-				print("Active DoT found - scheduling periodic check")
-				schedule_debuff_check(debuff_type)
 		else:
-			# Sem HealthComponent, remove normalmente
-			print("No HealthComponent found - removing debuff")
+			# Sem DoTManager, remove normalmente
+			print("No DoTManager found - removing debuff")
 			remove_debuff(debuff_type)
 
 	# Conecta o timeout do timer
@@ -123,27 +123,45 @@ func schedule_debuff_check(debuff_type: int) -> void:
 	add_child(check_timer)
 	
 	check_timer.timeout.connect(func():
-		var health_component = get_parent().get_node_or_null("HealthComponent")
-		if health_component:
+		var parent = get_parent()
+		var dot_manager = get_node_or_null("/root/DoTManager")
+		
+		if dot_manager and parent and is_instance_valid(parent):
 			var dot_type = GlobalDebuffSystem.map_debuff_to_dot_type(debuff_type)
 			
 			# Verifica se o DoT ainda está ativo
-			if not (dot_type in health_component.active_dots):
-				remove_debuff(debuff_type)
-				check_timer.queue_free()
-			else:
+			if dot_type != "" and dot_manager.has_dot_type(parent, dot_type):
 				# Ainda ativo, agenda nova verificação
 				check_timer.start()
+			else:
+				remove_debuff(debuff_type)
+				check_timer.queue_free()
 		else:
 			remove_debuff(debuff_type)
 			check_timer.queue_free()
 	)
 	check_timer.start()
-	
-	
+
+# Versão atualizada - agora verifica DoTs através do DoTManager
 func _on_dot_ended(dot_type: String):
+	# Converte o tipo de DoT para tipo de debuff
 	var debuff_type = GlobalDebuffSystem.map_dot_to_debuff_type(dot_type)
-	remove_debuff(debuff_type)
+	
+	# Verifica se o debuff ainda deve ser removido
+	var should_remove = true
+	
+	# Se o DoTManager estiver disponível, verifica se ainda existem DoTs deste tipo
+	var dot_manager = get_node_or_null("/root/DoTManager")
+	if dot_manager and dot_manager.has_method("has_dot_type"):
+		var parent = get_parent()
+		if parent and is_instance_valid(parent):
+			# Se ainda houver DoTs deste tipo, não remover o debuff
+			if dot_type != "" and dot_manager.has_dot_type(parent, dot_type):
+				should_remove = false
+	
+	# Remove o debuff se necessário
+	if should_remove:
+		remove_debuff(debuff_type)
 	
 func remove_debuff(debuff_type: int) -> void:
 	print("Removendo debuff: ", debuff_type)  # Debug print
@@ -186,7 +204,6 @@ func _process(delta: float) -> void:
 				_process_freezing_debuff(debuff, delta)
 			GlobalDebuffSystem.DebuffType.BLEEDING:
 				_process_bleeding_debuff(debuff, delta)
-
 
 # Processamento de debuff de burning
 func _process_burning_debuff(debuff: GlobalDebuffSystem.DebuffData, delta: float) -> void:

@@ -3,15 +3,13 @@ class_name HealthComponent
 
 @export var max_health: int = 100  # Vida máxima
 
-
 var current_health: int  # Vida atual
-var active_debuffs = {}  # Dicionário para armazenar debuffs ativos
-var active_dots = {}   # Lista para armazenar DoTs ativos
 
 # Sinais
 signal health_changed(new_health, amount, is_crit, damage_type)  # Para números de dano
 signal died  # Evento de morte
-signal dot_ended(dot_type)
+signal dot_ended(dot_type)  # Kept for backward compatibility
+
 # Referência ao componente de defesa
 var defense_component = null
 
@@ -113,41 +111,114 @@ func take_complex_damage(damage_package: Dictionary):
 	if current_health <= 0:
 		died.emit()
 	
-	# Processa efeitos DoT
+# No método take_complex_damage do HealthComponent, ajuste o processamento de DoT:
+
+# Processa efeitos DoT
 	var dot_effects = final_damage.get("dot_effects", [])
 	for dot in dot_effects:
-		apply_dot(
-			dot.get("damage", 0),
-			dot.get("duration", 3.0),
-			dot.get("interval", 1.0),
-			dot.get("type", "generic")
-		)
+		# Verifica se DoTManager está disponível
+		var dot_manager = get_node_or_null("/root/DoTManager")
+		if dot_manager and dot_manager.has_method("apply_dot"):
+			# Usa DoTManager para aplicar o DoT
+			var entity = get_parent()
+			dot_manager.apply_dot(
+				entity,
+				dot.get("damage", 0),
+				dot.get("duration", 3.0),
+				dot.get("interval", 1.0),
+				dot.get("type", "generic"),
+				null  # Sem fonte específica
+			)
+		else:  # Corrigido aqui: substituído { por :
+			# Fallback para o método tradicional
+			apply_dot(
+				dot.get("damage", 0),
+				dot.get("duration", 3.0),
+				dot.get("interval", 1.0),
+				dot.get("type", "generic")
+			)
 
-# Aplica um debuff no personagem
+# Aplica um debuff no personagem (deprecated - use DebuffComponent)
 func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
 	# Se o componente de defesa existir e tiver um método específico para debuffs, use-o
 	if defense_component and defense_component.has_method("apply_debuff"):
 		defense_component.apply_debuff(debuff_name, duration, effect_func)
 		return
 	
-	# Caso contrário, use a implementação atual
-	if debuff_name in active_debuffs:
-		return  # Evita reaplicar um debuff já ativo
-
-	active_debuffs[debuff_name] = get_tree().create_timer(duration)
-	active_debuffs[debuff_name].timeout.connect(func():
-		active_debuffs.erase(debuff_name)  # Remove o debuff após o tempo
+	# For backward compatibility - get parent's debuff component
+	var parent = get_parent()
+	var debuff_component = parent.get_node_or_null("DebuffComponent")
+	if debuff_component:
+		print("HealthComponent: Using DebuffComponent to apply debuff")
+		# Convert string to enum
+		var debuff_type = GlobalDebuffSystem.DebuffType.NONE
+		match debuff_name:
+			"burning": debuff_type = GlobalDebuffSystem.DebuffType.BURNING
+			"freezing": debuff_type = GlobalDebuffSystem.DebuffType.FREEZING
+			"stunned": debuff_type = GlobalDebuffSystem.DebuffType.STUNNED
+			"knocked": debuff_type = GlobalDebuffSystem.DebuffType.KNOCKED
+			"slowed": debuff_type = GlobalDebuffSystem.DebuffType.SLOWED
+			"bleeding": debuff_type = GlobalDebuffSystem.DebuffType.BLEEDING
+			"poisoned": debuff_type = GlobalDebuffSystem.DebuffType.POISONED
+			"marked_for_death": debuff_type = GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH
+		
+		if debuff_type != GlobalDebuffSystem.DebuffType.NONE:
+			debuff_component.add_debuff(debuff_type, duration, {})
+		
+		# Still call the effect function for compatibility
+		effect_func.call()
+		return
+	
+	# Legacy implementation
+	print("WARNING: Using deprecated debuff system in HealthComponent")
+	var debuffs = {}
+	debuffs[debuff_name] = get_tree().create_timer(duration)
+	debuffs[debuff_name].timeout.connect(func():
+		debuffs.erase(debuff_name)  # Remove o debuff após o tempo
 	)
 	effect_func.call()  # Aplica o efeito imediato
 
-# Versão melhorada do método apply_dot
-func apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic"):
+# Simplified DoT application that delegates to DoTManager
+func apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic") -> void:
 	# Log de diagnóstico
-	print("Applying DOT: ", dot_type)
-	print("Original Damage: ", damage)
-	print("Duration: ", duration)
-	print("Interval: ", interval)
+	print("HealthComponent.apply_dot - Delegating to DoTManager")
+	print("  damage:", damage)
+	print("  duration:", duration)
+	print("  interval:", interval)
+	print("  type:", dot_type)
+	
+	# Check if DoTManager is available
+	if not DoTManager.instance:
+		print("ERROR: DoTManager singleton not found, using legacy DoT application")
+		_legacy_apply_dot(damage, duration, interval, dot_type)
+		return
+		
+	# Get parent entity
+	var entity = get_parent()
+	if not entity:
+		print("ERROR: No parent entity found for DoT application")
+		return
+	
+	# Apply DoT through manager
+	var dot_id = DoTManager.instance.apply_dot(
+		entity,
+		damage,
+		duration,
+		interval,
+		dot_type,
+		null   # No source specified
+	)
+	
+	# Log result
+	if dot_id:
+		print("Successfully applied DoT via manager: ", dot_id)
+	else:
+		print("DoT application failed or was prevented")
 
+# Legacy implementation for backward compatibility
+func _legacy_apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic") -> void:
+	print("WARNING: Using legacy DoT system")
+	
 	# Verifica se o componente de defesa pode reduzir o DoT
 	if defense_component and defense_component.has_method("reduce_dot_damage"):
 		damage = defense_component.reduce_dot_damage(damage, dot_type)
@@ -158,26 +229,6 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 		print("Damage reduced to 0 or less - DoT not applied")
 		return
 	
-	# Verifica se já existe um DoT desse tipo
-	if dot_type in active_dots:
-		var existing_dot = active_dots[dot_type]
-		
-		# Atualiza o dano se o novo for maior
-		if damage > existing_dot.damage:
-			existing_dot.damage = damage
-			print("Updated existing DoT damage to: ", damage)
-		
-		# Renova o timer de duração
-		if existing_dot.duration_timer and is_instance_valid(existing_dot.duration_timer):
-			existing_dot.duration_timer.stop()
-			existing_dot.duration_timer.wait_time = duration
-			existing_dot.duration_timer.start()
-			print("Renewed existing DoT duration")
-		
-		# Não cria um novo DoT, apenas retorna
-		return
-	
-	# Se não existe um DoT desse tipo, cria um novo
 	# Cria um timer para aplicar o dano periodicamente
 	var dot_timer = Timer.new()
 	dot_timer.wait_time = interval
@@ -190,95 +241,31 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 	duration_timer.one_shot = true
 	add_child(duration_timer)
 	
-	# Armazena informações do DoT
-	active_dots[dot_type] = {
-		"damage": damage,
-		"interval": interval,
-		"duration": duration,
-		"dot_timer": dot_timer,
-		"duration_timer": duration_timer
-	}
-	
-	# Função para processar dano periódico
-	var damage_func = func():
-		# Aplica dano periódico, já considerando as resistências
-		var dot_damage = damage
-		
-		# Verificação adicional de dano
-		if defense_component and defense_component.has_method("reduce_dot_damage"):
-			dot_damage = defense_component.reduce_dot_damage(dot_damage, dot_type)
-		
-		if dot_damage > 0:
-			# Adiciona tag de dano para identificação
-			var damage_type = dot_type if dot_type != "generic" else ""
-			take_damage(dot_damage, false, damage_type)
-			
-			# Log de diagnóstico
-			print("DoT Tick: ", dot_type, " damage: ", dot_damage)
-			
-			# Efeitos visuais específicos
-			match dot_type:
-				"fire":
-					# Adicionar efeito visual de fogo
-					pass
-				"bleeding":
-					# Adicionar efeito visual de sangramento
-					pass
-	
 	# Conecta os sinais dos timers
-	dot_timer.timeout.connect(damage_func)
+	dot_timer.timeout.connect(func():
+		take_damage(damage, false, dot_type)
+	)
 	
 	duration_timer.timeout.connect(func():
-		# Remove o DoT após o término da duração
-		if is_instance_valid(dot_timer):
-			dot_timer.stop()
-			dot_timer.queue_free()
-		
-		if is_instance_valid(duration_timer):
-			duration_timer.queue_free()
-		
-		# Remove das dots ativas
-		active_dots.erase(dot_type)
+		dot_timer.stop()
+		dot_timer.queue_free()
+		duration_timer.queue_free()
 		
 		# Emite sinal de que o DoT terminou
 		emit_signal("dot_ended", dot_type)
-		
-		# Log de diagnóstico
-		print("DoT ", dot_type, " ended")
 	)
 	
 	# Inicia os timers
 	dot_timer.start()
 	duration_timer.start()
 	
-	# Adiciona o debuff
+	# Apply debuff via DebuffComponent if available
 	var parent = get_parent()
 	var debuff_component = parent.get_node_or_null("DebuffComponent")
-	
-	# Verificação de segurança para o DebuffComponent
 	if debuff_component:
-		# Mapeamento de tipos de DoT para tipos de debuff
 		var debuff_type = GlobalDebuffSystem.map_dot_to_debuff_type(dot_type)
-		
-		# Log de diagnóstico
-		print("Mapped Debuff Type: ", debuff_type)
-		
-		# Verifica se o tipo de debuff é válido
 		if debuff_type != GlobalDebuffSystem.DebuffType.NONE:
-			debuff_component.add_debuff(
-				debuff_type, 
-				duration,
-				{
-					"max_stacks": 1,
-					"source_damage": damage  # Opcional: adiciona informação de origem
-				}
-			)
-			
-			print("Debuff added: ", debuff_type)
-	else:
-		print("WARNING: No DebuffComponent found")
+			debuff_component.add_debuff(debuff_type, duration, {"source_damage": damage})
 
-	# Log final
-	print("DoT Application Complete")
 func get_health_percent() -> float:
 	return float(current_health) / max_health

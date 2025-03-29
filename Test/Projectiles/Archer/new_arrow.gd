@@ -149,32 +149,12 @@ func apply_mark_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
 
 # Override the process_on_hit method for advanced arrow functionality
 func process_on_hit(target: Node) -> void:
-	print("Arrow hit - checking for fire DoT")
-	print("Has fire_dot_data: ", has_meta("fire_dot_data"))
+	print("Arrow process_on_hit called")
+	print("Pooled status: ", is_pooled())
+	print("Shooter: ", shooter)
+	print("Piercing: ", piercing)
 	
-	if has_meta("fire_dot_data"):
-		var dot_data = get_meta("fire_dot_data")
-		print("Fire DoT data: ", dot_data)
-		print("DoT chance: ", dot_data.get("chance", 0))
-	# ADD STEP 2 HERE - Test applying the DoT
-	if has_meta("fire_dot_data"):
-		var dot_data = get_meta("fire_dot_data")
-		var roll = randf()
-		var chance = dot_data.get("chance", 0.3)
-		print("Fire DoT chance roll: ", roll, " vs ", chance)
-		print("Roll successful: ", roll <= chance)
-		
-		# Force trigger DoT for testing
-		if target.has_node("HealthComponent"):
-			var health_component = target.get_node("HealthComponent")
-			print("Applying fire DoT")
-			health_component.apply_dot(
-				5,  # Test with fixed damage value
-				dot_data.get("duration", 3.0),
-				dot_data.get("interval", 0.5),
-				"fire"
-			)
-	# Variável para controlar destruição da flecha
+	# Variável para controlar destruição da flecha - garante que será destruída por padrão
 	var should_destroy = true
 	
 	# Define o alvo atual para cálculos de dano
@@ -196,36 +176,68 @@ func process_on_hit(target: Node) -> void:
 		# Obtém o pacote de dano específico para este alvo
 		var damage_package = get_damage_package()
 		
-		# Processa efeitos DoT de flechas de fogo
+		# Process talent effects from metadata and add to damage package
 		if has_node("DmgCalculatorComponent"):
 			var dmg_calc = get_node("DmgCalculatorComponent")
 			
-			# Aplica DoT de fogo se configurado
+			# Process fire DoT if configured - either through damage package or the DoTManager
 			if dmg_calc.has_meta("fire_dot_data"):
 				var dot_data = dmg_calc.get_meta("fire_dot_data")
 				var dot_chance = dot_data.get("chance", 0.0)
 				
-				# Rola para chance de DoT
+				# Roll for DoT chance
 				if randf() <= dot_chance:
 					if "dot_effects" not in damage_package:
 						damage_package["dot_effects"] = []
 					
-					# Adiciona efeito DoT
+					# FIXED: Calculate damage based on the TOTAL damage
+					# Get the base damage from the damage package or the arrow's damage
+					var total_damage = damage_package.get("physical_damage", damage)
+					
+					# Add elemental damage if any
+					var elemental_damage = damage_package.get("elemental_damage", {})
+					for element_type in elemental_damage:
+						total_damage += elemental_damage[element_type]
+					
+					# Get DoT percentage or use default
+					var dot_percent = dot_data.get("percent_per_tick", 0.05)  # Default to 5% if not specified
+					
+					# Calculate DoT damage from total damage
+					var dot_damage = int(total_damage * dot_percent)
+					
+					# Ensure minimum damage of 1
+					dot_damage = max(1, dot_damage)
+					
+					print("Calculating fire DoT based on total damage: ", total_damage)
+					print("DoT damage per tick: ", dot_damage)
+					
+					# Add DoT effect to package
 					damage_package["dot_effects"].append({
-						"damage": dot_data.get("damage_per_tick", 1),
+						"damage": dot_damage,
 						"duration": dot_data.get("duration", 3.0),
 						"interval": dot_data.get("interval", 0.5),
 						"type": dot_data.get("type", "fire")
 					})
+					
+					print("Added fire DoT to damage package with damage: ", dot_damage)
 		
-		# Aplica dano com o pacote completo
+		# Apply damage with complete package - centralized approach
 		health_component.take_complex_damage(damage_package)
+		
+		# Process special DoT effects like bleeding using DoTManager
+		process_special_dot_effects(damage_package, target)
 	
 	# Emite sinal para sistemas de talentos
 	emit_signal("on_hit", target, self)
 	
-	# Processa efeitos de talentos
+	# Processa efeitos de talentos (exceto DoTs que agora são centralizados no DoTManager)
 	process_talent_effects(target)
+	
+	# Desabilita temporariamente a colisão para evitar múltiplos hits
+	if has_node("Hurtbox"):
+		var hurtbox = get_node("Hurtbox")
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", false)
 	
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
@@ -255,7 +267,7 @@ func process_on_hit(target: Node) -> void:
 			# Prepara para próximo hit
 			if has_node("Hurtbox"):
 				var hurtbox = get_node("Hurtbox")
-				# Usa set_deferred para evitar erros de bloqueio
+				# Reabilitamos apenas se for continuar com piercing
 				hurtbox.set_deferred("monitoring", true)
 				hurtbox.set_deferred("monitorable", true)
 			
@@ -273,21 +285,22 @@ func process_on_hit(target: Node) -> void:
 	if should_destroy:
 		print("Arrow should be destroyed")
 		
-		# Desabilita física e visibilidade
+		# Desabilita física e visibilidade imediatamente
 		set_physics_process(false)
 		visible = false
 		
-		# Desabilita colisões usando set_deferred
+		# Desabilita colisões completamente usando set_deferred
 		if has_node("Hurtbox"):
 			var hurtbox = get_node("Hurtbox")
 			hurtbox.set_deferred("monitoring", false)
 			hurtbox.set_deferred("monitorable", false)
 		
+		# Desabilita completamente colisões de corpo
 		set_deferred("collision_layer", 0)
 		set_deferred("collision_mask", 0)
 		velocity = Vector2.ZERO
 		
-		# Retorna ao pool com pequeno delay
+		# Retorna ao pool com pequeno delay ou destrói
 		if is_pooled():
 			print("Returning to pool")
 			get_tree().create_timer(0.1).timeout.connect(func():
@@ -296,21 +309,117 @@ func process_on_hit(target: Node) -> void:
 		else:
 			print("Queuing free")
 			queue_free()
-
+			
+# Versão corrigida para o método process_special_dot_effects
+func process_special_dot_effects(damage_package: Dictionary, target: Node) -> void:
+	# Check if DoTManager singleton is available
+	var dot_manager = get_node_or_null("/root/DoTManager")
+	if not dot_manager:
+		print("DoTManager not available, DoT effects will be processed by health component")
+		return
+	
+	# Verify the dot_manager has the apply_dot method
+	if not dot_manager.has_method("apply_dot"):
+		print("DoTManager singleton not properly initialized")
+		return
+	
+	# Calculate TOTAL damage before armor reduction
+	var total_damage = damage_package.get("physical_damage", damage)
+	var elemental_damage = damage_package.get("elemental_damage", {})
+	
+	# Add all elemental damage components
+	for element_type in elemental_damage:
+		total_damage += elemental_damage[element_type]
+	
+	print("Total damage before armor reduction for DoT calculation: ", total_damage)
+	
+	# Check for bleeding effect on critical hit
+	if is_crit and has_meta("has_bleeding_effect") and damage_package.get("is_critical", false):
+		print("Critical hit + bleeding effect detected - applying bleeding via DoTManager")
+		
+		# Get bleeding metadata from arrow
+		var damage_percent = get_meta("bleeding_damage_percent", 0.3)
+		var duration = get_meta("bleeding_duration", 4.0)
+		var interval = get_meta("bleeding_interval", 0.5)
+		
+		# FIXED: Calculate bleeding damage based on TOTAL damage before armor reduction
+		var bleed_damage_per_tick = int(total_damage * damage_percent)
+		
+		# Ensure minimum damage of 1
+		bleed_damage_per_tick = max(1, bleed_damage_per_tick)
+		
+		print("Applying bleeding DoT via DoTManager:")
+		print("- Damage per tick:", bleed_damage_per_tick)
+		print("- Duration:", duration)
+		print("- Interval:", interval)
+		
+		# Apply bleeding via DoTManager
+		var dot_id = dot_manager.apply_dot(
+			target,
+			bleed_damage_per_tick,
+			duration,
+			interval,
+			"bleeding",
+			self  # Source is this arrow
+		)
+		
+		if dot_id:
+			print("Successfully applied bleeding via DoTManager:", dot_id)
+		else:
+			print("Failed to apply bleeding via DoTManager")
+	
+	# Process fire DoT directly via DoTManager if not already added to damage package
+	if has_node("DmgCalculatorComponent"):
+		var dmg_calc = get_node("DmgCalculatorComponent")
+		
+		if dmg_calc.has_meta("fire_dot_data") and not "dot_effects" in damage_package:
+			var dot_data = dmg_calc.get_meta("fire_dot_data")
+			var dot_chance = dot_data.get("chance", 0.0)
+			
+			# Roll for chance
+			if randf() <= dot_chance:
+				# FIXED: Calculate fire DoT damage based on TOTAL damage
+				var base_dot_damage = dot_data.get("damage_per_tick", 1)
+				var dot_percent = dot_data.get("percent", 0.05)  # Default to 5% if not specified
+				
+				# Calculate based on percentage of total damage if percent is specified
+				var dot_damage = base_dot_damage
+				if dot_percent > 0:
+					dot_damage = int(total_damage * dot_percent)
+				
+				# Ensure minimum damage of 1
+				dot_damage = max(1, dot_damage)
+				
+				var dot_duration = dot_data.get("duration", 3.0)
+				var dot_interval = dot_data.get("interval", 0.5)
+				
+				print("Applying fire DoT directly via DoTManager:")
+				print("- Total damage reference:", total_damage)
+				print("- Damage per tick:", dot_damage)
+				print("- Duration:", dot_duration)
+				print("- Interval:", dot_interval)
+				
+				# Apply fire DoT via DoTManager
+				var dot_id = dot_manager.apply_dot(
+					target,
+					dot_damage,
+					dot_duration,
+					dot_interval,
+					"fire",
+					self  # Source is this arrow
+				)
+				
+				if dot_id:
+					print("Successfully applied fire DoT via DoTManager:", dot_id)
+				else:
+					print("Failed to apply fire DoT via DoTManager")
+	
+	# Any other specialized DoT effects can be added here
+	
+	# Any other specialized DoT effects can be added here
 # Process effects from talents that trigger on hit
 func process_talent_effects(target: Node) -> void:
 	print("Processing Talent Effects")
-	
-	# Process bleeding effect on critical hit
-	if is_crit and has_meta("has_bleeding_effect") and target.has_node("HealthComponent"):
-		print("Critical hit + bleeding effect detected - applying bleeding")
-		apply_bleeding_effect(target)
-	else:
-		print("Conditions for bleeding not met")
-		print("- Is Critical: ", is_crit)
-		print("- Has Bleeding Effect Meta: ", has_meta("has_bleeding_effect"))
-		print("- Target has HealthComponent: ", target.has_node("HealthComponent"))
-		
 	# Process splinter effect
 	if has_meta("has_splinter_effect"):
 		print("Splinter effect detected - processing splinters")
@@ -326,43 +435,6 @@ func process_talent_effects(target: Node) -> void:
 		print("- Has Bleeding Effect Meta: ", has_meta("has_bleeding_effect"))
 		print("- Target has HealthComponent: ", target.has_node("HealthComponent"))
 		
-# Método para aplicar efeito de sangramento
-func apply_bleeding_effect(target: Node) -> void:
-	print("Aplicando efeito de sangramento")
-	print("Projétil é crítico: ", self.is_crit)
-	
-	# Verifica se o alvo tem HealthComponent
-	if not target.has_node("HealthComponent"):
-		print("Alvo não tem HealthComponent")
-		return
-	
-	var health_component = target.get_node("HealthComponent")
-	
-	# Obtém os metadados diretamente do projétil
-	var damage_percent = self.get_meta("bleeding_damage_percent", 0.3)
-	var duration = self.get_meta("bleeding_duration", 4.0)
-	var interval = self.get_meta("bleeding_interval", 0.5)
-	
-	# Calcula dano de sangramento
-	var base_damage = self.damage
-	if self.has_node("DmgCalculatorComponent"):
-		var dmg_calc = self.get_node("DmgCalculatorComponent")
-		if "base_damage" in dmg_calc:
-			base_damage = dmg_calc.base_damage
-	
-	var bleed_damage_per_tick = int(base_damage * damage_percent)
-	
-	print("Dano de sangramento por tick: ", bleed_damage_per_tick)
-	print("Duração do sangramento: ", duration)
-	print("Intervalo do sangramento: ", interval)
-	
-	# Aplica DoT
-	health_component.apply_dot(
-		bleed_damage_per_tick,
-		duration,
-		interval,
-		"bleeding"
-	)
 
 # Process splinter arrow effect
 func process_splinter_effect(target: Node) -> void:
