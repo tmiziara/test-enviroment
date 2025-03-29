@@ -43,7 +43,9 @@ func _ready():
 		return
 		
 	super._ready()
-	
+	if shooter and "crit_chance" in shooter:
+		crit_chance = shooter.crit_chance
+		print("Setting crit_chance from shooter: ", crit_chance)
 	# Initialize hit_targets array if not already done
 	if not hit_targets:
 		hit_targets = []
@@ -282,9 +284,12 @@ func process_talent_effects(target: Node) -> void:
 	# Process bleeding effect on critical hit
 	if is_crit and has_meta("has_bleeding_effect") and target.has_node("HealthComponent"):
 		print("Critical hit + bleeding effect detected - applying bleeding")
-		apply_bleeding_effect(target, self)
+		apply_bleeding_effect(target)
 	else:
 		print("Conditions for bleeding not met")
+		print("- Is Critical: ", is_crit)
+		print("- Has Bleeding Effect Meta: ", has_meta("has_bleeding_effect"))
+		print("- Target has HealthComponent: ", target.has_node("HealthComponent"))
 		
 	# Process splinter effect
 	if has_meta("has_splinter_effect"):
@@ -302,10 +307,9 @@ func process_talent_effects(target: Node) -> void:
 		print("- Target has HealthComponent: ", target.has_node("HealthComponent"))
 		
 # Método para aplicar efeito de sangramento
-func apply_bleeding_effect(target: Node, projectile: Node) -> void:
-	# Log de diagnóstico
+func apply_bleeding_effect(target: Node) -> void:
 	print("Aplicando efeito de sangramento")
-	print("Projétil é crítico: ", projectile.is_crit)
+	print("Projétil é crítico: ", self.is_crit)
 	
 	# Verifica se o alvo tem HealthComponent
 	if not target.has_node("HealthComponent"):
@@ -315,14 +319,14 @@ func apply_bleeding_effect(target: Node, projectile: Node) -> void:
 	var health_component = target.get_node("HealthComponent")
 	
 	# Obtém os metadados diretamente do projétil
-	var damage_percent = projectile.get_meta("bleeding_damage_percent", 0.3)
-	var duration = projectile.get_meta("bleeding_duration", 4.0)
-	var interval = projectile.get_meta("bleeding_interval", 0.5)
+	var damage_percent = self.get_meta("bleeding_damage_percent", 0.3)
+	var duration = self.get_meta("bleeding_duration", 4.0)
+	var interval = self.get_meta("bleeding_interval", 0.5)
 	
 	# Calcula dano de sangramento
-	var base_damage = projectile.damage
-	if projectile.has_node("DmgCalculatorComponent"):
-		var dmg_calc = projectile.get_node("DmgCalculatorComponent")
+	var base_damage = self.damage
+	if self.has_node("DmgCalculatorComponent"):
+		var dmg_calc = self.get_node("DmgCalculatorComponent")
 		if "base_damage" in dmg_calc:
 			base_damage = dmg_calc.base_damage
 	
@@ -339,6 +343,7 @@ func apply_bleeding_effect(target: Node, projectile: Node) -> void:
 		interval,
 		"bleeding"
 	)
+
 # Process splinter arrow effect
 func process_splinter_effect(target: Node) -> void:
 	# Implementation would go here - this would be called by process_talent_effects
@@ -462,7 +467,7 @@ func find_chain_target(original_target) -> void:
 			queue_free()
 
 func reset_for_reuse() -> void:
-	# IMPORTANT: Don't reset critical hit yet
+	# Save bleeding metadata before clearing
 	var bleeding_meta = {
 		"has_bleeding_effect": get_meta("has_bleeding_effect") if has_meta("has_bleeding_effect") else null,
 		"bleeding_damage_percent": get_meta("bleeding_damage_percent") if has_meta("bleeding_damage_percent") else null,
@@ -509,15 +514,18 @@ func reset_for_reuse() -> void:
 	# Clear all metadata EXCEPT certain keys
 	var meta_list = get_meta_list()
 	for prop in meta_list:
-		# Preserva certas metadados importantes
+		# Preserve certain important metadata
 		if prop != "pooled" and prop != "initialized":
 			remove_meta(prop)
-	# Restaura metadados de sangramento se existirem
+			
+	# After clearing metadata, restore the bleeding metadata
 	for key in bleeding_meta:
 		if bleeding_meta[key] != null:
 			set_meta(key, bleeding_meta[key])
+			
 	# We'll recalculate critical hit AFTER shooter is set
 	tags.clear()  # Now clear tags after preserving important metadata
+	
 # Helper method to check if arrow is from pool
 func is_pooled() -> bool:
 	return has_meta("pooled") and get_meta("pooled") == true

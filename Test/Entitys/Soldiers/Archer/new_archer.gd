@@ -16,6 +16,13 @@ var talent_points = 10
 # Talent management
 var talent_manager: ArcherTalentManager
 
+func _init():
+	# Base stats
+	attack_range = 300.0
+	move_speed = 25.0
+	crit_chance = 0.1  # Set to 10%
+	crit_multi = 2.0
+	
 func _ready():
 	# Initialize talent system
 	talent_manager = ArcherTalentManager.new(self)
@@ -24,11 +31,6 @@ func _ready():
 	# Connect target change signal to talent manager
 	connect("target_change", talent_manager._on_target_change)
 
-	# Initialize stats
-	attack_range = 300.0
-	move_speed = 25.0
-	crit_chance = 0.1
-	crit_multi = 2.0
 	icon_texture = preload("res://Test/Assets/Icons/SoldierIcons/Bows000.png")
 	
 	# Call parent _ready

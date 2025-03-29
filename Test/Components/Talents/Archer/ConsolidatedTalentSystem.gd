@@ -105,166 +105,190 @@ func _generate_cache_key() -> String:
 			key += strategy.get_path() + ";"
 	return key
 
-# Aplica os efeitos de uma estratégia específica ao objeto compilado
+# Replace your _apply_strategy_effects method with this more robust approach
+
 func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: CompiledEffects) -> void:
 	if not strategy:
 		return
 		
-	# Identify strategy type based on class or script path
+	# Get file name directly for precise matching
 	var strategy_path = strategy.get_script().get_path()
+	var file_name = strategy_path.get_file()
 	var strategy_name = strategy.get_class()
 	
 	# Try to get a friendlier name if available
 	if strategy.has_method("get_strategy_name"):
 		strategy_name = strategy.call("get_strategy_name")
 	
-	# Process different strategy types
-	if "Talent_1" in strategy_path:  # Precise Aim
-		var damage_bonus = strategy.get("damage_increase_percent")
-		if damage_bonus != null:
-			effects.damage_multiplier += damage_bonus
+	print("Processing strategy: ", strategy_name)
+	print("Strategy file: ", file_name)
+	
+	# Extract the talent number using regex
+	var regex = RegEx.new()
+	regex.compile("Talent_(\\d+)\\.gd")
+	var result = regex.search(file_name)
+	
+	if result:
+		var talent_id = int(result.get_string(1))
+		print("Detected Talent ID: ", talent_id)
 		
-	elif "Talent_2" in strategy_path:  # Enhanced Range
-		var range_bonus = strategy.get("range_increase_percentage")
-		if range_bonus != null:
-			effects.range_multiplier += range_bonus / 100.0
-		
-	elif "Talent_3" in strategy_path:  # Sharp Arrows
-		var armor_pen = strategy.get("armor_penetration")
-		if armor_pen != null:
-			effects.armor_penetration += armor_pen
-		
-	elif "Talent_4" in strategy_path:  # Piercing Shot
-		var pierce_count = strategy.get("piercing_count")
-		if pierce_count != null:
-			effects.piercing_count += pierce_count
-		
-	elif "Talent_5" in strategy_path:  # Focused Shot
-		var bonus_percent = strategy.get("damage_bonus_percent")
-		var threshold = strategy.get("health_threshold")
-		
-		if bonus_percent != null and threshold != null:
-			effects.focused_shot_enabled = true
-			effects.focused_shot_bonus = bonus_percent
-			effects.focused_shot_threshold = threshold
-		
-	elif "Talent_6" in strategy_path:  # Flaming Arrows
-		var fire_damage = strategy.get("fire_damage_percent")
-		var dot_damage = strategy.get("dot_percent_per_tick")
-		var dot_duration = strategy.get("dot_duration")
-		var dot_interval = strategy.get("dot_interval")
-		
-		if fire_damage != null:
-			effects.fire_damage_percent += fire_damage
-		
-		if dot_damage != null:
-			effects.fire_dot_damage_percent += dot_damage
-		
-		if dot_duration != null:
-			effects.fire_dot_duration = max(effects.fire_dot_duration, dot_duration)
-		
-		if dot_interval != null:
-			effects.fire_dot_interval = min(effects.fire_dot_interval if effects.fire_dot_interval > 0 else 999, dot_interval)
-		
-		effects.fire_dot_chance = max(effects.fire_dot_chance, 0.3)  # Default chance
-		
-	elif "Talent_11" in strategy_path:  # Double Shot
-		var angle_spread = strategy.get("angle_spread")
-		if angle_spread != null:
-			effects.double_shot_enabled = true
-			effects.double_shot_angle = angle_spread
-		
-	elif "Talent_12" in strategy_path:  # Chain Shot
-		var chain_chance = strategy.get("chain_chance")
-		var chain_range = strategy.get("chain_range")
-		var chain_decay = strategy.get("chain_damage_decay")
-		var max_chains = strategy.get("max_chains")
-		
-		if chain_chance != null and chain_range != null and chain_decay != null and max_chains != null:
-			effects.can_chain = true
-			effects.chain_chance = chain_chance
-			effects.chain_range = chain_range
-			effects.chain_damage_decay = chain_decay
-			effects.max_chains = max_chains
-		
-	elif "Talent_13" in strategy_path:  # Arrow Rain
-		var arrow_count = strategy.get("arrow_count")
-		var damage_per_arrow = strategy.get("damage_per_arrow")
-		var radius = strategy.get("radius")
-		var attacks_threshold = strategy.get("attacks_threshold")
-		
-		if arrow_count != null and damage_per_arrow != null and radius != null and attacks_threshold != null:
-			effects.arrow_rain_enabled = true
-			effects.arrow_rain_count = arrow_count
-			effects.arrow_rain_damage_percent = damage_per_arrow / 10.0
-			effects.arrow_rain_radius = radius
-			effects.arrow_rain_interval = attacks_threshold
-		
-	elif "Talent_14" in strategy_path:  # Splinter Arrows
-		var splinter_count = strategy.get("splinter_count")
-		var splinter_damage = strategy.get("splinter_damage_percent")
-		var splinter_range = strategy.get("splinter_range")
-		
-		if splinter_count != null and splinter_damage != null and splinter_range != null:
-			effects.can_splinter = true
-			effects.splinter_count = splinter_count
-			effects.splinter_damage_percent = splinter_damage
-			effects.splinter_range = splinter_range
-		
-	elif "Talent_15" in strategy_path:  # Arrow Explosion
-		var damage_percent = strategy.get("explosion_damage_percent")
-		var radius = strategy.get("explosion_radius")
-		
-		if damage_percent != null and radius != null:
-			effects.explosion_enabled = true
-			effects.explosion_damage_percent = damage_percent
-			effects.explosion_radius = radius
-		
-	elif "Talent_16" in strategy_path:  # Serrated Arrows (Bleeding)
-		print("Processando Talent_16 (Serrated Arrows)")
-		
-		var bleed_damage = strategy.get("bleeding_damage_percent")
-		var bleed_duration = strategy.get("bleeding_duration")
-		var dot_interval = strategy.get("dot_interval")
-		
-		print("Valores recuperados:")
-		print("- Bleed Damage: ", bleed_damage)
-		print("- Bleed Duration: ", bleed_duration)
-		print("- DoT Interval: ", dot_interval)
-		
-		if bleed_damage != null and bleed_duration != null and dot_interval != null:
-			print("Configurando Efeito de Sangramento")
-			print("Bleeding Damage Percent: ", strategy.bleeding_damage_percent)
-			print("Bleeding Duration: ", strategy.bleeding_duration)
-			
-			effects.bleed_on_crit = true
-			effects.bleed_damage_percent = bleed_damage
-			effects.bleed_duration = bleed_duration
-			effects.bleed_interval = dot_interval
-			
-			print("Efeito de Sangramento Configurado com Sucesso")
-		else:
-			print("AVISO: Não foi possível configurar o efeito de sangramento")
-		
-	elif "Talent_17" in strategy_path:  # Marked for Death
-		var mark_duration = strategy.get("mark_duration")
-		var crit_bonus = strategy.get("crit_damage_bonus")
-		
-		if mark_duration != null and crit_bonus != null:
-			effects.mark_enabled = true
-			effects.mark_duration = mark_duration
-			effects.mark_crit_bonus = crit_bonus
-		
-	elif "Talent_18" in strategy_path:  # Bloodseeker
-		var damage_increase = strategy.get("damage_increase_per_stack")
-		var max_stacks = strategy.get("max_stacks")
-		
-		if damage_increase != null and max_stacks != null:
-			effects.bloodseeker_enabled = true
-			effects.bloodseeker_bonus_per_stack = damage_increase
-			effects.bloodseeker_max_stacks = max_stacks
+		# Process talents by their numeric ID
+		match talent_id:
+			1:  # Precise Aim
+				var damage_bonus = strategy.get("damage_increase_percent")
+				if damage_bonus != null:
+					effects.damage_multiplier += damage_bonus
+					
+			2:  # Enhanced Range
+				var range_bonus = strategy.get("range_increase_percentage")
+				if range_bonus != null:
+					effects.range_multiplier += range_bonus / 100.0
+					
+			3:  # Sharp Arrows
+				var armor_pen = strategy.get("armor_penetration")
+				if armor_pen != null:
+					effects.armor_penetration += armor_pen
+					
+			4:  # Piercing Shot
+				var pierce_count = strategy.get("piercing_count")
+				if pierce_count != null:
+					effects.piercing_count += pierce_count
+					
+			5:  # Focused Shot
+				var bonus_percent = strategy.get("damage_bonus_percent")
+				var threshold = strategy.get("health_threshold")
+				
+				if bonus_percent != null and threshold != null:
+					effects.focused_shot_enabled = true
+					effects.focused_shot_bonus = bonus_percent
+					effects.focused_shot_threshold = threshold
+					
+			6:  # Flaming Arrows
+				var fire_damage = strategy.get("fire_damage_percent")
+				var dot_damage = strategy.get("dot_percent_per_tick")
+				var dot_duration = strategy.get("dot_duration")
+				var dot_interval = strategy.get("dot_interval")
+				
+				if fire_damage != null:
+					effects.fire_damage_percent += fire_damage
+				
+				if dot_damage != null:
+					effects.fire_dot_damage_percent += dot_damage
+				
+				if dot_duration != null:
+					effects.fire_dot_duration = max(effects.fire_dot_duration, dot_duration)
+				
+				if dot_interval != null:
+					effects.fire_dot_interval = min(effects.fire_dot_interval if effects.fire_dot_interval > 0 else 999, dot_interval)
+				
+				effects.fire_dot_chance = max(effects.fire_dot_chance, 0.3)  # Default chance
+				
+			11:  # Double Shot
+				var angle_spread = strategy.get("angle_spread")
+				if angle_spread != null:
+					effects.double_shot_enabled = true
+					effects.double_shot_angle = angle_spread
+					
+			12:  # Chain Shot
+				var chain_chance = strategy.get("chain_chance")
+				var chain_range = strategy.get("chain_range")
+				var chain_decay = strategy.get("chain_damage_decay")
+				var max_chains = strategy.get("max_chains")
+				
+				if chain_chance != null and chain_range != null and chain_decay != null and max_chains != null:
+					effects.can_chain = true
+					effects.chain_chance = chain_chance
+					effects.chain_range = chain_range
+					effects.chain_damage_decay = chain_decay
+					effects.max_chains = max_chains
+					
+			13:  # Arrow Rain
+				var arrow_count = strategy.get("arrow_count")
+				var damage_per_arrow = strategy.get("damage_per_arrow")
+				var radius = strategy.get("radius")
+				var attacks_threshold = strategy.get("attacks_threshold")
+				
+				if arrow_count != null and damage_per_arrow != null and radius != null and attacks_threshold != null:
+					effects.arrow_rain_enabled = true
+					effects.arrow_rain_count = arrow_count
+					effects.arrow_rain_damage_percent = damage_per_arrow / 10.0
+					effects.arrow_rain_radius = radius
+					effects.arrow_rain_interval = attacks_threshold
+					
+			14:  # Splinter Arrows
+				var splinter_count = strategy.get("splinter_count")
+				var splinter_damage = strategy.get("splinter_damage_percent")
+				var splinter_range = strategy.get("splinter_range")
+				
+				if splinter_count != null and splinter_damage != null and splinter_range != null:
+					effects.can_splinter = true
+					effects.splinter_count = splinter_count
+					effects.splinter_damage_percent = splinter_damage
+					effects.splinter_range = splinter_range
+					
+			15:  # Arrow Explosion
+				var damage_percent = strategy.get("explosion_damage_percent")
+				var radius = strategy.get("explosion_radius")
+				
+				if damage_percent != null and radius != null:
+					effects.explosion_enabled = true
+					effects.explosion_damage_percent = damage_percent
+					effects.explosion_radius = radius
+					
+			16:  # Serrated Arrows (Bleeding)
+				print("Processing Talent_16 (Serrated Arrows - Bleeding)")
+				
+				# Print all available properties to help diagnose the issue
+				print("Available properties in strategy:")
+				for property in strategy.get_property_list():
+					print("- ", property.name, ": ", strategy.get(property.name) if strategy.get(property.name) != null else "null")
+				
+				# Use the correct property name from your Talent_16 class
+				# Based on your Talent_16.gd file, it should be using dot_interval
+				var bleed_damage = strategy.bleeding_damage_percent
+				var bleed_duration = strategy.bleeding_duration
+				var bleed_interval = strategy.dot_interval  # This is the correct property name
+				
+				print("Bleeding values retrieved from resource:")
+				print("- Damage percent: ", bleed_damage)
+				print("- Duration: ", bleed_duration)
+				print("- Interval: ", bleed_interval)
+				
+				# Configure bleeding effect with the retrieved values
+				effects.bleed_on_crit = true
+				effects.bleed_damage_percent = bleed_damage
+				effects.bleed_duration = bleed_duration
+				effects.bleed_interval = bleed_interval
+				
+				print("Bleeding effect configured successfully")
+					
+			17:  # Marked for Death
+				var mark_duration = strategy.get("mark_duration")
+				var crit_bonus = strategy.get("crit_damage_bonus")
+				
+				if mark_duration != null and crit_bonus != null:
+					effects.mark_enabled = true
+					effects.mark_duration = mark_duration
+					effects.mark_crit_bonus = crit_bonus
+					
+			18:  # Bloodseeker
+				var damage_increase = strategy.get("damage_increase_per_stack")
+				var max_stacks = strategy.get("max_stacks")
+				
+				if damage_increase != null and max_stacks != null:
+					effects.bloodseeker_enabled = true
+					effects.bloodseeker_bonus_per_stack = damage_increase
+					effects.bloodseeker_max_stacks = max_stacks
+					
+			# Add additional talent cases as needed for talents 19-30
+			_:
+				print("Unhandled talent ID: ", talent_id)
+				# You can add a default handling for talents not yet specifically implemented
+				
+	else:
+		# Handle the case where the talent ID couldn't be extracted
+		print("WARNING: Could not extract talent ID from: ", file_name)
 
-	# Could add more strategies as needed
 
 func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	print("ConsolidatedTalentSystem: Applying compiled effects to projectile")
@@ -365,31 +389,25 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		
 		print("Focused Shot enabled: " + str(effects.focused_shot_bonus * 100) + "% damage boost above " + str(effects.focused_shot_threshold * 100) + "% health")
 	
-	# Aplicar Bleeding em críticos
+	print("CRITICAL DEBUG: effects.bleed_on_crit=", effects.bleed_on_crit)
 	if effects.bleed_on_crit:
-		print("CONFIGURANDO Metadados de Sangramento")
-		
-		# Força a adição de metadados mesmo se o projétil for de pool
-		var projectile_base_path = projectile.get_script().get_path().get_base_dir()
-		
-		# Adiciona metadados críticos para sangramento
+		print("CRITICAL DEBUG: Applying bleeding metadata to projectile")
+		projectile.set_meta("has_bleeding_effect", true)
+		# ... other metadata
+		print("CRITICAL DEBUG: After setting, has_bleeding_effect=", projectile.has_meta("has_bleeding_effect"))
+		# Force the metadata directly on the projectile
 		projectile.set_meta("has_bleeding_effect", true)
 		projectile.set_meta("bleeding_damage_percent", effects.bleed_damage_percent)
 		projectile.set_meta("bleeding_duration", effects.bleed_duration)
 		projectile.set_meta("bleeding_interval", effects.bleed_interval)
 		
-		# Adiciona tag de sangramento
-		if projectile.has_method("add_tag"):
-			projectile.add_tag("bleeding")
-		elif "tags" in projectile:
-			if "bleeding" not in projectile.tags:
-				projectile.tags.append("bleeding")
+		# Add tag
+		projectile.add_tag("bleeding")
 		
-		print("Bleeding configurado:")
-		print("- Dano: ", effects.bleed_damage_percent * 100, "%")
-		print("- Duração: ", effects.bleed_duration, "s")
-		print("- Intervalo: ", effects.bleed_interval, "s")
-	
+		print("Metadados de sangramento configurados:")
+		print("- has_bleeding_effect: ", projectile.has_meta("has_bleeding_effect"))
+		print("- bleeding_damage_percent: ", projectile.get_meta("bleeding_damage_percent"))
+		
 	# Apply Marked for Death
 	if effects.mark_enabled:
 		projectile.set_meta("has_mark_effect", true)
