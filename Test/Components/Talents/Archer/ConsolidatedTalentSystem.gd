@@ -362,7 +362,20 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 				
 			# Apply fire DoT
 			if effects.fire_dot_damage_percent > 0:
-				var dot_damage = int(projectile.damage * effects.fire_dot_damage_percent)
+				# Calcular dano usando o dano base do DmgCalculator, não o dano do projétil
+				var base_damage = dmg_calc.base_damage
+				print("Calculating DoT damage from base_damage: " + str(base_damage))
+				
+				# Calcular o dano do DoT corretamente
+				var dot_damage = int(base_damage * effects.fire_dot_damage_percent)
+				
+				# Garantir valor mínimo de 1 para o dano do DoT
+				if dot_damage <= 0:
+					dot_damage = 1
+				
+				print("Calculated DoT damage: " + str(dot_damage) + " (" + 
+					  str(effects.fire_dot_damage_percent * 100) + "% of " + str(base_damage) + ")")
+				
 				var dot_data = {
 					"damage_per_tick": dot_damage,
 					"duration": effects.fire_dot_duration,
@@ -371,7 +384,6 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 					"chance": effects.fire_dot_chance
 				}
 				dmg_calc.set_meta("fire_dot_data", dot_data)
-				print("Fire DoT metadata set on projectile")
 				print("Fire DoT configured: " + str(dot_damage) + " damage per tick")
 	
 	# Aplica piercing
