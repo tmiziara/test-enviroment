@@ -54,30 +54,59 @@ func _ready():
 	if is_pooled():
 		set_meta("initialized", true)
 
-# Override get_damage_package to handle special arrow effects
+# Em NewArrow.gd
+
+# Substituir o método get_damage_package para incluir a lógica do Mark of Death
 func get_damage_package() -> Dictionary:
-	# Log the current damage values for debugging
-	print("NewArrow.get_damage_package - Current damage: " + str(damage))
-	# Call parent's method to create base damage package
+	# Obter o pacote base do pai
 	var damage_package = super.get_damage_package()
-	# Log the package for debugging
-	print("Base damage package: " + str(damage_package))
-	# Find current target for effects
+	
+	# Definir o alvo atual para efeitos
 	var current_target = null
 	if has_meta("current_target"):
 		current_target = get_meta("current_target")
 	elif shooter and shooter.has_method("get_current_target"):
 		current_target = shooter.get_current_target()
 	
-	# Process Focused Shot if enabled via metadata
+	# Processar Focused Shot se habilitado
 	if has_meta("focused_shot_enabled") and current_target and is_instance_valid(current_target):
 		damage_package = apply_focused_shot_bonus(damage_package, current_target)
 	
-	# Process Marked for Death effect for critical hits
+	# Processar Mark for Death para acertos críticos
 	if current_target and is_instance_valid(current_target) and damage_package.get("is_critical", false):
 		damage_package = apply_mark_bonus(damage_package, current_target)
+	
+	return damage_package
+
+# Manter a lógica específica do Mark of Death aqui
+func apply_mark_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
+	# Verificar se o alvo tem a marca
+	var has_mark = false
+	var mark_bonus = 1.0
+	
+	if target.has_node("DebuffComponent"):
+		var debuff_component = target.get_node("DebuffComponent")
+		has_mark = debuff_component.has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
 		
-	print("Final damage package: " + str(damage_package))
+		if has_mark:
+			# Obter bônus da marca do alvo
+			mark_bonus = target.get_meta("mark_crit_bonus", 1.0)
+			
+			# Aplicar bônus ao dano físico
+			var base_crit_damage = damage_package["physical_damage"]
+			var bonus_damage = int(base_crit_damage * mark_bonus)
+			damage_package["physical_damage"] += bonus_damage
+			
+			# Aplicar ao dano elemental
+			if "elemental_damage" in damage_package:
+				for element in damage_package["elemental_damage"]:
+					var base_elem_crit = damage_package["elemental_damage"][element]
+					var bonus_elem = int(base_elem_crit * mark_bonus)
+					damage_package["elemental_damage"][element] += bonus_elem
+			
+			# Definir tipo de dano
+			damage_package["damage_type"] = "marked_for_death"
+	
 	return damage_package
 	
 # Apply Focused Shot bonus to damage package
@@ -116,37 +145,6 @@ func apply_focused_shot_bonus(damage_package: Dictionary, target: Node) -> Dicti
 	
 	return damage_package
 
-# Apply Mark for Death bonus to critical hits
-func apply_mark_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
-	# Check if target has mark debuff
-	var has_mark = false
-	var mark_bonus = 1.0
-	
-	if target.has_node("DebuffComponent"):
-		var debuff_component = target.get_node("DebuffComponent")
-		has_mark = debuff_component.has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
-		
-		if has_mark:
-			# Get mark bonus from target
-			mark_bonus = target.get_meta("mark_crit_bonus", 1.0)
-			
-			# Apply bonus to physical damage
-			var base_crit_damage = damage_package["physical_damage"]
-			var bonus_damage = int(base_crit_damage * mark_bonus)
-			damage_package["physical_damage"] += bonus_damage
-			
-			# Apply to elemental damage
-			if "elemental_damage" in damage_package:
-				for element in damage_package["elemental_damage"]:
-					var base_elem_crit = damage_package["elemental_damage"][element]
-					var bonus_elem = int(base_elem_crit * mark_bonus)
-					damage_package["elemental_damage"][element] += bonus_elem
-			
-			# Set damage type
-			damage_package["damage_type"] = "marked_for_death"
-	
-	return damage_package
-
 # Override the process_on_hit method for advanced arrow functionality
 func process_on_hit(target: Node) -> void:
 	print("Arrow process_on_hit called")
@@ -165,9 +163,8 @@ func process_on_hit(target: Node) -> void:
 		print("Already processing ricochet - ignoring hit")
 		return
 	
-	# Adiciona o alvo à lista de alvos atingidos
-	if not target in hit_targets:
-		hit_targets.append(target)
+	# We no longer need to add the target to hit_targets here because
+	# that's already done in the Hurtbox._on_body_entered method
 	
 	# Calcula e aplica dano
 	if target.has_node("HealthComponent"):
@@ -190,7 +187,7 @@ func process_on_hit(target: Node) -> void:
 					if "dot_effects" not in damage_package:
 						damage_package["dot_effects"] = []
 					
-					# FIXED: Calculate damage based on the TOTAL damage
+					# Calculate damage based on the TOTAL damage
 					# Get the base damage from the damage package or the arrow's damage
 					var total_damage = damage_package.get("physical_damage", damage)
 					
@@ -256,13 +253,19 @@ func process_on_hit(target: Node) -> void:
 	# Verifica Piercing
 	if piercing:
 		print("Piercing enabled")
-		var current_pierce_count = hit_targets.size() - 1
+		# Get hit_targets from meta
+		var hit_targets = get_meta("hit_targets") if has_meta("hit_targets") else []
+		var current_pierce_count = hit_targets.size() - 1  # -1 because first hit isn't counted as pierce
 		var max_pierce = 1
 		
 		if has_meta("piercing_count"):
 			max_pierce = get_meta("piercing_count")
-			
+		
 		print("Pierce count: ", current_pierce_count, "/", max_pierce)    
+		
+		# IMPORTANT: Set an explicit metadata entry to track current pierce count
+		set_meta("current_pierce_count", current_pierce_count)
+		
 		if current_pierce_count < max_pierce:
 			# Prepara para próximo hit
 			if has_node("Hurtbox"):

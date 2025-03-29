@@ -49,45 +49,102 @@ func _physics_process(delta):
 	velocity = direction * speed
 	move_and_slide()
 
-# Check if attack will be critical
+# Em NewProjectileBase.gd
+
+# Função existente, manteremos
 func is_critical_hit(crit_chance: float) -> bool:
 	var roll = randf()
 	return roll < crit_chance
-	
-# Return calculated damage package
-func get_damage_package() -> Dictionary:
-	if not dmg_calculator:
-		print("ERROR: Trying to calculate damage without DmgCalculatorComponent!")
-		return {
-			"physical_damage": damage,
-			"is_critical": is_crit,
-			"tags": tags
-		}
-	
-	# Log dmg_calculator state before calculation
-	print("DmgCalculator state before calculation:")
-	print("- base_damage: " + str(dmg_calculator.base_damage))
-	print("- damage_multiplier: " + str(dmg_calculator.damage_multiplier))
-	
-	var damage_package = dmg_calculator.calculate_damage()
-	
-	# Apply critical if needed
-	if is_crit:
-		var crit_multi = 2.0  # Default multiplier
-		if shooter and "crit_multi" in shooter:
-			crit_multi = shooter.crit_multi
-			
-		damage_package["physical_damage"] = int(damage_package["physical_damage"] * crit_multi)
-		damage_package["is_critical"] = true
-	else:
-		damage_package["is_critical"] = false
-	
-	# Add projectile tags to damage package
-	damage_package["tags"] = tags
-	
-	# Log final package
-	print("ProjectileBase final damage package: " + str(damage_package))
+
+# Cálculo de acerto crítico centralizado
+func calculate_critical_hit() -> bool:
+	# Calcular apenas uma vez
+	if has_meta("crit_calculated"):
+		return is_crit
 		
+	# Obter chance base do atirador ou padrão
+	var base_chance = 0.1  # Padrão 10%
+	if shooter and "crit_chance" in shooter:
+		base_chance = shooter.crit_chance
+	
+	# Aplicar modificadores de talentos
+	var final_chance = base_chance
+	if has_meta("crit_chance_bonus"):
+		final_chance += get_meta("crit_chance_bonus")
+	
+	# Limite de 100%
+	final_chance = min(final_chance, 1.0)
+	
+	# Reusa a função existente
+	is_crit = is_critical_hit(final_chance)
+	
+	# Marca como calculado
+	set_meta("crit_calculated", true)
+	
+	print("Acerto crítico calculado: ", is_crit, " (chance: ", final_chance, ")")
+	return is_crit
+
+# Aplicar multiplicador de dano crítico de forma centralizada
+func apply_critical_multiplier(base_damage: int) -> int:
+	if not is_crit:
+		return base_damage
+		
+	# Obter multiplicador base
+	var crit_multi = 2.0  # Padrão
+	if shooter and "crit_multi" in shooter:
+		crit_multi = shooter.crit_multi
+	
+	# Aplicar bônus de talentos
+	if has_meta("crit_damage_bonus"):
+		crit_multi += get_meta("crit_damage_bonus")
+	
+	# Calcular dano final
+	var final_damage = int(base_damage * crit_multi)
+	print("Multiplicador de acerto crítico aplicado: ", crit_multi, " (", base_damage, " → ", final_damage, ")")
+	
+	return final_damage
+	
+# In NewProjectileBase.gd - updated get_damage_package
+func get_damage_package() -> Dictionary:
+	# Calculate critical hit first
+	var is_critical = calculate_critical_hit()
+	
+	# Get base damage from calculator or direct value
+	var physical_damage = damage
+	var elemental_damages = {}
+	
+	if dmg_calculator:
+		var calc_package = dmg_calculator.calculate_damage()
+		physical_damage = calc_package.get("physical_damage", damage)
+		elemental_damages = calc_package.get("elemental_damage", {})
+	
+	# Apply critical multiplier to physical damage
+	if is_critical:
+		physical_damage = apply_critical_multiplier(physical_damage)
+		
+		# Also apply to elemental damages
+		for element in elemental_damages.keys():
+			elemental_damages[element] = apply_critical_multiplier(elemental_damages[element])
+	
+	# Create final package
+	var damage_package = {
+		"physical_damage": physical_damage,
+		"is_critical": is_critical,
+		"tags": tags.duplicate()
+	}
+	
+	# Add elemental damage if any
+	if not elemental_damages.is_empty():
+		damage_package["elemental_damage"] = elemental_damages
+	
+	# Add armor penetration if any
+	if dmg_calculator and dmg_calculator.armor_penetration > 0:
+		damage_package["armor_penetration"] = dmg_calculator.armor_penetration
+	
+	# Add DoT effects if any
+	if dmg_calculator and not dmg_calculator.dot_effects.is_empty():
+		damage_package["dot_effects"] = dmg_calculator.dot_effects.duplicate(true)
+	
 	return damage_package
 
 # Add a tag to the projectile if it doesn't already exist
