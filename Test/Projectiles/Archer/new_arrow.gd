@@ -149,11 +149,31 @@ func apply_mark_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
 
 # Override the process_on_hit method for advanced arrow functionality
 func process_on_hit(target: Node) -> void:
-	print("Arrow process_on_hit called")
-	print("Pooled status: ", is_pooled())
-	print("Shooter: ", shooter)
-	print("Piercing: ", piercing)
+	print("Arrow hit - checking for fire DoT")
+	print("Has fire_dot_data: ", has_meta("fire_dot_data"))
 	
+	if has_meta("fire_dot_data"):
+		var dot_data = get_meta("fire_dot_data")
+		print("Fire DoT data: ", dot_data)
+		print("DoT chance: ", dot_data.get("chance", 0))
+	# ADD STEP 2 HERE - Test applying the DoT
+	if has_meta("fire_dot_data"):
+		var dot_data = get_meta("fire_dot_data")
+		var roll = randf()
+		var chance = dot_data.get("chance", 0.3)
+		print("Fire DoT chance roll: ", roll, " vs ", chance)
+		print("Roll successful: ", roll <= chance)
+		
+		# Force trigger DoT for testing
+		if target.has_node("HealthComponent"):
+			var health_component = target.get_node("HealthComponent")
+			print("Applying fire DoT")
+			health_component.apply_dot(
+				5,  # Test with fixed damage value
+				dot_data.get("duration", 3.0),
+				dot_data.get("interval", 0.5),
+				"fire"
+			)
 	# Variável para controlar destruição da flecha
 	var should_destroy = true
 	

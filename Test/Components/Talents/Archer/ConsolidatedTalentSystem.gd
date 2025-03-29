@@ -164,24 +164,32 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.focused_shot_threshold = threshold
 					
 			6:  # Flaming Arrows
-				var fire_damage = strategy.get("fire_damage_percent")
-				var dot_damage = strategy.get("dot_percent_per_tick")
+				print("Processing Talent_6 (Flaming Arrows)")
+				
+				# Safely access properties using proper property names
+				var fire_damage_percent = strategy.get("fire_damage_percent")
+				var dot_percent_per_tick = strategy.get("dot_percent_per_tick")
 				var dot_duration = strategy.get("dot_duration")
 				var dot_interval = strategy.get("dot_interval")
+				var dot_chance = strategy.get("dot_chance")  # Default 30% chance
 				
-				if fire_damage != null:
-					effects.fire_damage_percent += fire_damage
+				print("Flaming Arrows values retrieved:")
+				print("- Fire damage percent: ", fire_damage_percent)
+				print("- DoT damage per tick: ", dot_percent_per_tick)
+				print("- DoT duration: ", dot_duration)
+				print("- DoT interval: ", dot_interval)
+				print("- DoT chance: ", dot_chance)
 				
-				if dot_damage != null:
-					effects.fire_dot_damage_percent += dot_damage
+				# Apply fire damage effect
+				effects.fire_damage_percent = fire_damage_percent
 				
-				if dot_duration != null:
-					effects.fire_dot_duration = max(effects.fire_dot_duration, dot_duration)
+				# Apply fire DoT effect
+				effects.fire_dot_damage_percent = dot_percent_per_tick
+				effects.fire_dot_duration = dot_duration
+				effects.fire_dot_interval = dot_interval
+				effects.fire_dot_chance = dot_chance
 				
-				if dot_interval != null:
-					effects.fire_dot_interval = min(effects.fire_dot_interval if effects.fire_dot_interval > 0 else 999, dot_interval)
-				
-				effects.fire_dot_chance = max(effects.fire_dot_chance, 0.3)  # Default chance
+				print("Flaming Arrows effect configured successfully")
 				
 			11:  # Double Shot
 				var angle_spread = strategy.get("angle_spread")
@@ -333,7 +341,11 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	# Apply fire damage
 	if effects.fire_damage_percent > 0:
 		projectile.add_tag("fire")
-		
+		print("Fire DoT setup:")
+		print("- fire_dot_damage_percent: ", effects.fire_dot_damage_percent)
+		print("- fire_dot_duration: ", effects.fire_dot_duration)
+		print("- fire_dot_interval: ", effects.fire_dot_interval)
+		print("- fire_dot_chance: ", effects.fire_dot_chance)
 		if projectile.has_node("DmgCalculatorComponent"):
 			var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 			
@@ -359,6 +371,7 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 					"chance": effects.fire_dot_chance
 				}
 				dmg_calc.set_meta("fire_dot_data", dot_data)
+				print("Fire DoT metadata set on projectile")
 				print("Fire DoT configured: " + str(dot_damage) + " damage per tick")
 	
 	# Aplica piercing
