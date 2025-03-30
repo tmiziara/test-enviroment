@@ -2,22 +2,26 @@ extends BaseProjectileStrategy
 class_name ChainShotStrategy
 
 # Chain shot properties
-var chain_chance: float = 0.3        # 30% chance to ricochet
-var chain_range: float = 150.0       # Maximum range for finding targets
-var chain_damage_decay: float = 0.2  # 20% damage reduction for chained hit
-var max_chains: int = 1              # Maximum number of ricochets
+@export var chain_chance: float = 0.3        # 30% chance to ricochet
+@export var chain_range: float = 150.0       # Maximum range for finding targets
+@export var chain_damage_decay: float = 0.2  # 20% damage reduction for chained hit
+@export var max_chains: int = 3              # Maximum number of ricochets - INCREASED to 3 for testing
 
-# In Talent_12.gd (ChainShotStrategy)
+# Method to get strategy name for debugging
+func get_strategy_name() -> String:
+	return "ChainShot"
 
 func apply_upgrade(projectile: Node) -> void:
 	if not projectile:
 		return
 	
+	print("ChainShot: Applying with max_chains =", max_chains)
+	
 	# Add tag for system identification
 	if projectile.has_method("add_tag"):
 		projectile.add_tag("chain_shot")
 	
-	# Check if projectile is an Arrow
+	# Check if projectile is an Arrow class
 	if projectile is NewArrow:
 		# Enable chain shot in properties
 		projectile.chain_shot_enabled = true
@@ -27,14 +31,21 @@ func apply_upgrade(projectile: Node) -> void:
 		projectile.max_chains = max_chains
 		projectile.current_chains = 0
 		
+		# IMPORTANT: Set will_chain to null initially to indicate it hasn't been determined yet
+		projectile.will_chain = false
+		
 		# Make sure hit_targets is initialized
 		if not projectile.hit_targets:
 			projectile.hit_targets = []
 		
-		# Add additional properties for improved chaining
-		projectile.set_meta("use_improved_chain", true)
+		# Add metadata to help with debugging
+		projectile.set_meta("chain_shot_debug", {
+			"initial_max_chains": max_chains,
+			"strategy_instance_id": get_instance_id(),
+			"chance_computed": false  # Track if we've made the initial chain chance calculation
+		})
 		
-		print("ChainShot: Applied to Arrow with improved targeting - chain chance:", chain_chance)
+		print("ChainShot: Applied to Arrow with chain chance:", chain_chance, ", max_chains:", max_chains)
 	else:
 		# For generic projectiles, set metadata
 		projectile.set_meta("chain_shot_enabled", true)
@@ -44,10 +55,13 @@ func apply_upgrade(projectile: Node) -> void:
 		projectile.set_meta("max_chains", max_chains)
 		projectile.set_meta("current_chains", 0)
 		projectile.set_meta("hit_targets", [])
-		projectile.set_meta("use_improved_chain", true)
+		projectile.set_meta("will_chain", null)  # Initially null
 		
-		print("ChainShot: Applied to generic projectile via metadata with improved targeting")
-
-# Helper method for debugging
-func get_strategy_name() -> String:
-	return "ChainShot"
+		# Add debug metadata
+		projectile.set_meta("chain_shot_debug", {
+			"initial_max_chains": max_chains,
+			"strategy_instance_id": get_instance_id(),
+			"chance_computed": false 
+		})
+		
+		print("ChainShot: Applied to generic projectile via metadata with max_chains:", max_chains)

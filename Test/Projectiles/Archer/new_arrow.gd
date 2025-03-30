@@ -157,6 +157,12 @@ func process_on_hit(target: Node) -> void:
 	# Variável para controlar destruição da flecha - garante que será destruída por padrão
 	var should_destroy = true
 	
+	# Get target instance ID for reliable comparison
+	var target_id = target.get_instance_id()
+	
+	# Flag to determine if this hit should increment Bloodseeker stacks
+	var should_increment_bloodseeker = false
+	
 	# Define o alvo atual para cálculos de dano
 	set_meta("current_target", target)
 	
@@ -165,7 +171,52 @@ func process_on_hit(target: Node) -> void:
 		print("Already processing ricochet - ignoring hit")
 		return
 	
-	# Adiciona o alvo à lista de alvos atingidos
+	# BLOODSEEKER LOGIC: Determine if this hit should increment Bloodseeker stacks
+	# ----------------------------------------------------------------------------------
+	# Check if the projectile is marked for special treatment (chain/double shot/piercing)
+	if has_meta("is_second_arrow"):
+		# For double shot, secondary arrows don't increment Bloodseeker
+		print("Secondary arrow from Double Shot - will not increment Bloodseeker")
+		should_increment_bloodseeker = false
+	elif chain_shot_enabled and current_chains > 0:
+		# For chain shot, only the first hit (current_chains == 0) increments Bloodseeker
+		print("Chain shot with chains > 0 - will not increment Bloodseeker")
+		should_increment_bloodseeker = false
+	elif piercing:
+		# For piercing arrows, we need to check if this is a new target for THIS arrow
+		if not has_meta("bloodseeker_hit_targets"):
+			set_meta("bloodseeker_hit_targets", {})
+		
+		var bs_hit_targets = get_meta("bloodseeker_hit_targets")
+		var target_key = str(target_id)
+		
+		if target_key in bs_hit_targets:
+			# Already hit this target with this arrow - don't increment
+			print("Piercing: repeat hit on same target - will not increment Bloodseeker")
+			should_increment_bloodseeker = false
+		else:
+			# First time hitting this target - add it to our tracking and increment
+			bs_hit_targets[target_key] = true
+			set_meta("bloodseeker_hit_targets", bs_hit_targets)
+			
+			# Only the first target hit by each arrow should increment
+			if not has_meta("bloodseeker_hit_first"):
+				set_meta("bloodseeker_hit_first", true)
+				print("Piercing: first hit detected - will increment Bloodseeker")
+				should_increment_bloodseeker = true
+			else:
+				print("Piercing: not first hit - will not increment Bloodseeker")
+				should_increment_bloodseeker = false
+	else:
+		# Normal arrow - should increment
+		print("Normal arrow - will increment Bloodseeker")
+		should_increment_bloodseeker = true
+	
+	# Store our decision for Bloodseeker stacking in metadata
+	set_meta("should_increment_bloodseeker", should_increment_bloodseeker)
+	# ----------------------------------------------------------------------------------
+	
+	# Adiciona o alvo à lista de alvos atingidos (para other tracking)
 	if not has_meta("hit_targets"):
 		set_meta("hit_targets", [])
 		
@@ -228,27 +279,41 @@ func process_on_hit(target: Node) -> void:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
 	
-	# Verifica Chain Shot
+	# Check Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
 		print("Chain shot enabled and can ricochet. Current chains:", current_chains, "/", max_chains)
 		
-		# Only calculate chain chance if this is the first hit (current_chains == 0)
-		# This ensures only one ricochet happens
-		if current_chains == 0 and not chain_calculated:
+		# IMPORTANT: Only determine chain chance once for the entire arrow lifetime
+		# Check if we've already computed whether this arrow will chain
+		if will_chain == false:
+			# First time - do the roll to determine if this arrow will chain at all
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
-			chain_calculated = true
-			print("Chain calculation for first hit: roll=", roll, " will_chain=", will_chain)
+			
+			# Update debug info
+			if has_meta("chain_shot_debug"):
+				var debug_info = get_meta("chain_shot_debug")
+				debug_info["chance_computed"] = true
+				debug_info["initial_roll"] = roll
+				debug_info["will_chain"] = will_chain
+				set_meta("chain_shot_debug", debug_info)
+				
+			print("Initial chain chance calculation: roll=", roll, " will_chain=", will_chain, " (chance:", chain_chance, ")")
 		else:
-			# If this is already a ricocheted arrow (current_chains > 0), don't ricochet again
-			will_chain = false
-			print("Arrow already ricocheted once, won't ricochet again")
+			print("Using existing chain determination: will_chain=", will_chain)
 		
 		if will_chain:
-			print("Arrow will chain")
+			print("Arrow will chain - calling find_chain_target")
 			is_processing_ricochet = true
 			call_deferred("find_chain_target", target)
-			should_destroy = false  # Permite que a flecha continue
+			should_destroy = false  # Allow arrow to continue
+		else:
+			print("Arrow won't chain - chain calculation returned false")
+	else:
+		if chain_shot_enabled:
+			print("Cannot chain - reached max chains:", current_chains, "/", max_chains)
+		else:
+			print("Cannot chain - chain shot not enabled")
 	
 	# Verifica Piercing - apenas se não estiver fazendo ricochet
 	if piercing and not will_chain:
@@ -414,13 +479,19 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 	# Any other specialized DoT effects can be added here
 func process_talent_effects(target: Node) -> void:
 	print("Processing Talent Effects")
+	# Get flag for Bloodseeker increment
+	var should_increment_bloodseeker = has_meta("should_increment_bloodseeker") and get_meta("should_increment_bloodseeker")
 	
+	# Apply Bloodseeker effect only when indicated
 	if has_meta("has_bloodseeker_effect") and shooter and is_instance_valid(shooter):
-		# Verifica se o atirador tem ArcherTalentManager
-		if shooter.has_node("ArcherTalentManager"):
-			var talent_manager = shooter.get_node("ArcherTalentManager")
-			print("Chamando talent_manager.apply_bloodseeker_hit")
-			talent_manager.apply_bloodseeker_hit(target)
+		if should_increment_bloodseeker:
+			# Verifica se o atirador tem ArcherTalentManager
+			if shooter.has_node("ArcherTalentManager"):
+				var talent_manager = shooter.get_node("ArcherTalentManager")
+				print("Chamando talent_manager.apply_bloodseeker_hit (should increment: ", should_increment_bloodseeker, ")")
+				talent_manager.apply_bloodseeker_hit(target)
+		else:
+			print("Skipping Bloodseeker increment based on flag")
 			
 	# Process mark effect - nova verificação
 	if has_meta("has_mark_effect") and is_crit:
@@ -501,6 +572,10 @@ func find_chain_target(original_target) -> void:
 	# Wait a frame to ensure hit processing is complete
 	await get_tree().process_frame
 	
+	print("CHAIN DEBUG: Finding next chain target")
+	print("Current chains:", current_chains, "/", max_chains)
+	print("Hit targets count:", hit_targets.size())
+	
 	# Get hit_targets from metadata
 	if not has_meta("hit_targets"):
 		set_meta("hit_targets", [])
@@ -520,6 +595,7 @@ func find_chain_target(original_target) -> void:
 	
 	# Execute query
 	var results = space_state.intersect_shape(query)
+	print("Found", results.size(), "potential targets in range")
 	
 	# Filter and collect target info with velocity
 	var target_info = []
@@ -544,6 +620,8 @@ func find_chain_target(original_target) -> void:
 				"velocity": target_velocity
 			})
 	
+	print("Found", target_info.size(), "valid targets after filtering")
+	
 	# If we found at least one valid target
 	if target_info.size() > 0:
 		# Choose random target
@@ -552,11 +630,13 @@ func find_chain_target(original_target) -> void:
 		var target_position = target_data.position
 		var target_velocity = target_data.velocity
 		
+		print("Selected target:", next_target.name)
+		
 		# IMPORTANT: Increment chain counter BEFORE continuing
 		current_chains += 1
 		print("Incrementing chain counter to", current_chains)
 		
-		# Set will_chain to false after using it to prevent further ricochets
+		# Set will_chain to false after using it to prevent further ricochets from this chain
 		will_chain = false
 		
 		# Apply damage reduction
@@ -632,8 +712,12 @@ func find_chain_target(original_target) -> void:
 		
 		# Allow hits to be processed again
 		is_processing_ricochet = false
+		
+		# IMPORTANT: Since we've used a ricochet, recalculate chain chance for next hit
+		chain_calculated = false
 	else:
 		# No valid targets found, clean up arrow
+		print("No valid chain targets found, ending chain sequence")
 		if is_pooled():
 			return_to_pool()
 		else:
@@ -701,7 +785,16 @@ func reset_for_reuse() -> void:
 		var hurtbox = get_node("Hurtbox")
 		hurtbox.set_deferred("monitoring", true)
 		hurtbox.set_deferred("monitorable", true)
-	
+	# Reset das variáveis de controle do Bloodseeker
+	if has_meta("bloodseeker_hit_targets"):
+		remove_meta("bloodseeker_hit_targets")
+		
+	if has_meta("bloodseeker_hit_first"):
+		remove_meta("bloodseeker_hit_first")
+		
+	if has_meta("should_increment_bloodseeker"):
+		remove_meta("should_increment_bloodseeker")
+		
 	# Reset collision layers
 	set_deferred("collision_layer", 4)  # Projectile layer
 	set_deferred("collision_mask", 2)   # Enemy layer
@@ -769,6 +862,9 @@ func reset_for_reuse() -> void:
 			
 		if "marked_for_death" in old_tags:
 			add_tag("marked_for_death")
+			
+		if "chain_shot" in old_tags:
+			add_tag("chain_shot")
 	
 	# Recalcula o acerto crítico usando o sistema unificado
 	if shooter and "crit_chance" in shooter:
@@ -780,7 +876,9 @@ func reset_for_reuse() -> void:
 		crit_chance = crit_chance_current
 		is_crit = was_critical
 		print("NewArrow: Maintained previous critical status:", is_crit)
-	
+
+	# Reset physics processing
+	set_physics_process(true)
 # Helper method to check if arrow is from pool
 func is_pooled() -> bool:
 	return has_meta("pooled") and get_meta("pooled") == true

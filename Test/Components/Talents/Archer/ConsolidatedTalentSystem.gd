@@ -557,15 +557,31 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 						print("Applied Bloodseeker multiplier: " + str(dmg_calc.damage_multiplier))
 
 func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
+	print("Setting up chain shot with max_chains =", effects.max_chains)
+	
 	if projectile is NewArrow:
+		# Apply directly to arrow properties
 		projectile.chain_shot_enabled = true
 		projectile.chain_chance = effects.chain_chance
 		projectile.chain_range = effects.chain_range
 		projectile.chain_damage_decay = effects.chain_damage_decay
 		projectile.max_chains = effects.max_chains
 		projectile.current_chains = 0
+		
+		# IMPORTANT: Set will_chain to null to indicate it hasn't been determined yet
+		projectile.will_chain = false
 		projectile.hit_targets = []
+		
+		# Add debugging info
+		projectile.set_meta("chain_shot_debug", {
+			"applied_from": "ConsolidatedTalentSystem",
+			"max_chains": effects.max_chains,
+			"timestamp": Time.get_ticks_msec(),
+			"chance_computed": false
+		})
+		
 		projectile.add_tag("chain_shot")
+		print("Chain Shot enabled on Arrow with max_chains =", effects.max_chains)
 	else:
 		# For non-Arrow projectiles, use metadata
 		projectile.set_meta("chain_shot_enabled", true)
@@ -574,8 +590,20 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 		projectile.set_meta("chain_damage_decay", effects.chain_damage_decay)
 		projectile.set_meta("max_chains", effects.max_chains)
 		projectile.set_meta("current_chains", 0)
+		projectile.set_meta("will_chain", null)  # Not yet determined
 		projectile.set_meta("hit_targets", [])
+		
+		# Add debug info
+		projectile.set_meta("chain_shot_debug", {
+			"applied_from": "ConsolidatedTalentSystem",
+			"max_chains": effects.max_chains,
+			"timestamp": Time.get_ticks_msec(),
+			"chance_computed": false
+		})
+		
 		projectile.add_tag("chain_shot")
+		print("Chain Shot enabled via metadata with max_chains =", effects.max_chains)
+		
 # Helper to ensure tags array exists
 func _ensure_tags_array(projectile: Node) -> void:
 	if not "tags" in projectile:
