@@ -251,11 +251,10 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 				for property in strategy.get_property_list():
 					print("- ", property.name, ": ", strategy.get(property.name) if strategy.get(property.name) != null else "null")
 				
-				# Use the correct property name from your Talent_16 class
-				# Based on your Talent_16.gd file, it should be using dot_interval
+				# Use the correct property names from your Talent_16 class
 				var bleed_damage = strategy.bleeding_damage_percent
 				var bleed_duration = strategy.bleeding_duration
-				var bleed_interval = strategy.dot_interval  # This is the correct property name
+				var bleed_interval = strategy.dot_interval  # This should match the property name in Talent_16
 				
 				print("Bleeding values retrieved from resource:")
 				print("- Damage percent: ", bleed_damage)
@@ -338,54 +337,30 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	# Apply attack tags
 	_ensure_tags_array(projectile)
 	
-	# Apply fire damage
+	# No apply_compiled_effects
 	if effects.fire_damage_percent > 0:
 		projectile.add_tag("fire")
-		print("Fire DoT setup:")
-		print("- fire_dot_damage_percent: ", effects.fire_dot_damage_percent)
-		print("- fire_dot_duration: ", effects.fire_dot_duration)
-		print("- fire_dot_interval: ", effects.fire_dot_interval)
-		print("- fire_dot_chance: ", effects.fire_dot_chance)
 		if projectile.has_node("DmgCalculatorComponent"):
 			var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 			var total_damage = dmg_calc.calculate_damage()
 			
-			if not "elemental_damage" in dmg_calc:
-				dmg_calc.elemental_damage = {}
-				
+			# Adiciona dano elemental de fogo
 			var fire_damage = int(total_damage["physical_damage"] * effects.fire_damage_percent)
-			if "fire" in dmg_calc.elemental_damage:
-				dmg_calc.elemental_damage["fire"] += fire_damage
-			else:
-				dmg_calc.elemental_damage["fire"] = fire_damage
-				
-			print("Fire damage added: " + str(fire_damage))
-				
-			# Apply fire DoT
-			if effects.fire_dot_damage_percent > 0:
-				# Calcular dano usando o dano base do DmgCalculator, não o dano do projétil
-				var base_damage = dmg_calc.base_damage
-				print("Calculating DoT damage from base_damage: " + str(base_damage))
-				
-				# Calcular o dano do DoT corretamente
-				var dot_damage = int(total_damage["physical_damage"] * effects.fire_dot_damage_percent)
-				
-				# Garantir valor mínimo de 1 para o dano do DoT
-				if dot_damage <= 0:
-					dot_damage = 1
-				
-				print("Calculated DoT damage: " + str(dot_damage) + " (" + 
-					  str(effects.fire_dot_damage_percent * 100) + "% of " + str(base_damage) + ")")
-				
-				var dot_data = {
-					"damage_per_tick": dot_damage,
-					"duration": effects.fire_dot_duration,
-					"interval": effects.fire_dot_interval,
-					"type": "fire",
-					"chance": effects.fire_dot_chance
-				}
-				dmg_calc.set_meta("fire_dot_data", dot_data)
-				print("Fire DoT configured: " + str(dot_damage) + " damage per tick")
+			if "elemental_damage" in dmg_calc:
+				if "fire" in dmg_calc.elemental_damage:
+					dmg_calc.elemental_damage["fire"] += fire_damage
+				else:
+					dmg_calc.elemental_damage["fire"] = fire_damage
+			
+			# Configura dados de DoT como metadados para o sistema de DoT processar
+			var dot_data = {
+				"damage_per_tick": int(total_damage["physical_damage"] * effects.fire_dot_damage_percent),
+				"duration": effects.fire_dot_duration,
+				"interval": effects.fire_dot_interval,
+				"chance": effects.fire_dot_chance,
+				"type": "fire"
+			}
+			dmg_calc.set_meta("fire_dot_data", dot_data)
 	
 	# Aplica piercing
 	if effects.piercing_count > 0:
@@ -416,11 +391,10 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		print("Focused Shot enabled: " + str(effects.focused_shot_bonus * 100) + "% damage boost above " + str(effects.focused_shot_threshold * 100) + "% health")
 	
 	print("CRITICAL DEBUG: effects.bleed_on_crit=", effects.bleed_on_crit)
+	
 	if effects.bleed_on_crit:
 		print("CRITICAL DEBUG: Applying bleeding metadata to projectile")
-		projectile.set_meta("has_bleeding_effect", true)
-		# ... other metadata
-		print("CRITICAL DEBUG: After setting, has_bleeding_effect=", projectile.has_meta("has_bleeding_effect"))
+		
 		# Force the metadata directly on the projectile
 		projectile.set_meta("has_bleeding_effect", true)
 		projectile.set_meta("bleeding_damage_percent", effects.bleed_damage_percent)
@@ -430,10 +404,12 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		# Add tag
 		projectile.add_tag("bleeding")
 		
-		print("Metadados de sangramento configurados:")
-		print("- has_bleeding_effect: ", projectile.has_meta("has_bleeding_effect"))
-		print("- bleeding_damage_percent: ", projectile.get_meta("bleeding_damage_percent"))
-		
+		print("Bleeding metadata configured:")
+		print("- has_bleeding_effect:", projectile.has_meta("has_bleeding_effect"))
+		print("- bleeding_damage_percent:", projectile.get_meta("bleeding_damage_percent"))
+		print("- bleeding_duration:", projectile.get_meta("bleeding_duration"))
+		print("- bleeding_interval:", projectile.get_meta("bleeding_interval"))
+
 	# Apply Marked for Death
 	if effects.mark_enabled:
 		projectile.set_meta("has_mark_effect", true)

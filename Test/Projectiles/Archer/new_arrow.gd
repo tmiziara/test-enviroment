@@ -54,8 +54,6 @@ func _ready():
 	if is_pooled():
 		set_meta("initialized", true)
 
-# Em NewArrow.gd
-
 # Substituir o método get_damage_package para incluir a lógica do Mark of Death
 func get_damage_package() -> Dictionary:
 	# Obter o pacote base do pai
@@ -316,10 +314,19 @@ func process_on_hit(target: Node) -> void:
 # Versão corrigida para o método process_special_dot_effects
 func process_special_dot_effects(damage_package: Dictionary, target: Node) -> void:
 	# Check if DoTManager singleton is available
-	var dot_manager = get_node_or_null("/root/DoTManager")
-	if not dot_manager:
-		print("DoTManager not available, DoT effects will be processed by health component")
-		return
+	var dot_manager = null
+	# Tenta acessar pela propriedade estática
+	if DoTManager.instance:
+		dot_manager = DoTManager.instance
+		print("DoTManager acessado via instância singleton")
+	else:
+		# Fallback: tenta encontrar pelo caminho na árvore
+		dot_manager = get_node_or_null("/root/DoTManager")
+		if dot_manager:
+			print("DoTManager encontrado na árvore de nós")
+		else:
+			print("DoTManager não disponível! Os efeitos DoT serão processados pelo health component")
+			return
 	
 	# Verify the dot_manager has the apply_dot method
 	if not dot_manager.has_method("apply_dot"):
@@ -334,11 +341,7 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 	for element_type in elemental_damage:
 		total_damage += elemental_damage[element_type]
 	
-	print("Total damage before armor reduction for DoT calculation: ", total_damage)
-	
-	# Check for bleeding effect on critical hit
-	if is_crit and has_meta("has_bleeding_effect") and damage_package.get("is_critical", false):
-		print("Critical hit + bleeding effect detected - applying bleeding via DoTManager")
+	if damage_package.get("is_critical", false) and has_meta("has_bleeding_effect"):
 		
 		# Get bleeding metadata from arrow
 		var damage_percent = get_meta("bleeding_damage_percent", 0.3)
@@ -350,12 +353,6 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 		
 		# Ensure minimum damage of 1
 		bleed_damage_per_tick = max(1, bleed_damage_per_tick)
-		
-		print("Applying bleeding DoT via DoTManager:")
-		print("- Damage per tick:", bleed_damage_per_tick)
-		print("- Duration:", duration)
-		print("- Interval:", interval)
-		
 		# Apply bleeding via DoTManager
 		var dot_id = dot_manager.apply_dot(
 			target,
@@ -395,13 +392,6 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 				
 				var dot_duration = dot_data.get("duration", 3.0)
 				var dot_interval = dot_data.get("interval", 0.5)
-				
-				print("Applying fire DoT directly via DoTManager:")
-				print("- Total damage reference:", total_damage)
-				print("- Damage per tick:", dot_damage)
-				print("- Duration:", dot_duration)
-				print("- Interval:", dot_interval)
-				
 				# Apply fire DoT via DoTManager
 				var dot_id = dot_manager.apply_dot(
 					target,
@@ -562,21 +552,26 @@ func find_chain_target(original_target) -> void:
 			queue_free()
 
 func reset_for_reuse() -> void:
-	# Save bleeding metadata before clearing
+	# Salva o estado de crítico atual e metadados importantes antes da limpeza
+	var was_critical = is_crit
+	var crit_chance_current = crit_chance
+	
+	# Salva metadados de sangramento antes da limpeza
 	var bleeding_meta = {
 		"has_bleeding_effect": get_meta("has_bleeding_effect") if has_meta("has_bleeding_effect") else null,
 		"bleeding_damage_percent": get_meta("bleeding_damage_percent") if has_meta("bleeding_damage_percent") else null,
 		"bleeding_duration": get_meta("bleeding_duration") if has_meta("bleeding_duration") else null,
 		"bleeding_interval": get_meta("bleeding_interval") if has_meta("bleeding_interval") else null
 	}
-	# Clear all states
+	
+	# Limpa todos os estados de chain e ricochete
 	current_chains = 0
 	chain_calculated = false
 	will_chain = false
 	is_processing_ricochet = false
 	hit_targets.clear()
 	
-	# Don't clear tags yet - will be repopulated by talents
+	# Reseta velocidade
 	velocity = Vector2.ZERO
 	
 	# Reset damage to base value
@@ -606,6 +601,9 @@ func reset_for_reuse() -> void:
 	# Reset physics processing
 	set_physics_process(true)
 	
+	# Mantém uma cópia das tags antes de limpar
+	var old_tags = tags.duplicate() if "tags" in self else []
+	
 	# Clear all metadata EXCEPT certain keys
 	var meta_list = get_meta_list()
 	for prop in meta_list:
@@ -613,13 +611,30 @@ func reset_for_reuse() -> void:
 		if prop != "pooled" and prop != "initialized":
 			remove_meta(prop)
 			
-	# After clearing metadata, restore the bleeding metadata
+	# Restaura metadados importantes
+	# 1. Primeiro os metadados de sangramento
 	for key in bleeding_meta:
 		if bleeding_meta[key] != null:
 			set_meta(key, bleeding_meta[key])
-			
-	# We'll recalculate critical hit AFTER shooter is set
-	tags.clear()  # Now clear tags after preserving important metadata
+	
+	# Limpa as tags para depois restaurá-las de forma seletiva
+	if "tags" in self:
+		tags.clear()
+		
+		# Restaura a tag de "bleeding" se estava presente antes
+		if "bleeding" in old_tags:
+			add_tag("bleeding")
+	
+	# Recalcula o acerto crítico usando o sistema unificado
+	if shooter and "crit_chance" in shooter:
+		crit_chance = shooter.crit_chance
+		is_crit = is_critical_hit(crit_chance)
+		print("NewArrow: Recalculated critical hit. Result:", is_crit, "Chance:", crit_chance)
+	else:
+		# Mantém o valor anterior se não for possível recalcular
+		crit_chance = crit_chance_current
+		is_crit = was_critical
+		print("NewArrow: Maintained previous critical status:", is_crit)
 	
 # Helper method to check if arrow is from pool
 func is_pooled() -> bool:
