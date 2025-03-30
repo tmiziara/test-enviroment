@@ -25,7 +25,6 @@ func configure_focused_shot(is_enabled: bool, bonus: float, threshold: float = 0
 	focused_shot_bonus = bonus
 	focused_shot_threshold = threshold
 
-# Chain Shot properties
 var chain_shot_enabled: bool = false
 var chain_chance: float = 0.3        # 30% chance to ricochet
 var chain_range: float = 150.0       # Maximum range for finding targets
@@ -49,7 +48,11 @@ func _ready():
 	# Initialize hit_targets array if not already done
 	if not hit_targets:
 		hit_targets = []
-		
+	# IMPORTANT: Don't precalculate chain here - let each arrow calculate independently
+	# when it hits (by setting chain_calculated to false)
+	chain_calculated = false
+	will_chain = false
+	
 	# Mark as initialized for pooled objects
 	if is_pooled():
 		set_meta("initialized", true)
@@ -149,6 +152,7 @@ func process_on_hit(target: Node) -> void:
 	print("Pooled status: ", is_pooled())
 	print("Shooter: ", shooter)
 	print("Piercing: ", piercing)
+	print("Chain Shot enabled: ", chain_shot_enabled)
 	
 	# Variável para controlar destruição da flecha - garante que será destruída por padrão
 	var should_destroy = true
@@ -160,48 +164,44 @@ func process_on_hit(target: Node) -> void:
 	if is_processing_ricochet:
 		print("Already processing ricochet - ignoring hit")
 		return
+	
+	# Adiciona o alvo à lista de alvos atingidos
+	if not has_meta("hit_targets"):
+		set_meta("hit_targets", [])
+	var hit_targets = get_meta("hit_targets")
+	if not target in hit_targets:
+		hit_targets.append(target)
+	set_meta("hit_targets", hit_targets)
+	
 	# Calcula e aplica dano
 	if target.has_node("HealthComponent"):
 		var health_component = target.get_node("HealthComponent")
-		
 		# Obtém o pacote de dano específico para este alvo
 		var damage_package = get_damage_package()
-		
 		# Process talent effects from metadata and add to damage package
 		if has_node("DmgCalculatorComponent"):
 			var dmg_calc = get_node("DmgCalculatorComponent")
-			
 			# Process fire DoT if configured - either through damage package or the DoTManager
 			if dmg_calc.has_meta("fire_dot_data"):
 				var dot_data = dmg_calc.get_meta("fire_dot_data")
 				var dot_chance = dot_data.get("chance", 0.0)
-				
 				# Roll for DoT chance
 				if randf() <= dot_chance:
 					if "dot_effects" not in damage_package:
 						damage_package["dot_effects"] = []
-					
 					# Calculate damage based on the TOTAL damage
 					# Get the base damage from the damage package or the arrow's damage
 					var total_damage = damage_package.get("physical_damage", damage)
-					
 					# Add elemental damage if any
 					var elemental_damage = damage_package.get("elemental_damage", {})
 					for element_type in elemental_damage:
 						total_damage += elemental_damage[element_type]
-					
 					# Get DoT percentage or use default
 					var dot_percent = dot_data.get("percent_per_tick", 0.05)  # Default to 5% if not specified
-					
 					# Calculate DoT damage from total damage
 					var dot_damage = int(total_damage * dot_percent)
-					
 					# Ensure minimum damage of 1
 					dot_damage = max(1, dot_damage)
-					
-					print("Calculating fire DoT based on total damage: ", total_damage)
-					print("DoT damage per tick: ", dot_damage)
-					
 					# Add DoT effect to package
 					damage_package["dot_effects"].append({
 						"damage": dot_damage,
@@ -209,18 +209,14 @@ func process_on_hit(target: Node) -> void:
 						"interval": dot_data.get("interval", 0.5),
 						"type": dot_data.get("type", "fire")
 					})
-					
 					print("Added fire DoT to damage package with damage: ", dot_damage)
-		
-		# Apply damage with complete package - centralized approach
 		health_component.take_complex_damage(damage_package)
-		print("Prestes a chamar process_talent_effects")
+		print("Prestes a chamar process_special_dot_effects")
 		# Process special DoT effects like bleeding using DoTManager
 		process_special_dot_effects(damage_package, target)
 	
 	# Emite sinal para sistemas de talentos
 	emit_signal("on_hit", target, self)
-	
 	# Processa efeitos de talentos (exceto DoTs que agora são centralizados no DoTManager)
 	process_talent_effects(target)
 	# Desabilita temporariamente a colisão para evitar múltiplos hits
@@ -231,11 +227,19 @@ func process_on_hit(target: Node) -> void:
 	
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
-		print("Chain shot enabled and can ricochet")
-		if not chain_calculated:
+		print("Chain shot enabled and can ricochet. Current chains:", current_chains, "/", max_chains)
+		
+		# Only calculate chain chance if this is the first hit (current_chains == 0)
+		# This ensures only one ricochet happens
+		if current_chains == 0 and not chain_calculated:
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
 			chain_calculated = true
+			print("Chain calculation for first hit: roll=", roll, " will_chain=", will_chain)
+		else:
+			# If this is already a ricocheted arrow (current_chains > 0), don't ricochet again
+			will_chain = false
+			print("Arrow already ricocheted once, won't ricochet again")
 		
 		if will_chain:
 			print("Arrow will chain")
@@ -243,11 +247,11 @@ func process_on_hit(target: Node) -> void:
 			call_deferred("find_chain_target", target)
 			should_destroy = false  # Permite que a flecha continue
 	
-	# Verifica Piercing
-	if piercing:
+	# Verifica Piercing - apenas se não estiver fazendo ricochet
+	if piercing and not will_chain:
 		print("Piercing enabled")
 		# Get hit_targets from meta
-		var hit_targets = get_meta("hit_targets") if has_meta("hit_targets") else []
+		hit_targets = get_meta("hit_targets") if has_meta("hit_targets") else []
 		var current_pierce_count = hit_targets.size() - 1  # -1 because first hit isn't counted as pierce
 		var max_pierce = 1
 		
@@ -489,11 +493,15 @@ func process_explosion_effect(target: Node) -> void:
 		
 		if strategy and strategy.has_method("create_explosion"):
 			strategy.create_explosion(self, target)
-
-# Find a new target to chain to
+			
 func find_chain_target(original_target) -> void:
 	# Wait a frame to ensure hit processing is complete
 	await get_tree().process_frame
+	
+	# Ensure hit_targets exists in metadata
+	if not has_meta("hit_targets"):
+		set_meta("hit_targets", [])
+	var hit_targets = get_meta("hit_targets")
 	
 	# Find nearby enemies we haven't hit yet
 	var potential_targets = []
@@ -527,64 +535,70 @@ func find_chain_target(original_target) -> void:
 		# Choose random target
 		var next_target = potential_targets[randi() % potential_targets.size()]
 		
+		# IMPORTANT: Increment chain counter BEFORE continuing
+		current_chains += 1
+		print("Incrementing chain counter to", current_chains)
+		
+		# Set will_chain to false after using it to prevent further ricochets
+		will_chain = false
+		
 		# Apply damage reduction
 		if has_node("DmgCalculatorComponent"):
 			var dmg_calc = get_node("DmgCalculatorComponent")
 			
+			# Reduce base damage
 			if "base_damage" in dmg_calc:
+				var original_base = dmg_calc.base_damage
 				dmg_calc.base_damage = int(dmg_calc.base_damage * (1.0 - chain_damage_decay))
-				
-			if "elemental_damage" in dmg_calc:
+				print("Chain: Base damage reduced from", original_base, "to", dmg_calc.base_damage)
+			
+			# Reduce damage multiplier
+			if "damage_multiplier" in dmg_calc:
+				var original_mult = dmg_calc.damage_multiplier
+				dmg_calc.damage_multiplier *= (1.0 - chain_damage_decay * 0.5)  # Half effect on multiplier
+				print("Chain: Multiplier reduced from", original_mult, "to", dmg_calc.damage_multiplier)
+			
+			# Reduce elemental damage
+			if "elemental_damage" in dmg_calc and not dmg_calc.elemental_damage.is_empty():
 				for element_type in dmg_calc.elemental_damage.keys():
+					var original_elem = dmg_calc.elemental_damage[element_type]
 					dmg_calc.elemental_damage[element_type] = int(dmg_calc.elemental_damage[element_type] * (1.0 - chain_damage_decay))
+					print("Chain: Element", element_type, "reduced from", original_elem, "to", dmg_calc.elemental_damage[element_type])
 		
 		# Reduce direct damage
+		var original_damage = damage
 		damage = int(damage * (1.0 - chain_damage_decay))
+		print("Chain: Direct damage reduced from", original_damage, "to", damage)
 		
-		# Get new trajectory
-		var new_direction = (next_target.global_position - global_position).normalized()
-		
-		# Update direction
-		direction = new_direction
-		rotation = direction.angle()
-		
-		# Reset collision
+		# Disable collision during redirection
 		if has_node("Hurtbox"):
 			var hurtbox = get_node("Hurtbox")
-			hurtbox.set_deferred("monitoring", true)
-			hurtbox.set_deferred("monitorable", true)
+			hurtbox.set_deferred("monitoring", false)
+			hurtbox.set_deferred("monitorable", false)
 		
-		# Re-enable collision
-		collision_layer = 4
-		collision_mask = 2
+		# Update direction toward new target
+		direction = (next_target.global_position - global_position).normalized()
+		rotation = direction.angle()
 		
-		# Reposition to avoid immediate collision
-		global_position += direction * 10
-		
-		# Increment chain counter
-		current_chains += 1
+		# Move away from current position to avoid collisions
+		global_position += direction * 20
 		
 		# Reset velocity for proper movement
 		velocity = direction * speed
 		
+		# Create a short timer to re-enable collision
+		get_tree().create_timer(0.1).timeout.connect(func():
+			if is_instance_valid(self):
+				if has_node("Hurtbox"):
+					var hurtbox = get_node("Hurtbox")
+					hurtbox.set_deferred("monitoring", true)
+					hurtbox.set_deferred("monitorable", true)
+		)
+		
 		# Allow hits to be processed again
 		is_processing_ricochet = false
 	else:
-		# If arrow also has piercing, let it continue
-		if piercing:
-			var current_pierce_count = 0
-			if has_meta("current_pierce_count"):
-				current_pierce_count = get_meta("current_pierce_count")
-			
-			var max_pierce = 1
-			if has_meta("piercing_count"):
-				max_pierce = get_meta("piercing_count")
-			
-			if current_pierce_count <= max_pierce:
-				is_processing_ricochet = false
-				return
-		
-		# Clean up arrow
+		# No valid targets found, clean up arrow
 		if is_pooled():
 			return_to_pool()
 		else:
@@ -594,7 +608,14 @@ func reset_for_reuse() -> void:
 	# Salva o estado de crítico atual e metadados importantes antes da limpeza
 	var was_critical = is_crit
 	var crit_chance_current = crit_chance
-	
+		# Save chain shot configuration if needed
+	var chain_config = {
+		"enabled": chain_shot_enabled,
+		"chance": chain_chance,
+		"range": chain_range,
+		"decay": chain_damage_decay,
+		"max": max_chains
+	}
 	# Salva metadados de sangramento antes da limpeza
 	var bleeding_meta = {
 		"has_bleeding_effect": get_meta("has_bleeding_effect") if has_meta("has_bleeding_effect") else null,
@@ -623,7 +644,6 @@ func reset_for_reuse() -> void:
 	will_chain = false
 	is_processing_ricochet = false
 	hit_targets.clear()
-	
 	# Reseta velocidade
 	velocity = Vector2.ZERO
 	
@@ -669,7 +689,15 @@ func reset_for_reuse() -> void:
 	for key in bleeding_meta:
 		if bleeding_meta[key] != null:
 			set_meta(key, bleeding_meta[key])
-	
+	# Restore chain shot configuration if it was enabled
+	if chain_config["enabled"]:
+		chain_shot_enabled = true
+		chain_chance = chain_config["chance"]
+		chain_range = chain_config["range"] 
+		chain_damage_decay = chain_config["decay"]
+		max_chains = chain_config["max"]
+	else:
+		chain_shot_enabled = false
 	# 2. Restaura metadados do Bloodseeker
 	for key in bloodseeker_meta:
 		if bloodseeker_meta[key] != null:
@@ -679,7 +707,13 @@ func reset_for_reuse() -> void:
 	for key in mark_meta:
 		if mark_meta[key] != null:
 			set_meta(key, mark_meta[key])
-	
+		# Reset double shot metadata
+	if has_meta("is_second_arrow"):
+		remove_meta("is_second_arrow")
+	if has_meta("double_shot_enabled"):
+		remove_meta("double_shot_enabled")
+	if has_meta("double_shot_angle"):
+		remove_meta("double_shot_angle")
 	# Limpa as tags para depois restaurá-las de forma seletiva
 	if "tags" in self:
 		tags.clear()

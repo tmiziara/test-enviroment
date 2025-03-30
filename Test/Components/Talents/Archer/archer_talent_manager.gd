@@ -87,17 +87,7 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 		for strategy in archer.attack_upgrades:
 			if strategy:
 				print("- Processando estratégia: " + strategy.get_strategy_name())
-		
-		print("Applying compiled effects to projectile")
 		talent_system.apply_compiled_effects(projectile, current_effects)
-		print("Finished applying compiled talent effects")
-		
-		# Log the applied effects for debugging
-		print("Applied talent effects:")
-		print("- Damage multiplier:" + str(current_effects.damage_multiplier))
-		print("- Crit chance bonus:" + str(current_effects.crit_chance_bonus))
-		print("- Armor penetration:" + str(current_effects.armor_penetration))
-		print("- Arrow tags:" + str(projectile.tags))
 		
 		# Check for special abilities
 		if "arrow_rain_enabled" in current_effects and current_effects.arrow_rain_enabled:
@@ -106,9 +96,14 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 				attack_counter = 0
 				talent_system.spawn_arrow_rain(projectile, current_effects)
 		
-		# Check for double shot
-		if "double_shot_enabled" in current_effects and current_effects.double_shot_enabled:
-			talent_system.spawn_double_shot(projectile, current_effects)
+		if projectile.has_meta("double_shot_enabled") and not projectile.has_meta("is_second_arrow"):
+			print("Double Shot enabled - will spawn second arrow")
+			# Let the ConsolidatedTalentSystem handle the spawning to ensure proper effect application
+			if talent_system and current_effects:
+				talent_system.spawn_double_shot(projectile, current_effects)
+			else:
+				print("ERROR: Cannot spawn second arrow - talent_system or current_effects is null")
+				
 	else:
 		print("ERROR: current_effects is null, talents not applied")
 	

@@ -555,7 +555,7 @@ func spawn_rain_arrows(projectile: Node):
 	var other_strategies = []
 	if "attack_upgrades" in shooter:
 		for strategy in shooter.attack_upgrades:
-			if not strategy is ArrowRainStrategy and not strategy is Talent_11 and not strategy is Talent_12:
+			if not strategy is ArrowRainStrategy and not strategy is DoubleShot and not strategy is ChainShotStrategy:
 				other_strategies.append(strategy)
 				
 	print("Arrow Rain: Spawning ", arrow_count, " arrows")

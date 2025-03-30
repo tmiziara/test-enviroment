@@ -16,7 +16,8 @@ class CompiledEffects:
 	var armor_penetration: float = 0.0
 	var range_multiplier: float = 1.0
 	var attack_speed_multiplier: float = 1.0
-	
+	# Add the missing piercing_count property
+	var piercing_count: int = 0
 	# Efeitos de dano elemental
 	var fire_damage_percent: float = 0.0
 	var fire_dot_damage_percent: float = 0.0
@@ -24,8 +25,7 @@ class CompiledEffects:
 	var fire_dot_interval: float = 0.0
 	var fire_dot_chance: float = 0.0
 	
-	# Efeitos de projétil
-	var piercing_count: int = 0
+	# Chain Shot properties
 	var can_chain: bool = false
 	var chain_chance: float = 0.0
 	var chain_range: float = 0.0
@@ -35,6 +35,7 @@ class CompiledEffects:
 	# Efeitos de múltiplos projéteis
 	var double_shot_enabled: bool = false
 	var double_shot_angle: float = 0.0
+	var second_arrow_damage_modifier: float = 1.0
 	
 	# Efeitos especiais de acerto
 	var focused_shot_enabled: bool = false
@@ -70,7 +71,78 @@ class CompiledEffects:
 	var bloodseeker_enabled: bool = false
 	var bloodseeker_bonus_per_stack: float = 0.0
 	var bloodseeker_max_stacks: int = 0
+# Add this method to the CompiledEffects class in ConsolidatedTalentSystem.gd
 
+	# Creates a copy of this CompiledEffects instance
+	func copy() -> CompiledEffects:
+		var new_effects = CompiledEffects.new()
+		
+		# Basic stats
+		new_effects.damage_multiplier = self.damage_multiplier
+		new_effects.crit_chance_bonus = self.crit_chance_bonus
+		new_effects.crit_damage_multiplier = self.crit_damage_multiplier
+		new_effects.armor_penetration = self.armor_penetration
+		new_effects.range_multiplier = self.range_multiplier
+		new_effects.attack_speed_multiplier = self.attack_speed_multiplier
+		
+		# Elemental effects
+		new_effects.fire_damage_percent = self.fire_damage_percent
+		new_effects.fire_dot_damage_percent = self.fire_dot_damage_percent
+		new_effects.fire_dot_duration = self.fire_dot_duration
+		new_effects.fire_dot_interval = self.fire_dot_interval
+		new_effects.fire_dot_chance = self.fire_dot_chance
+		
+		# Projectile effects
+		new_effects.piercing_count = self.piercing_count
+		new_effects.can_chain = self.can_chain
+		new_effects.chain_chance = self.chain_chance
+		new_effects.chain_range = self.chain_range
+		new_effects.chain_damage_decay = self.chain_damage_decay
+		new_effects.max_chains = self.max_chains
+		
+		# Multi-projectile effects
+		new_effects.double_shot_enabled = self.double_shot_enabled
+		new_effects.double_shot_angle = self.double_shot_angle
+		new_effects.second_arrow_damage_modifier = self.second_arrow_damage_modifier
+		
+		# Arrow rain effects
+		new_effects.arrow_rain_enabled = self.arrow_rain_enabled
+		new_effects.arrow_rain_count = self.arrow_rain_count
+		new_effects.arrow_rain_damage_percent = self.arrow_rain_damage_percent
+		new_effects.arrow_rain_radius = self.arrow_rain_radius
+		new_effects.arrow_rain_interval = self.arrow_rain_interval
+		
+		# Special hit effects
+		new_effects.focused_shot_enabled = self.focused_shot_enabled
+		new_effects.focused_shot_bonus = self.focused_shot_bonus
+		new_effects.focused_shot_threshold = self.focused_shot_threshold
+		
+		new_effects.mark_enabled = self.mark_enabled
+		new_effects.mark_duration = self.mark_duration
+		new_effects.mark_crit_bonus = self.mark_crit_bonus
+		
+		new_effects.bleed_on_crit = self.bleed_on_crit
+		new_effects.bleed_damage_percent = self.bleed_damage_percent
+		new_effects.bleed_duration = self.bleed_duration
+		new_effects.bleed_interval = self.bleed_interval
+		
+		new_effects.can_splinter = self.can_splinter
+		new_effects.splinter_count = self.splinter_count
+		new_effects.splinter_damage_percent = self.splinter_damage_percent
+		new_effects.splinter_range = self.splinter_range
+		
+		new_effects.explosion_enabled = self.explosion_enabled
+		new_effects.explosion_damage_percent = self.explosion_damage_percent
+		new_effects.explosion_radius = self.explosion_radius
+		
+		# Bloodseeker effect
+		new_effects.bloodseeker_enabled = self.bloodseeker_enabled
+		new_effects.bloodseeker_bonus_per_stack = self.bloodseeker_bonus_per_stack
+		new_effects.bloodseeker_max_stacks = self.bloodseeker_max_stacks
+		
+		# Add any other properties here as they are added to the class
+	
+		return new_effects
 # Inicializa o sistema para um arqueiro específico
 func _init(archer_ref: Soldier_Base):
 	archer = archer_ref
@@ -192,12 +264,24 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 				print("Flaming Arrows effect configured successfully")
 				
 			11:  # Double Shot
+				print("Processing Talent_11 (Double Shot)")
+				
+				# Get angle spread parameter
 				var angle_spread = strategy.get("angle_spread")
 				if angle_spread != null:
 					effects.double_shot_enabled = true
 					effects.double_shot_angle = angle_spread
 					
+				# Get damage modifier for second arrow if specified
+				var damage_mod = strategy.get("second_arrow_damage_modifier")
+				if damage_mod != null:
+					effects.second_arrow_damage_modifier = damage_mod
+				
+				print("Double Shot configured: angle=" + str(effects.double_shot_angle) + 
+					  ", damage_mod=" + str(effects.second_arrow_damage_modifier))
+					
 			12:  # Chain Shot
+				print("Processing Talent_12 (Chain Shot)")
 				var chain_chance = strategy.get("chain_chance")
 				var chain_range = strategy.get("chain_range")
 				var chain_decay = strategy.get("chain_damage_decay")
@@ -209,6 +293,12 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.chain_range = chain_range
 					effects.chain_damage_decay = chain_decay
 					effects.max_chains = max_chains
+					
+					print("Chain Shot configured:", 
+						  "chance=", effects.chain_chance, 
+						  "range=", effects.chain_range,
+						  "decay=", effects.chain_damage_decay,
+						  "max=", effects.max_chains)
 					
 			13:  # Arrow Rain
 				var arrow_count = strategy.get("arrow_count")
@@ -375,8 +465,16 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		if projectile is CharacterBody2D:
 			print("Disabling collision with enemies for piercing")
 			projectile.set_collision_mask_value(2, false)  # Layer 2 = enemy layer
-	
-	# Apply Chain Shot
+			
+	# Apply Double Shot 
+	if effects.double_shot_enabled:
+		projectile.set_meta("double_shot_enabled", true)
+		projectile.set_meta("double_shot_angle", effects.double_shot_angle)
+		projectile.set_meta("second_arrow_damage_modifier", effects.second_arrow_damage_modifier)
+		projectile.add_tag("double_shot")
+		print("Double Shot effect applied to projectile")
+		
+		# Apply Chain Shot
 	if effects.can_chain:
 		_setup_chain_shot(projectile, effects)
 		print("Chain Shot enabled: " + str(effects.chain_chance * 100) + "% chance, " + str(effects.max_chains) + " max chains")
@@ -458,9 +556,8 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 						dmg_calc.damage_multiplier *= (1 + bonus)
 						print("Applied Bloodseeker multiplier: " + str(dmg_calc.damage_multiplier))
 
-# Setup chain shot functionality
 func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
-	if projectile is Arrow:
+	if projectile is NewArrow:
 		projectile.chain_shot_enabled = true
 		projectile.chain_chance = effects.chain_chance
 		projectile.chain_range = effects.chain_range
@@ -479,7 +576,6 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 		projectile.set_meta("current_chains", 0)
 		projectile.set_meta("hit_targets", [])
 		projectile.add_tag("chain_shot")
-
 # Helper to ensure tags array exists
 func _ensure_tags_array(projectile: Node) -> void:
 	if not "tags" in projectile:
@@ -491,31 +587,60 @@ func _ensure_tags_array(projectile: Node) -> void:
 			if not tag_name in projectile.tags:
 				projectile.tags.append(tag_name)
 
-# Spawns a double shot based on the original arrow
+# Updated spawn_double_shot method in ConsolidatedTalentSystem.gd
+
+# Substitua o código atual de spawn_double_shot por esta versão com mais debugging:
+
 func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> void:
+	print("==== DOUBLE SHOT DEBUG ====")
 	if not effects.double_shot_enabled:
+		print("Double shot not enabled in effects - returning")
 		return
 		
 	var shooter = original_projectile.shooter
 	if not shooter:
+		print("No shooter found - returning")
 		return
 		
 	# Get references
 	var direction = original_projectile.direction
 	var start_position = original_projectile.global_position
+	print("Original projectile position: ", start_position)
 	
-	# Load arrow scene
-	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-	if not arrow_scene:
-		print("ERROR: Could not load arrow scene for double shot")
-		return
-		
-	# Create second arrow
-	var second_arrow = arrow_scene.instantiate()
+	# Get arrow from pool if possible
+	var second_arrow = null
+	if ProjectilePool and ProjectilePool.instance:
+		# Try to get arrow from pool
+		print("Getting second arrow from pool for Double Shot")
+		second_arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
+		if second_arrow:
+			print("Got arrow from pool: ", second_arrow)
+		else:
+			print("Pool returned null arrow")
+	else:
+		print("ProjectilePool not available")
+	
+	# Fallback to instantiation if pooling failed
+	if not second_arrow:
+		print("Fallback: Instantiating new arrow")
+		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+		if not arrow_scene:
+			print("ERROR: Could not load arrow scene for double shot")
+			return
+		second_arrow = arrow_scene.instantiate()
+		print("Created new arrow instance: ", second_arrow)
+	
+	# Verifica e lida com a flecha que já tem parent
+	if second_arrow.get_parent():
+		print("WARNING: Second arrow already has a parent: ", second_arrow.get_parent().name)
+		# Em vez de retornar, vamos tentar remover do pai atual e continuar
+		var current_parent = second_arrow.get_parent()
+		current_parent.remove_child(second_arrow)
+		print("Removed arrow from current parent")
 	
 	# Configure position and direction with angle offset
 	second_arrow.global_position = start_position
-	var angle_offset = deg_to_rad(effects.double_shot_angle)
+	var angle_offset = deg_to_rad(-effects.double_shot_angle)  # Negative to go in opposite direction
 	var rotated_direction = direction.rotated(angle_offset)
 	second_arrow.direction = rotated_direction
 	second_arrow.rotation = rotated_direction.angle()
@@ -526,14 +651,62 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 	# Mark as second arrow to avoid recursion
 	second_arrow.set_meta("is_second_arrow", true)
 	
-	# Apply all compiled effects (except double shot)
-	var second_effects = effects.duplicate()
-	second_effects.double_shot_enabled = false  # Prevent recursion
-	apply_compiled_effects(second_arrow, second_effects)
+	# Em vez de fazer uma cópia completa, apenas desabilita temporariamente double shot
+	var original_double_shot_value = effects.double_shot_enabled
+	effects.double_shot_enabled = false
 	
-	# Add to scene
+	# Apply effects with double shot disabled
+	apply_compiled_effects(second_arrow, effects)
+	
+	# Restore the original value
+	effects.double_shot_enabled = original_double_shot_value
+	# Set damage based on the modifier - ATUALIZADO para garantir dano correto
+	if original_projectile.has_node("DmgCalculatorComponent") and second_arrow.has_node("DmgCalculatorComponent"):
+		var original_calc = original_projectile.get_node("DmgCalculatorComponent")
+		var second_calc = second_arrow.get_node("DmgCalculatorComponent")
+		
+		# Copiar TODOS os valores relevantes do cálculo de dano
+		second_calc.base_damage = int(original_calc.base_damage * effects.second_arrow_damage_modifier)
+		second_calc.damage_multiplier = original_calc.damage_multiplier
+		second_calc.weapon_damage = original_calc.weapon_damage  # Copiar weapon_damage também
+		second_calc.main_stat = original_calc.main_stat  # Copiar main_stat também
+		second_calc.main_stat_multiplier = original_calc.main_stat_multiplier  # Copiar multiplicador
+		second_calc.armor_penetration = original_calc.armor_penetration  # Copiar penetração de armadura
+		
+		# Copiar efeitos elementais
+		if "elemental_damage" in original_calc:
+			second_calc.elemental_damage = original_calc.elemental_damage.duplicate()
+		
+		# Copiar efeitos DoT
+		if "dot_effects" in original_calc:
+			second_calc.dot_effects = []
+			for dot in original_calc.dot_effects:
+				second_calc.dot_effects.append(dot.duplicate())
+		
+		# Também definir o dano direto na flecha para garantir consistência
+		second_arrow.damage = int(original_projectile.damage * effects.second_arrow_damage_modifier)
+
+	# Definir qualquer outra propriedade que possa afetar o dano
+	if "is_crit" in original_projectile and "is_crit" in second_arrow:
+		second_arrow.is_crit = original_projectile.is_crit
+
+	# Garantir que as tags sejam iguais
+	if "tags" in original_projectile and "tags" in second_arrow:
+		# Copiar tags da primeira flecha
+		second_arrow.tags = original_projectile.tags.duplicate()
+
+	print("Second arrow damage setup: base=" + str(second_arrow.damage) + 
+		  ", is_crit=" + str(second_arrow.is_crit if "is_crit" in second_arrow else "unknown"))
+	# Ensure arrow is visible and active
+	second_arrow.visible = true
+	second_arrow.set_physics_process(true)
+	
+	# Adiciona à cena
 	if shooter and shooter.get_parent():
+		print("Adding second arrow to scene")
 		shooter.get_parent().call_deferred("add_child", second_arrow)
+	else:
+		print("ERROR: Could not add second arrow to scene - invalid shooter parent")
 		
 # Check and possibly trigger Arrow Rain
 func check_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> bool:

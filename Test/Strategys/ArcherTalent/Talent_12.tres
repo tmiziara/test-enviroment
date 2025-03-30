@@ -1,11 +1,6 @@
-[gd_resource type="Resource" script_class="Talent_12" load_steps=2 format=3 uid="uid://bafqtm6o0sp63"]
+[gd_resource type="Resource" script_class="ChainShotStrategy" load_steps=2 format=3 uid="uid://bafqtm6o0sp63"]
 
 [ext_resource type="Script" uid="uid://cmul8u01ipqaf" path="res://Test/Strategys/ArcherTalent/Talent_12.gd" id="1_o8mip"]
 
 [resource]
 script = ExtResource("1_o8mip")
-chain_chance = 0.3
-chain_range = 150.0
-chain_damage_decay = 0.2
-max_chains = 2
-talent_id = 12
