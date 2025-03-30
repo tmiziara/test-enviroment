@@ -4087,7 +4087,7 @@ y_sort_enabled = true
 position = Vector2(400, 183)
 collision_mask = 3
 script = ExtResource("1_3pymg")
-crit_chance = 0.5
+crit_chance = 0.1
 
 [node name="SpriteLayer" type="Node2D" parent="."]
 

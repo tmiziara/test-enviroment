@@ -284,6 +284,8 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 				
 				if damage_increase != null and max_stacks != null:
 					effects.bloodseeker_enabled = true
+					print("ConsolidatedTalentSystem: effects ID=", effects.get_instance_id(), " bloodseeker_enabled=", effects.bloodseeker_enabled)
+					print(Time.get_ticks_msec(), ": Definindo bloodseeker_enabled=true")
 					effects.bloodseeker_bonus_per_stack = damage_increase
 					effects.bloodseeker_max_stacks = max_stacks
 					
@@ -416,8 +418,6 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("mark_duration", effects.mark_duration)
 		projectile.set_meta("mark_crit_bonus", effects.mark_crit_bonus)
 		projectile.add_tag("marked_for_death")
-		print("Marked for Death enabled: " + str(effects.mark_crit_bonus * 100) + "% crit bonus for " + str(effects.mark_duration) + "s")
-	
 	# Apply Explosion
 	if effects.explosion_enabled:
 		projectile.set_meta("has_explosion_effect", true)
@@ -441,7 +441,6 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("damage_increase_per_stack", effects.bloodseeker_bonus_per_stack)
 		projectile.set_meta("max_stacks", effects.bloodseeker_max_stacks)
 		projectile.add_tag("bloodseeker")
-		print("Bloodseeker enabled: " + str(effects.bloodseeker_bonus_per_stack * 100) + "% damage per stack, max " + str(effects.bloodseeker_max_stacks) + " stacks")
 		
 		# Apply current bonus if archer has stacks
 		if projectile.shooter and projectile.shooter.has_meta("bloodseeker_data"):

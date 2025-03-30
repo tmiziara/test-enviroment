@@ -192,8 +192,9 @@ func add_attack_upgrade(upgrade: BaseProjectileStrategy):
 
 # Apply all talent effects
 func apply_talent_effects():
-	# Clear existing effects
-	reset_talent_effects()
+	var talent_manager = get_node_or_null("ArcherTalentManager")
+	if talent_manager:
+		talent_manager.refresh_talents()
 	
 	# Find and apply all unlocked talents
 	for key in unlocked_talents.keys():

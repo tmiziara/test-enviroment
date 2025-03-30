@@ -51,7 +51,8 @@ func refresh_talents():
 	if not talent_system:
 		push_error("ArcherTalentManager: Cannot refresh talents - failed to initialize talent system")
 		return
-		
+	if talent_system:
+		current_effects = talent_system.compile_effects()
 	# Update talent effects
 	archer.set_meta("talents_updated", true)
 	
@@ -113,15 +114,18 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 	
 	return projectile
 	
-# Apply bloodseeker stacks to a target
 func apply_bloodseeker_hit(target: Node):
+	# Verificações básicas
 	if not archer or not target or not is_instance_valid(target):
 		return
-		
+	
+	# Verifica se o efeito Bloodseeker está ativo
 	if not current_effects or not "bloodseeker_enabled" in current_effects or not current_effects.bloodseeker_enabled:
+		print("ArcherTalentManager: current_effects ID=", current_effects.get_instance_id(), " bloodseeker_enabled=", current_effects.bloodseeker_enabled)
+		print(Time.get_ticks_msec(), ": Verificando bloodseeker_enabled=", current_effects.bloodseeker_enabled)
 		return
-		
-	# Initialize data structure if needed
+	
+	# Inicializa estrutura de dados se necessário
 	if not archer.has_meta("bloodseeker_data"):
 		archer.set_meta("bloodseeker_data", {
 			"target": null,
@@ -132,26 +136,26 @@ func apply_bloodseeker_hit(target: Node):
 	var data = archer.get_meta("bloodseeker_data")
 	var current_target = data["target"]
 	
-	# Update timestamp
+	# Atualiza timestamp
 	data["last_hit_time"] = Time.get_ticks_msec()
 	
-	# Check if this is a new target
+	# Verifica se é um novo alvo
 	if target != current_target:
-		# New target, reset stacks to 1
+		# Novo alvo, reseta stacks para 1
 		data["target"] = target
 		data["stacks"] = 1
 	else:
-		# Same target, increment stacks up to max
+		# Mesmo alvo, incrementa stacks até o máximo
 		var stacks = data["stacks"]
-		stacks = min(stacks + 1, current_effects.bloodseeker_max_stacks)
+		var max_stacks = current_effects.bloodseeker_max_stacks
+		stacks = min(stacks + 1, max_stacks)
 		data["stacks"] = stacks
 	
-	# Update the metadata
+	# Atualiza os metadados
 	archer.set_meta("bloodseeker_data", data)
 	
-	# Create visual indicator
+	# Cria indicador visual
 	create_stack_visual(archer, data["stacks"], current_effects.bloodseeker_max_stacks)
-
 # Create a visual indicator for bloodseeker stacks
 func create_stack_visual(player: Node, stacks: int, max_stacks: int):
 	if not player or not is_instance_valid(player):

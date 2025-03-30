@@ -76,9 +76,9 @@ func get_damage_package() -> Dictionary:
 	
 	return damage_package
 
-# Manter a lógica específica do Mark of Death aqui
+# Apply Mark for Death bonus to critical hits
 func apply_mark_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
-	# Verificar se o alvo tem a marca
+	# Check if target has mark debuff
 	var has_mark = false
 	var mark_bonus = 1.0
 	
@@ -87,22 +87,22 @@ func apply_mark_bonus(damage_package: Dictionary, target: Node) -> Dictionary:
 		has_mark = debuff_component.has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
 		
 		if has_mark:
-			# Obter bônus da marca do alvo
+			# Get mark bonus from target
 			mark_bonus = target.get_meta("mark_crit_bonus", 1.0)
 			
-			# Aplicar bônus ao dano físico
+			# Apply bonus to physical damage
 			var base_crit_damage = damage_package["physical_damage"]
 			var bonus_damage = int(base_crit_damage * mark_bonus)
 			damage_package["physical_damage"] += bonus_damage
 			
-			# Aplicar ao dano elemental
+			# Apply to elemental damage
 			if "elemental_damage" in damage_package:
 				for element in damage_package["elemental_damage"]:
 					var base_elem_crit = damage_package["elemental_damage"][element]
 					var bonus_elem = int(base_elem_crit * mark_bonus)
 					damage_package["elemental_damage"][element] += bonus_elem
 			
-			# Definir tipo de dano
+			# Set damage type
 			damage_package["damage_type"] = "marked_for_death"
 	
 	return damage_package
@@ -160,10 +160,6 @@ func process_on_hit(target: Node) -> void:
 	if is_processing_ricochet:
 		print("Already processing ricochet - ignoring hit")
 		return
-	
-	# We no longer need to add the target to hit_targets here because
-	# that's already done in the Hurtbox._on_body_entered method
-	
 	# Calcula e aplica dano
 	if target.has_node("HealthComponent"):
 		var health_component = target.get_node("HealthComponent")
@@ -218,7 +214,7 @@ func process_on_hit(target: Node) -> void:
 		
 		# Apply damage with complete package - centralized approach
 		health_component.take_complex_damage(damage_package)
-		
+		print("Prestes a chamar process_talent_effects")
 		# Process special DoT effects like bleeding using DoTManager
 		process_special_dot_effects(damage_package, target)
 	
@@ -227,7 +223,6 @@ func process_on_hit(target: Node) -> void:
 	
 	# Processa efeitos de talentos (exceto DoTs que agora são centralizados no DoTManager)
 	process_talent_effects(target)
-	
 	# Desabilita temporariamente a colisão para evitar múltiplos hits
 	if has_node("Hurtbox"):
 		var hurtbox = get_node("Hurtbox")
@@ -410,9 +405,21 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 	# Any other specialized DoT effects can be added here
 	
 	# Any other specialized DoT effects can be added here
-# Process effects from talents that trigger on hit
 func process_talent_effects(target: Node) -> void:
 	print("Processing Talent Effects")
+	
+	if has_meta("has_bloodseeker_effect") and shooter and is_instance_valid(shooter):
+		# Verifica se o atirador tem ArcherTalentManager
+		if shooter.has_node("ArcherTalentManager"):
+			var talent_manager = shooter.get_node("ArcherTalentManager")
+			print("Chamando talent_manager.apply_bloodseeker_hit")
+			talent_manager.apply_bloodseeker_hit(target)
+			
+	# Process mark effect - nova verificação
+	if has_meta("has_mark_effect") and is_crit:
+		print("Mark effect detected and critical hit - applying mark")
+		apply_mark_on_critical_hit(target)
+	
 	# Process splinter effect
 	if has_meta("has_splinter_effect"):
 		print("Splinter effect detected - processing splinters")
@@ -422,12 +429,6 @@ func process_talent_effects(target: Node) -> void:
 	if has_meta("has_explosion_effect"):
 		print("Explosion effect detected - processing explosion")
 		process_explosion_effect(target)
-	else:
-		print("Bleeding not applied. Conditions:")
-		print("- Is Critical: ", is_crit)
-		print("- Has Bleeding Effect Meta: ", has_meta("has_bleeding_effect"))
-		print("- Target has HealthComponent: ", target.has_node("HealthComponent"))
-		
 
 # Process splinter arrow effect
 func process_splinter_effect(target: Node) -> void:
@@ -439,6 +440,44 @@ func process_splinter_effect(target: Node) -> void:
 		
 		if strategy and strategy.has_method("create_splinters"):
 			strategy.create_splinters(self, target)
+
+func apply_mark_on_critical_hit(target: Node) -> void:
+	# Verifica se o projétil tem o efeito de marca configurado
+	if not has_meta("has_mark_effect"):
+		return
+		
+	# Verifica se foi um acerto crítico
+	if not is_crit:
+		return
+		
+	# Obtém parâmetros da marca dos metadados
+	var mark_duration = get_meta("mark_duration", 4.0)
+	var mark_crit_bonus = get_meta("mark_crit_bonus", 1.0)
+	
+	# Verifica se o alvo tem DebuffComponent
+	if target.has_node("DebuffComponent"):
+		var debuff_component = target.get_node("DebuffComponent")
+		
+		# Dados da marca
+		var mark_data = {
+			"max_stacks": 1,  # Não acumula
+			"crit_bonus": mark_crit_bonus,
+			"source": shooter
+		}
+		
+		# Aplica o debuff de marca
+		debuff_component.add_debuff(
+			GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH,
+			mark_duration,
+			mark_data,
+			true  # Pode renovar duração
+		)
+		
+		# Armazena o bônus como metadado no alvo para acesso rápido
+		target.set_meta("mark_crit_bonus", mark_crit_bonus)
+		
+		print("Marked for Death aplicado ao alvo por " + str(mark_duration) + "s com " + 
+			  str(mark_crit_bonus * 100) + "% de bônus de dano crítico")
 
 # Process explosion arrow effect
 func process_explosion_effect(target: Node) -> void:
@@ -564,6 +603,20 @@ func reset_for_reuse() -> void:
 		"bleeding_interval": get_meta("bleeding_interval") if has_meta("bleeding_interval") else null
 	}
 	
+	# Salva metadados de Bloodseeker antes da limpeza
+	var bloodseeker_meta = {
+		"has_bloodseeker_effect": get_meta("has_bloodseeker_effect") if has_meta("has_bloodseeker_effect") else null,
+		"damage_increase_per_stack": get_meta("damage_increase_per_stack") if has_meta("damage_increase_per_stack") else null,
+		"max_stacks": get_meta("max_stacks") if has_meta("max_stacks") else null
+	}
+	
+	# Salva metadados de Marked for Death antes da limpeza
+	var mark_meta = {
+		"has_mark_effect": get_meta("has_mark_effect") if has_meta("has_mark_effect") else null,
+		"mark_duration": get_meta("mark_duration") if has_meta("mark_duration") else null,
+		"mark_crit_bonus": get_meta("mark_crit_bonus") if has_meta("mark_crit_bonus") else null
+	}
+	
 	# Limpa todos os estados de chain e ricochete
 	current_chains = 0
 	chain_calculated = false
@@ -617,13 +670,29 @@ func reset_for_reuse() -> void:
 		if bleeding_meta[key] != null:
 			set_meta(key, bleeding_meta[key])
 	
+	# 2. Restaura metadados do Bloodseeker
+	for key in bloodseeker_meta:
+		if bloodseeker_meta[key] != null:
+			set_meta(key, bloodseeker_meta[key])
+			
+	# 3. Restaura metadados de Marked for Death
+	for key in mark_meta:
+		if mark_meta[key] != null:
+			set_meta(key, mark_meta[key])
+	
 	# Limpa as tags para depois restaurá-las de forma seletiva
 	if "tags" in self:
 		tags.clear()
 		
-		# Restaura a tag de "bleeding" se estava presente antes
+		# Restaura tags importantes
 		if "bleeding" in old_tags:
 			add_tag("bleeding")
+		
+		if "bloodseeker" in old_tags:
+			add_tag("bloodseeker")
+			
+		if "marked_for_death" in old_tags:
+			add_tag("marked_for_death")
 	
 	# Recalcula o acerto crítico usando o sistema unificado
 	if shooter and "crit_chance" in shooter:
