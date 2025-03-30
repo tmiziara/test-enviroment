@@ -104,6 +104,10 @@ func return_projectile(pool_name: String, projectile: Node) -> void:
 		
 	var pool = pools[pool_name]
 	
+	# NOVO: Remove do parent explicitamente para garantir
+	if projectile.get_parent():
+		projectile.get_parent().remove_child(projectile)
+	
 	# Remove do array de ativos
 	var index = pool.active.find(projectile)
 	if index >= 0:
@@ -277,6 +281,11 @@ func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 	if not arrow:
 		print("Could not get projectile from pool")
 		return null
+	
+	# IMPORTANTE: Verifica se a flecha ainda tem um parent e remove se necessário
+	if arrow.get_parent():
+		print("Arrow still has parent: ", arrow.get_parent().name)
+		arrow.get_parent().remove_child(arrow)
 	
 	# Log de status da flecha
 	print("Arrow retrieved from pool")

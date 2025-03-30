@@ -111,6 +111,10 @@ func spawn_arrow():
 		var arrow = ProjectilePool.instance.get_arrow_for_archer(self)
 		
 		if arrow:
+			# NOVO: Garante que a flecha não tem parent antes de adicionar à cena
+			if arrow.get_parent():
+				arrow.get_parent().remove_child(arrow)
+			
 			# Reset arrow
 			if arrow.has_method("reset_for_reuse"):
 				arrow.reset_for_reuse()
@@ -146,6 +150,9 @@ func spawn_arrow():
 			# Ensure arrow is visible and active
 			arrow.visible = true
 			arrow.set_physics_process(true)
+			
+			# IMPORTANTE: Adiciona à cena apenas depois de toda configuração
+			get_parent().add_child(arrow)
 			
 			return
 	

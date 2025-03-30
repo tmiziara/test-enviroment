@@ -225,28 +225,46 @@ func process_on_hit(target: Node) -> void:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
 	
-	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
-		print("Chain shot enabled and can ricochet. Current chains:", current_chains, "/", max_chains)
+		print("Chain shot enabled and can chain. Current chains:", current_chains, "/", max_chains)
 		
-		# Only calculate chain chance if this is the first hit (current_chains == 0)
-		# This ensures only one ricochet happens
+		# Calcula chance apenas na primeira vez
 		if current_chains == 0 and not chain_calculated:
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
 			chain_calculated = true
 			print("Chain calculation for first hit: roll=", roll, " will_chain=", will_chain)
 		else:
-			# If this is already a ricocheted arrow (current_chains > 0), don't ricochet again
-			will_chain = false
-			print("Arrow already ricocheted once, won't ricochet again")
+			# Se já está em chain, sempre continua
+			will_chain = true
+			print("Arrow already in chain, continuing automatically")
 		
 		if will_chain:
 			print("Arrow will chain")
-			is_processing_ricochet = true
-			call_deferred("find_chain_target", target)
-			should_destroy = false  # Permite que a flecha continue
-	
+			# MODIFICADO: Usa o sistema de talentos para processar o chain
+			var processed = false
+			
+			# Procura sistema de talentos no atirador
+			if shooter and shooter.has_node("ArcherTalentManager"):
+				var talent_manager = shooter.get_node("ArcherTalentManager")
+				if talent_manager and talent_manager.talent_system:
+					# Usa o sistema de talentos
+					processed = talent_manager.talent_system.process_chain_shot(self, target, talent_manager.current_effects)
+			
+			# Agora processa o retorno da flecha ao pool
+			if processed:
+				# Já processado pelo ConsolidatedTalentSystem
+				should_destroy = false  # Evita destruir a flecha duas vezes
+				
+				# Retorna esta flecha ao pool
+				if is_pooled():
+					# CRUCIAL: Remover do parent antes de retornar
+					if get_parent():
+						get_parent().remove_child(self)
+					return_to_pool()
+				else:
+					queue_free()
+				
 	# Verifica Piercing - apenas se não estiver fazendo ricochet
 	if piercing and not will_chain:
 		print("Piercing enabled")
@@ -498,6 +516,10 @@ func find_chain_target(original_target) -> void:
 	# Wait a frame to ensure hit processing is complete
 	await get_tree().process_frame
 	
+	# Debug para ajudar a diagnosticar
+	print("Chain Shot: Finding next target for arrow ", get_instance_id())
+	print("Chain Shot: Current parent node: ", get_parent().name if get_parent() else "None")
+	
 	# Ensure hit_targets exists in metadata
 	if not has_meta("hit_targets"):
 		set_meta("hit_targets", [])
@@ -535,7 +557,7 @@ func find_chain_target(original_target) -> void:
 		# Choose random target
 		var next_target = potential_targets[randi() % potential_targets.size()]
 		
-		# IMPORTANT: Increment chain counter BEFORE continuing
+		# IMPORTANTE: Incrementa contador de chain ANTES de continuar
 		current_chains += 1
 		print("Incrementing chain counter to", current_chains)
 		
@@ -570,6 +592,11 @@ func find_chain_target(original_target) -> void:
 		damage = int(damage * (1.0 - chain_damage_decay))
 		print("Chain: Direct damage reduced from", original_damage, "to", damage)
 		
+		# NOVO: Verifica se a flecha ainda está válida para chain
+		if not is_inside_tree():
+			print("ERROR: Arrow is no longer in scene tree. Cannot chain.")
+			return
+		
 		# Disable collision during redirection
 		if has_node("Hurtbox"):
 			var hurtbox = get_node("Hurtbox")
@@ -586,9 +613,12 @@ func find_chain_target(original_target) -> void:
 		# Reset velocity for proper movement
 		velocity = direction * speed
 		
+		# NOVO: Garante que está processando física
+		set_physics_process(true)
+		
 		# Create a short timer to re-enable collision
 		get_tree().create_timer(0.1).timeout.connect(func():
-			if is_instance_valid(self):
+			if is_instance_valid(self) and is_inside_tree():
 				if has_node("Hurtbox"):
 					var hurtbox = get_node("Hurtbox")
 					hurtbox.set_deferred("monitoring", true)
@@ -743,7 +773,6 @@ func reset_for_reuse() -> void:
 func is_pooled() -> bool:
 	return has_meta("pooled") and get_meta("pooled") == true
 
-# Helper method to return arrow to pool
 func return_to_pool() -> void:
 	print("Attempting to return arrow to pool")
 	print("Is pooled: ", is_pooled())
@@ -756,12 +785,25 @@ func return_to_pool() -> void:
 		queue_free()
 		return
 	
+	# NOVO: Garante que a flecha não está processando física antes de retornar ao pool
+	set_physics_process(false)
+	
+	# NOVO: Desabilita colisão completamente
+	if has_node("Hurtbox"):
+		var hurtbox = get_node("Hurtbox")
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", false)
+	
 	# Log de verificação do pool
 	print("ProjectilePool exists: ", ProjectilePool != null)
 	print("ProjectilePool instance exists: ", ProjectilePool.instance != null)
 	
 	# Return to appropriate pool
 	if ProjectilePool and ProjectilePool.instance:
+		# NOVO: Remove do parent ANTES de retornar ao pool
+		if get_parent():
+			get_parent().remove_child(self)
+			
 		print("Attempting to return arrow via pool method")
 		ProjectilePool.instance.return_arrow_to_pool(self)
 	else:

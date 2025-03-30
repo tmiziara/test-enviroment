@@ -566,6 +566,10 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 		projectile.current_chains = 0
 		projectile.hit_targets = []
 		projectile.add_tag("chain_shot")
+		# Imprimir debug para confirmar configuração
+		print("Chain Shot configurado em flecha - chance:", effects.chain_chance, 
+			  ", alcance:", effects.chain_range, 
+			  ", max_chains:", effects.max_chains)
 	else:
 		# For non-Arrow projectiles, use metadata
 		projectile.set_meta("chain_shot_enabled", true)
@@ -576,6 +580,233 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 		projectile.set_meta("current_chains", 0)
 		projectile.set_meta("hit_targets", [])
 		projectile.add_tag("chain_shot")
+		# Imprimir debug para confirmar configuração
+		print("Chain Shot configurado via metadados - chance:", effects.chain_chance, 
+			  ", alcance:", effects.chain_range, 
+			  ", max_chains:", effects.max_chains)
+
+# Adicione esta função ao ConsolidatedTalentSystem
+func process_chain_shot(projectile: Node, target: Node, effects: CompiledEffects) -> bool:
+	# Verifica se o projectile suporta chain shot
+	if not projectile.has_meta("chain_shot_enabled") and not (projectile is NewArrow and projectile.chain_shot_enabled):
+		return false
+		
+	# Pegar valores de chain do projectile (seja da classe ou de metadados)
+	var chain_enabled = projectile is NewArrow ? projectile.chain_shot_enabled : projectile.get_meta("chain_shot_enabled", false)
+	var chain_chance = projectile is NewArrow ? projectile.chain_chance : projectile.get_meta("chain_chance", 0.3)
+	var chain_range = projectile is NewArrow ? projectile.chain_range : projectile.get_meta("chain_range", 150.0)
+	var chain_decay = projectile is NewArrow ? projectile.chain_damage_decay : projectile.get_meta("chain_damage_decay", 0.2)
+	var max_chains = projectile is NewArrow ? projectile.max_chains : projectile.get_meta("max_chains", 1)
+	var current_chains = projectile is NewArrow ? projectile.current_chains : projectile.get_meta("current_chains", 0)
+	var hit_targets = projectile is NewArrow ? projectile.hit_targets.duplicate() : projectile.get_meta("hit_targets", []).duplicate()
+	
+	print("Process Chain Shot - enabled:", chain_enabled, 
+		  ", current:", current_chains, 
+		  ", max:", max_chains, 
+		  ", chance:", chain_chance)
+	
+	# Verifica se pode fazer chain
+	if not chain_enabled or current_chains >= max_chains:
+		print("Chain Shot não pode ocorrer - já atingiu máximo ou desabilitado")
+		return false
+	
+	# Verifica chance de chain (uma vez para o primeiro acerto)
+	var should_chain = false
+	if current_chains == 0:
+		var roll = randf()
+		should_chain = roll <= chain_chance
+		print("Chain Shot - roll:", roll, ", should chain:", should_chain)
+	else:
+		# Se já estiver em chain, sempre continua
+		should_chain = true
+		print("Chain Shot - já em chain, continuando automaticamente")
+	
+	if not should_chain:
+		return false
+	
+	# Encontrar próximo alvo
+	var next_target = find_chain_target(projectile, target, chain_range, hit_targets)
+	if not next_target:
+		print("Chain Shot - nenhum alvo válido encontrado")
+		return false
+	
+	print("Chain Shot - alvo encontrado:", next_target.name)
+	
+	# Criar nova flecha para o chain usando pooling
+	var shooter = projectile.shooter
+	if not shooter:
+		print("Chain Shot - sem referência ao atirador")
+		return false
+	
+	# Obter flecha do pool
+	if not ProjectilePool or not ProjectilePool.instance:
+		print("Chain Shot - sistema de pooling não disponível")
+		return false
+	
+	var new_arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
+	if not new_arrow:
+		print("Chain Shot - não foi possível obter flecha do pool")
+		return false
+	
+	# CRUCIAL: Garantir que a flecha NÃO tenha parent
+	if new_arrow.get_parent():
+		print("Chain Shot - removendo flecha do parent atual:", new_arrow.get_parent().name)
+		new_arrow.get_parent().remove_child(new_arrow)
+	
+	# Configurar propriedades básicas
+	new_arrow.global_position = projectile.global_position
+	
+	# Adicionar predição de movimento
+	var target_velocity = Vector2.ZERO
+	if next_target is CharacterBody2D:
+		target_velocity = next_target.velocity
+	
+	# Calcula posição prevista
+	var distance = projectile.global_position.distance_to(next_target.global_position)
+	var time_to_hit = distance / (projectile.speed * 0.8)
+	var predicted_pos = next_target.global_position + (target_velocity * time_to_hit)
+	
+	# Configura direção
+	new_arrow.direction = (predicted_pos - projectile.global_position).normalized()
+	new_arrow.rotation = new_arrow.direction.angle()
+	
+	# Configura velocidade um pouco maior
+	new_arrow.speed = projectile.speed * 1.2
+	
+	# Configurar referência ao atirador
+	new_arrow.shooter = shooter
+	
+	# Configurar propriedades de dano
+	new_arrow.damage = int(projectile.damage * (1.0 - chain_decay))
+	if "crit_chance" in projectile:
+		new_arrow.crit_chance = projectile.crit_chance
+	if "is_crit" in projectile:
+		new_arrow.is_crit = projectile.is_crit
+	
+	# Configurar chain
+	if new_arrow is NewArrow:
+		new_arrow.chain_shot_enabled = true
+		new_arrow.chain_chance = 1.0  # 100% para garantir chain subsequente
+		new_arrow.chain_range = chain_range
+		new_arrow.chain_damage_decay = chain_decay
+		new_arrow.max_chains = max_chains
+		new_arrow.current_chains = current_chains + 1
+		new_arrow.hit_targets = hit_targets + [target]
+	else:
+		new_arrow.set_meta("chain_shot_enabled", true)
+		new_arrow.set_meta("chain_chance", 1.0)
+		new_arrow.set_meta("chain_range", chain_range)
+		new_arrow.set_meta("chain_damage_decay", chain_decay)
+		new_arrow.set_meta("max_chains", max_chains)
+		new_arrow.set_meta("current_chains", current_chains + 1)
+		new_arrow.set_meta("hit_targets", hit_targets + [target])
+	
+	# Aplicar tags
+	if "tags" in projectile and new_arrow.has_method("add_tag"):
+		for tag in projectile.tags:
+			new_arrow.add_tag(tag)
+	
+	# Aplicar configurações de DmgCalculator
+	if projectile.has_node("DmgCalculatorComponent") and new_arrow.has_node("DmgCalculatorComponent"):
+		var src_calc = projectile.get_node("DmgCalculatorComponent")
+		var dest_calc = new_arrow.get_node("DmgCalculatorComponent")
+		
+		# Dano base
+		if "base_damage" in src_calc:
+			dest_calc.base_damage = int(src_calc.base_damage * (1.0 - chain_decay))
+		
+		# Multiplicador
+		if "damage_multiplier" in src_calc:
+			dest_calc.damage_multiplier = src_calc.damage_multiplier
+		
+		# Dano elemental
+		if "elemental_damage" in src_calc:
+			dest_calc.elemental_damage = {}
+			for element in src_calc.elemental_damage:
+				dest_calc.elemental_damage[element] = int(src_calc.elemental_damage[element] * (1.0 - chain_decay))
+		
+		# DoT
+		if "dot_effects" in src_calc:
+			dest_calc.dot_effects = src_calc.dot_effects.duplicate(true)
+	
+	# Garantir que colisão está ativa
+	if new_arrow.has_node("Hurtbox"):
+		var hurtbox = new_arrow.get_node("Hurtbox")
+		hurtbox.set_deferred("monitoring", true)
+		hurtbox.set_deferred("monitorable", true)
+	
+	# Configurar layers de colisão
+	new_arrow.set_deferred("collision_layer", 4)
+	new_arrow.set_deferred("collision_mask", 2)
+	
+	# Garantir visibilidade e processamento
+	new_arrow.visible = true
+	new_arrow.set_physics_process(true)
+	
+	# Adicionar à cena COM SEGURANÇA
+	if shooter.get_parent():
+		print("Chain Shot - adicionando flecha ao parent do atirador")
+		shooter.get_parent().call_deferred("add_child", new_arrow)
+	else:
+		print("Chain Shot - adicionando flecha à cena atual (fallback)")
+		get_tree().current_scene.call_deferred("add_child", new_arrow)
+	
+	# Adicionar timer de segurança
+	var safety_timer = Timer.new()
+	safety_timer.wait_time = 3.0
+	safety_timer.one_shot = true
+	new_arrow.add_child(safety_timer)
+	
+	safety_timer.timeout.connect(func():
+		if is_instance_valid(new_arrow):
+			print("Chain Shot - timer de segurança expirou, destruindo flecha")
+			if new_arrow.is_pooled() and ProjectilePool and ProjectilePool.instance:
+				# Remover do parent antes de retornar ao pool
+				if new_arrow.get_parent():
+					new_arrow.get_parent().remove_child(new_arrow)
+				ProjectilePool.instance.return_arrow_to_pool(new_arrow)
+			else:
+				new_arrow.queue_free()
+	)
+	
+	safety_timer.start()
+	
+	return true
+
+# Função auxiliar para encontrar próximo alvo de chain
+func find_chain_target(projectile: Node, original_target: Node, range_value: float, hit_targets: Array) -> Node:
+	var space_state = projectile.get_world_2d().direct_space_state
+	
+	# Criar query de física
+	var query = PhysicsShapeQueryParameters2D.new()
+	var circle_shape = CircleShape2D.new()
+	circle_shape.radius = range_value
+	query.shape = circle_shape
+	query.transform = Transform2D(0, projectile.global_position)
+	query.collision_mask = 2  # Enemy layer
+	
+	# Executar query
+	var results = space_state.intersect_shape(query)
+	
+	# Filtrar alvos
+	var potential_targets = []
+	for result in results:
+		var body = result.collider
+		
+		# Pular alvo original e já atingidos
+		if body == original_target or body in hit_targets:
+			continue
+			
+		# Verificar se é inimigo com saúde
+		if (body.is_in_group("enemies") or body.get_collision_layer_value(2)) and body.has_node("HealthComponent"):
+			potential_targets.append(body)
+	
+	# Escolher alvo aleatório
+	if potential_targets.size() > 0:
+		return potential_targets[randi() % potential_targets.size()]
+	
+	return null
+	
 # Helper to ensure tags array exists
 func _ensure_tags_array(projectile: Node) -> void:
 	if not "tags" in projectile:
