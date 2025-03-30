@@ -12,9 +12,21 @@ var dmg_calculator: DmgCalculatorComponent
 var tags: Array = []  # Array to store tags like "fire", "ice", etc.
 var crit_chance: float = 0.1  # Default value, overridden by shooter's value
 
+var initial_position: Vector2
+var max_travel_distance: float = 500.0  # Distância máxima de viagem
+var max_lifetime: float = 5.0  # Tempo máximo de vida da flecha
+
 signal on_hit(target, projectile)  # Signal emitted when hitting a target
 
 func _ready():
+	initial_position = global_position
+	# Inicia um timer para destruição
+	var lifetime_timer = Timer.new()
+	lifetime_timer.wait_time = max_lifetime
+	lifetime_timer.one_shot = true
+	lifetime_timer.timeout.connect(_on_lifetime_expired)
+	add_child(lifetime_timer)
+	lifetime_timer.start()
 	# Skip initialization if this is a pooled object being reused
 	# The pool system will handle initialization for reused objects
 	if has_meta("pooled") and get_meta("pooled") and has_meta("initialized"):
@@ -46,10 +58,74 @@ func _ready():
 		set_meta("initialized", true)
 
 func _physics_process(delta):
+		# Check if homing is enabled
+	if has_meta("enable_homing") and get_meta("enable_homing") and has_meta("homing_target"):
+		var target = get_meta("homing_target")
+		
+		# Only apply homing if target is valid
+		if is_instance_valid(target):
+			var homing_strength = get_meta("homing_strength", 3.0)
+			
+			# Calculate distance to target
+			var target_position = target.global_position
+			var distance = global_position.distance_to(target_position)
+			
+			# Increase homing strength as we get closer to ensure hit
+			var adaptive_strength = homing_strength * (1.0 + (500.0 / max(distance, 50.0)))
+			
+			# Calculate ideal direction to target
+			var ideal_direction = (target_position - global_position).normalized()
+			
+			# Smoothly adjust current direction toward ideal direction
+			direction = direction.lerp(ideal_direction, delta * adaptive_strength).normalized()
+			
+			# Update rotation and velocity
+			rotation = direction.angle()
+			velocity = direction * speed
+			
+			# Optional: Increase speed slightly for chain shots to catch up to targets
+			speed += delta * 50.0
+			
+			# Debug visualization
+			if Engine.is_editor_hint() or OS.is_debug_build():
+				queue_redraw()  # For custom drawing
+				
 	velocity = direction * speed
 	move_and_slide()
+	# Calcula distância percorrida com valor absoluto
 
-# Em NewProjectileBase.gd
+func _on_lifetime_expired():
+	# Método chamado quando o tempo máximo de vida é atingido
+	if is_pooled():
+		return_to_pool()
+	else:
+		queue_free()
+
+# Helper method to return arrow to pool
+func return_to_pool() -> void:
+	print("Attempting to return arrow to pool")
+	print("Is pooled: ", is_pooled())
+	print("Shooter: ", shooter)
+	print("Shooter type: ", typeof(shooter))
+	print("Shooter has instance method: ", shooter.has_method("get_instance_id"))
+	
+	if not is_pooled() or not shooter:
+		print("Cannot return to pool - queuing free")
+		queue_free()
+		return
+	
+	# Log de verificação do pool
+	print("ProjectilePool exists: ", ProjectilePool != null)
+	print("ProjectilePool instance exists: ", ProjectilePool.instance != null)
+	
+	# Return to appropriate pool
+	if ProjectilePool and ProjectilePool.instance:
+		print("Attempting to return arrow via pool method")
+		ProjectilePool.instance.return_arrow_to_pool(self)
+	else:
+		print("No pool instance - queuing free")
+		queue_free()
+
 
 # Função existente, manteremos
 func is_critical_hit(crit_chance: float) -> bool:

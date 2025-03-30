@@ -111,6 +111,7 @@ animations = [{
 radius = 7.0
 
 [node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
+position = Vector2(0, -3)
 collision_layer = 3
 collision_mask = 3
 script = ExtResource("1_d25wl")
@@ -121,7 +122,6 @@ collision_layer = 2
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy"]
-visible = false
 shape = SubResource("CircleShape2D_fypkk")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
@@ -130,8 +130,7 @@ sprite_frames = SubResource("SpriteFrames_2a2y2")
 animation = &"Walk"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-visible = false
-position = Vector2(0, 3)
+position = Vector2(0, 4)
 shape = SubResource("CircleShape2D_oesy5")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
@@ -154,6 +153,7 @@ grow_horizontal = 2
 position = Vector2(-1, -12)
 
 [node name="HealthComponent" parent="." instance=ExtResource("5_5luq3")]
+position = Vector2(0, 4)
 max_health = 1000
 
 [node name="DefenseComponent" parent="." instance=ExtResource("6_r8bh5")]

@@ -7,6 +7,8 @@ var chain_range: float = 150.0       # Maximum range for finding targets
 var chain_damage_decay: float = 0.2  # 20% damage reduction for chained hit
 var max_chains: int = 1              # Maximum number of ricochets
 
+# In Talent_12.gd (ChainShotStrategy)
+
 func apply_upgrade(projectile: Node) -> void:
 	if not projectile:
 		return
@@ -29,7 +31,10 @@ func apply_upgrade(projectile: Node) -> void:
 		if not projectile.hit_targets:
 			projectile.hit_targets = []
 		
-		print("ChainShot: Applied to Arrow - chain chance:", chain_chance)
+		# Add additional properties for improved chaining
+		projectile.set_meta("use_improved_chain", true)
+		
+		print("ChainShot: Applied to Arrow with improved targeting - chain chance:", chain_chance)
 	else:
 		# For generic projectiles, set metadata
 		projectile.set_meta("chain_shot_enabled", true)
@@ -39,8 +44,9 @@ func apply_upgrade(projectile: Node) -> void:
 		projectile.set_meta("max_chains", max_chains)
 		projectile.set_meta("current_chains", 0)
 		projectile.set_meta("hit_targets", [])
+		projectile.set_meta("use_improved_chain", true)
 		
-		print("ChainShot: Applied to generic projectile via metadata")
+		print("ChainShot: Applied to generic projectile via metadata with improved targeting")
 
 # Helper method for debugging
 func get_strategy_name() -> String:
