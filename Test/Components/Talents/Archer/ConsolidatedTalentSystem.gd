@@ -693,8 +693,8 @@ func check_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> boo
 	
 	return false
 
-func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
-	var shooter = projectile.shooter
+func spawn_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> void:
+	var shooter = current_projectile.shooter
 	if not shooter:
 		return
 		
@@ -713,21 +713,24 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		target_position = target.global_position
 	else:
 		# If no target, use a position in front of the shooter
-		target_position = projectile.global_position + projectile.direction * 300
+		target_position = current_projectile.global_position + current_projectile.direction * 300
 	
 	# IMPORTANT: Save bleeding effect metadata from original projectile
-	var has_bleeding = projectile.has_meta("has_bleeding_effect")
+	var has_bleeding = current_projectile.has_meta("has_bleeding_effect")
 	var bleeding_data = {}
 	
 	if has_bleeding:
 		bleeding_data = {
 			"has_bleeding_effect": true,
-			"bleeding_damage_percent": projectile.get_meta("bleeding_damage_percent", 0.3),
-			"bleeding_duration": projectile.get_meta("bleeding_duration", 4.0),
-			"bleeding_interval": projectile.get_meta("bleeding_interval", 0.5)
+			"bleeding_damage_percent": current_projectile.get_meta("bleeding_damage_percent", 0.3),
+			"bleeding_duration": current_projectile.get_meta("bleeding_duration", 4.0),
+			"bleeding_interval": current_projectile.get_meta("bleeding_interval", 0.5)
 		}
 	
-	# Get arrows from the pool or instantiate them
+	# Calculate fall positions using smart targeting
+	var fall_positions = _get_smart_fall_positions(target_position, effects, shooter, effects.arrow_rain_count)
+	
+	# Spawn rain arrows
 	for i in range(effects.arrow_rain_count):
 		var arrow = null
 		
@@ -735,9 +738,9 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		if ProjectilePool and ProjectilePool.instance:
 			arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
 			
-			# Garantir que a flecha obtida do pool tenha estado limpo
+			# Ensure the pooled arrow has a clean state
 			if arrow and arrow.is_pooled():
-				# Forçar reinicialização da flecha do pool
+				# Force reinitialization of pooled arrow
 				if arrow.has_method("reset_for_reuse"):
 					arrow.reset_for_reuse()
 		
@@ -752,53 +755,26 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		if not arrow:
 			continue
 		
-		# Calculate a random position within the radius for the arrow to land
-		# Com distribuição ampliada e deslocada para trás do alvo
-		var fall_positions = _get_smart_fall_positions(target_position, effects, shooter, effects.arrow_rain_count)
-		
-		for j in range(effects.arrow_rain_count):
-			# Aumenta o raio efetivo para maior dispersão
-			var effective_radius = effects.arrow_rain_radius * 1.5
-			
-			# Ângulo aleatório, mas com maior probabilidade para o norte (trás do alvo)
-			var angle = randf() * TAU
-			
-			# Determina a distribuição radial com sqrt para distribuição uniforme
-			var rand_radius = sqrt(randf()) * effective_radius
-			
-			# Calcula o offset base
-			var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
-			
-			# Adiciona um deslocamento para trás (norte)
-			# Considerando que y negativo é "para cima/norte" em coordenadas 2D
-			var back_offset = Vector2(0, -effective_radius * 0.3) 
-			
-			# Combina os offsets
-			var fall_position = fall_positions[j]
-		
-		# ---- MUDANÇA PRINCIPAL: Posição inicial é o arqueiro ----
-		# Define a posição inicial da flecha no arqueiro
-		arrow.global_position = shooter.global_position
+		# Get the specific fall position for this arrow
+		var fall_position = fall_positions[i]
 		
 		# Basic configuration
-		arrow.damage = int(projectile.damage * effects.arrow_rain_damage_percent)
+		arrow.damage = int(current_projectile.damage * effects.arrow_rain_damage_percent)
 		arrow.shooter = shooter
-		arrow.speed = 500.0  # Velocidade da flecha
+		arrow.speed = 500.0  # Arrow flight speed
 		
-		# ---- MUDANÇA: Direção inicial é para cima com leve inclinação ----
-		# A direção inicial não precisa ser configurada - o processador vai definir
-		# baseado na trajetória do arco
+		# Initial position set to shooter
+		arrow.global_position = shooter.global_position
 		
-		# IMPORTANT: Copy critical hit status and chance from original projectile
-		if "is_crit" in projectile and "is_crit" in arrow:
-			# Each arrow should roll for critical hit independently
-			if "crit_chance" in projectile:
-				arrow.crit_chance = projectile.crit_chance
+		# Ensure critical hit status is independent
+		if "is_crit" in current_projectile and "is_crit" in arrow:
+			if "crit_chance" in current_projectile:
+				arrow.crit_chance = current_projectile.crit_chance
 				arrow.is_crit = arrow.is_critical_hit(arrow.crit_chance)
 			else:
 				arrow.is_crit = randf() < 0.1  # Default 10% chance
 		
-		# IMPORTANT: Apply bleeding effect if original had it
+		# Apply bleeding effect if original had it
 		if has_bleeding:
 			arrow.set_meta("has_bleeding_effect", bleeding_data.has_bleeding_effect)
 			arrow.set_meta("bleeding_damage_percent", bleeding_data.bleeding_damage_percent)
@@ -819,39 +795,35 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 					arrow.tags.append(tag_name)
 		
 		# Disable features that shouldn't trigger for rain arrows
-		# Block double shot, chain shot, and ricochet abilities
 		arrow.set_meta("is_rain_arrow", true)
 		arrow.set_meta("no_double_shot", true)
 		arrow.set_meta("no_chain_shot", true)
 		
-		# ---- NOVAS CONFIGURAÇÕES PARA O ARCO ALTO ----
-		# Configura os metadados necessários para o RainArrowProcessor
-		arrow.set_meta("rain_start_pos", shooter.global_position)  # Posição inicial no arqueiro
-		arrow.set_meta("rain_target_pos", fall_positions)           # Posição alvo
-		arrow.set_meta("rain_arc_height", randf_range(200, 300))   # Altura aleatória para o arco (bem alto)
+		# Configure rain arrow specifics
+		arrow.set_meta("rain_start_pos", shooter.global_position)
+		arrow.set_meta("rain_target_pos", fall_position)
+		arrow.set_meta("rain_arc_height", randf_range(200, 300))
+		arrow.set_meta("rain_time", 1.0 + (i * 0.05))  # Slight variation in timing
 		
 		# Create a modified copy of effects with disabled problematic abilities
 		var rain_effects = effects.copy()
 		rain_effects.double_shot_enabled = false
 		rain_effects.can_chain = false
+		
 		# Apply the modified effects
 		apply_compiled_effects(arrow, rain_effects)
 		
-		# Verifica se a flecha já tem um pai antes de adicionar à cena
+		# Remove from current parent if any
 		if arrow.get_parent():
 			arrow.get_parent().remove_child(arrow)
-			
-		# Adiciona o arrow ao parent antes de configurar o processador
+		
+		# Add to parent before setting up processor
 		shooter.get_parent().add_child(arrow)
 		
-		# ---- NOVO MÉTODO DE CONFIGURAÇÃO DA TRAJETÓRIA ----
-		# Cria um processador de arco diretamente 
+		# Create rain arrow processor
 		var processor = RainArrowProcessor.new()
+		processor.name = "RainArrowProcessor"
 		arrow.add_child(processor)
-		
-		# Varia ligeiramente o tempo de voo para criar efeito visual de lançamento sequencial
-		# Em vez de usar um timer que pode falhar antes do nó estar na árvore
-		arrow.set_meta("rain_time", 1.0 + (i * 0.05))  # Adiciona 0.05s por flecha
 	
 func setup_rain_arrow_trajectory(arrow: Node, impact_position: Vector2, parent_node: Node) -> void:
 	# Disable standard physics and collisions initially

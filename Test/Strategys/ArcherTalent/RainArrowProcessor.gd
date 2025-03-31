@@ -10,7 +10,7 @@ var total_time: float                # Tempo total de voo (calculado)
 var elapsed_time: float = 0.0        # Tempo decorrido
 
 # Referências
-var arrow: Node                      # Referência à flecha pai
+var arrow: NewArrow                  # Referência à flecha pai
 var shadow: Node2D                   # Referência à sombra de previsão
 var show_shadow: bool = true         # Mostrar uma sombra antes da flecha cair?
 var shadow_preview_time: float = 0.5 # Quanto tempo a sombra aparece antes da flecha?
@@ -26,8 +26,8 @@ func _ready():
 		queue_free()
 		return
 		
-	# Imprimir uma mensagem para confirmar que o NOVO processador está sendo usado
-	print("Novo RainArrowProcessor ativado")
+	# Imprimir uma mensagem para confirmar que o processador está sendo usado
+	print("RainArrowProcessor ativado")
 
 	# Obtém configurações da trajetória
 	_initialize_trajectory()
@@ -58,9 +58,6 @@ func _physics_process(delta):
 	
 	# Atualiza a rotação para seguir a trajetória
 	_update_arrow_rotation(progress)
-	
-	# Ativa colisões APENAS no impacto, não antes
-	# Removemos a ativação em 0.8 para evitar dano prematuro
 	
 	# Processa o impacto se chegou ao destino
 	if progress >= 0.99:
@@ -200,18 +197,10 @@ func _update_arrow_rotation(current_progress: float):
 	# Só atualiza se a direção for significativa
 	if direction.length_squared() > 0.01:
 		# Atualiza a direção interna da flecha
-		if "direction" in arrow:
-			arrow.direction = direction
-			
+		arrow.direction = direction
+		
 		# Atualiza a rotação visual
 		arrow.rotation = direction.angle()
-
-# Verifica se as colisões da flecha estão habilitadas
-func _has_collisions_enabled() -> bool:
-	if arrow.has_node("Hurtbox"):
-		var hurtbox = arrow.get_node("Hurtbox")
-		return hurtbox.monitoring
-	return false
 
 # Habilita as colisões da flecha perto do impacto
 func _enable_arrow_collisions():
@@ -238,19 +227,18 @@ func _handle_impact():
 	if impact_particles:
 		_create_impact_effect()
 	
-	# Aplica dano a inimigos próximos (usando lógica padrão da flecha)
-	if arrow.has_method("process_on_hit"):
-		# Busca inimigos por perto
-		var enemies = _find_enemies_at_impact()
-		for enemy in enemies:
-			arrow.process_on_hit(enemy)
+	# Aplica dano a inimigos próximos 
+	var enemies = _find_enemies_at_impact()
+	for enemy in enemies:
+		# Usa o método on_hit do Arrow para garantir processamento completo
+		arrow.process_on_hit(enemy)
 	
 	# Agenda retorno ao pool ou destruição
 	var cleanup_delay = 0.1
 	get_tree().create_timer(cleanup_delay).timeout.connect(func():
 		if arrow and is_instance_valid(arrow):
-			# Tenta retornar ao pool se for um objeto pooled
-			if arrow.has_method("return_to_pool") and arrow.has_meta("pooled") and arrow.get_meta("pooled"):
+			# Verifica se é um objeto pooled
+			if arrow.is_pooled():
 				arrow.return_to_pool()
 			else:
 				arrow.queue_free()
@@ -302,7 +290,7 @@ func _create_impact_effect():
 	impact.global_position = arrow.global_position
 	parent.add_child(impact)
 	
-	# Adiciona partículas
+	# Cria partículas manualmente para maior compatibilidade
 	var particles = CPUParticles2D.new()
 	impact.add_child(particles)
 	
