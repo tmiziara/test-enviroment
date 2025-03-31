@@ -278,42 +278,31 @@ func process_on_hit(target: Node) -> void:
 		var hurtbox = get_node("Hurtbox")
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
-	
-	# Check Chain Shot
+
+	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
-		print("Chain shot enabled and can ricochet. Current chains:", current_chains, "/", max_chains)
+		print("Chain shot check - current:", current_chains, "max:", max_chains)
 		
-		# IMPORTANT: Only determine chain chance once for the entire arrow lifetime
-		# Check if we've already computed whether this arrow will chain
-		if will_chain == false:
-			# First time - do the roll to determine if this arrow will chain at all
+		# IMPORTANTE: Aborta os ricochetes se já atingimos o máximo
+		if current_chains >= max_chains:
+			print("MAX CHAINS REACHED - aborting chain")
+			will_chain = false
+			chain_calculated = true
+			is_processing_ricochet = false
+		# Apenas calcula a chance no primeiro hit
+		elif current_chains == 0 and not chain_calculated:
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
-			
-			# Update debug info
-			if has_meta("chain_shot_debug"):
-				var debug_info = get_meta("chain_shot_debug")
-				debug_info["chance_computed"] = true
-				debug_info["initial_roll"] = roll
-				debug_info["will_chain"] = will_chain
-				set_meta("chain_shot_debug", debug_info)
-				
-			print("Initial chain chance calculation: roll=", roll, " will_chain=", will_chain, " (chance:", chain_chance, ")")
-		else:
-			print("Using existing chain determination: will_chain=", will_chain)
+			chain_calculated = true
+			print("Initial chain roll:", roll, "chance:", chain_chance, "success:", will_chain)
 		
-		if will_chain:
-			print("Arrow will chain - calling find_chain_target")
+		if will_chain and current_chains < max_chains:
+			print("Will chain to next target")
 			is_processing_ricochet = true
 			call_deferred("find_chain_target", target)
-			should_destroy = false  # Allow arrow to continue
+			should_destroy = false  # Permite que a flecha continue
 		else:
-			print("Arrow won't chain - chain calculation returned false")
-	else:
-		if chain_shot_enabled:
-			print("Cannot chain - reached max chains:", current_chains, "/", max_chains)
-		else:
-			print("Cannot chain - chain shot not enabled")
+			print("No chaining - max reached or chance failed")
 	
 	# Verifica Piercing - apenas se não estiver fazendo ricochet
 	if piercing and not will_chain:
@@ -348,7 +337,11 @@ func process_on_hit(target: Node) -> void:
 			should_destroy = false  # Permite que a flecha continue
 		else:
 			print("Max pierce count reached")
-	
+	if will_chain:
+		print("Arrow will chain")
+		is_processing_ricochet = true
+		call_deferred("find_chain_target", target)
+		should_destroy = false  # Permite que a flecha continue
 	# Destruição final
 	if should_destroy:
 		print("Arrow should be destroyed")
@@ -569,6 +562,15 @@ func process_explosion_effect(target: Node) -> void:
 			strategy.create_explosion(self, target)
 			
 func find_chain_target(original_target) -> void:
+	if current_chains >= max_chains:
+		print("CRITICAL: Max chains already reached in find_chain_target, aborting")
+		will_chain = false
+		is_processing_ricochet = false
+		if is_pooled():
+			return_to_pool()
+		else:
+			queue_free()
+		return
 	# Wait a frame to ensure hit processing is complete
 	await get_tree().process_frame
 	
@@ -576,10 +578,15 @@ func find_chain_target(original_target) -> void:
 	print("Current chains:", current_chains, "/", max_chains)
 	print("Hit targets count:", hit_targets.size())
 	
-	# Get hit_targets from metadata
-	if not has_meta("hit_targets"):
-		set_meta("hit_targets", [])
-	var hit_targets = get_meta("hit_targets")
+	# IMPORTANTE: Verificar e inicializar a lista de hit_targets corretamente
+	if hit_targets == null:
+		hit_targets = []
+	
+	# Adicione o alvo original à lista se ainda não estiver lá
+	if original_target and not original_target in hit_targets:
+		hit_targets.append(original_target)
+		
+	print("Updated hit targets:", hit_targets)
 	
 	# Find nearby enemies we haven't hit yet
 	var potential_targets = []
@@ -603,7 +610,8 @@ func find_chain_target(original_target) -> void:
 		var body = result.collider
 		
 		# Skip original target and already hit targets
-		if body == original_target or body in hit_targets:
+		if body in hit_targets:
+			print("Skipping already hit target:", body.name)
 			continue
 			
 		# Check if it's an enemy with health
@@ -619,6 +627,7 @@ func find_chain_target(original_target) -> void:
 				"position": body.global_position,
 				"velocity": target_velocity
 			})
+			print("Added valid target:", body.name)
 	
 	print("Found", target_info.size(), "valid targets after filtering")
 	
@@ -635,10 +644,13 @@ func find_chain_target(original_target) -> void:
 		# IMPORTANT: Increment chain counter BEFORE continuing
 		current_chains += 1
 		print("Incrementing chain counter to", current_chains)
-		
-		# Set will_chain to false after using it to prevent further ricochets from this chain
-		will_chain = false
-		
+		set_meta("is_part_of_chain", true)
+		if current_chains >= max_chains:
+			print("⚠️ MAX CHAINS REACHED - disabling further chains")
+			will_chain = false
+			chain_calculated = true
+		# Adicione o novo alvo à lista de hit_targets
+		hit_targets.append(next_target)
 		# Apply damage reduction
 		if has_node("DmgCalculatorComponent"):
 			var dmg_calc = get_node("DmgCalculatorComponent")
@@ -667,6 +679,9 @@ func find_chain_target(original_target) -> void:
 		damage = int(damage * (1.0 - chain_damage_decay))
 		print("Chain: Direct damage reduced from", original_damage, "to", damage)
 		
+		# Importante: Reabilitar a física antes de redefinir a trajetória
+		set_physics_process(true)
+		
 		# Disable collision during redirection
 		if has_node("Hurtbox"):
 			var hurtbox = get_node("Hurtbox")
@@ -687,6 +702,10 @@ func find_chain_target(original_target) -> void:
 		# Update direction toward predicted position
 		direction = (lead_position - global_position).normalized()
 		rotation = direction.angle()
+		
+		# IMPORTANTE: Reativa as camadas de colisão
+		collision_layer = 4   # Camada de projétil
+		collision_mask = 2    # Camada de inimigo
 		
 		# Set metadata for homing behavior
 		set_meta("homing_target", next_target)
@@ -710,11 +729,13 @@ func find_chain_target(original_target) -> void:
 					hurtbox.set_deferred("monitorable", true)
 		)
 		
-		# Allow hits to be processed again
+		# IMPORTANTE: Redefine a flag de processamento
 		is_processing_ricochet = false
 		
-		# IMPORTANT: Since we've used a ricochet, recalculate chain chance for next hit
-		chain_calculated = false
+		# Adicione um log para confirmar que o ricochete foi configurado corretamente
+		print("Ricochet setup complete - physics active:", is_physics_processing(), 
+			  "collision:", collision_mask, 
+			  "velocity:", velocity)
 	else:
 		# No valid targets found, clean up arrow
 		print("No valid chain targets found, ending chain sequence")

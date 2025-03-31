@@ -560,13 +560,14 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 	print("Setting up chain shot with max_chains =", effects.max_chains)
 	
 	if projectile is NewArrow:
-		# Apply directly to arrow properties
 		projectile.chain_shot_enabled = true
 		projectile.chain_chance = effects.chain_chance
 		projectile.chain_range = effects.chain_range
 		projectile.chain_damage_decay = effects.chain_damage_decay
-		projectile.max_chains = effects.max_chains
+		projectile.max_chains = effects.max_chains  # Este é o valor importante
 		projectile.current_chains = 0
+		projectile.hit_targets = []
+		projectile.add_tag("chain_shot")
 		
 		# IMPORTANT: Set will_chain to null to indicate it hasn't been determined yet
 		projectile.will_chain = false
