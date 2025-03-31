@@ -179,11 +179,18 @@ func _on_body_entered(body):
 		apply_effect_to_enemy(body)
 
 func apply_effect_to_enemy(enemy):
-	# Aplicar knockback
-	if enemy is CharacterBody2D:
+	# Aplicar knockback - Usar MovementControlComponent preferencialmente
+	if enemy.has_node("MovementControlComponent"):
+		var movement_control = enemy.get_node("MovementControlComponent")
+		if movement_control.has_method("apply_knockback"):
+			# Calcular direção do knockback
+			var knockback_direction = (enemy.global_position - global_position).normalized()
+			# Chamar via call_deferred para segurança
+			call_deferred("_apply_movement_knockback", movement_control, knockback_direction, knockback_force)
+	# Fallback para método direto se não tiver MovementControlComponent
+	elif enemy is CharacterBody2D:
 		var knockback_direction = (enemy.global_position - global_position).normalized()
-		
-		# Aplicar knockback
+		# Aplicar knockback através da velocidade
 		enemy.set_deferred("velocity", enemy.velocity + knockback_direction * knockback_force)
 	
 	# Aplicar slow
@@ -193,7 +200,9 @@ func apply_effect_to_enemy(enemy):
 			var debuff_component = enemy.get_node("DebuffComponent")
 			call_deferred("_apply_debuff", debuff_component, GlobalDebuffSystem.DebuffType.SLOWED, slow_duration, {
 				"slow_percent": slow_percent,
-				"source": shooter
+				"source": shooter,
+				"display_icon": true,
+				"effect_name": "Pressure Wave"
 			})
 		# Via MovementControl
 		elif enemy.has_node("MovementControlComponent"):
@@ -211,6 +220,11 @@ func apply_effect_to_enemy(enemy):
 			timer.one_shot = true
 			timer.autostart = true
 			call_deferred("_add_restore_timer", enemy, timer, original_speed)
+
+# Método auxiliar para aplicar knockback
+func _apply_movement_knockback(component, direction, force):
+	if component and is_instance_valid(component) and component.has_method("apply_knockback"):
+		component.apply_knockback(direction, force)
 
 # Métodos auxiliares para aplicar efeitos de forma segura
 func _apply_debuff(component, debuff_type, duration, data):
