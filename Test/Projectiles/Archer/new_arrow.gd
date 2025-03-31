@@ -51,7 +51,6 @@ func _ready():
 	super._ready()
 	if shooter and "crit_chance" in shooter:
 		crit_chance = shooter.crit_chance
-		print("Setting crit_chance from shooter: ", crit_chance)
 	# Initialize hit_targets array if not already done
 	if not hit_targets:
 		hit_targets = []
@@ -145,14 +144,12 @@ func apply_focused_shot_bonus(damage_package: Dictionary, target: Node) -> Dicti
 		if "physical_damage" in damage_package:
 			var bonus_physical = int(damage_package["physical_damage"] * focused_shot_bonus)
 			damage_package["physical_damage"] += bonus_physical
-			print("Focused Shot: Physical damage increased by ", bonus_physical)
 		
 		# Apply to elemental damage
 		if "elemental_damage" in damage_package:
 			for element in damage_package["elemental_damage"]:
 				var bonus_elem = int(damage_package["elemental_damage"][element] * focused_shot_bonus)
 				damage_package["elemental_damage"][element] += bonus_elem
-				print("Focused Shot: Elemental damage for ", element, " increased by ", bonus_elem)
 		
 		# Add tag
 		if "tags" not in damage_package:
@@ -164,12 +161,6 @@ func apply_focused_shot_bonus(damage_package: Dictionary, target: Node) -> Dicti
 
 # Override the process_on_hit method for advanced arrow functionality
 func process_on_hit(target: Node) -> void:
-	print("Arrow process_on_hit called")
-	print("Pooled status: ", is_pooled())
-	print("Shooter: ", shooter)
-	print("Piercing: ", piercing)
-	print("Chain Shot enabled: ", chain_shot_enabled)
-	
 	# Variável para controlar destruição da flecha - garante que será destruída por padrão
 	var should_destroy = true
 	
@@ -184,7 +175,6 @@ func process_on_hit(target: Node) -> void:
 	
 	# Se já estiver processando um ricochet, ignora este hit
 	if is_processing_ricochet:
-		print("Already processing ricochet - ignoring hit")
 		return
 	
 	# BLOODSEEKER LOGIC: Determine if this hit should increment Bloodseeker stacks
@@ -192,11 +182,9 @@ func process_on_hit(target: Node) -> void:
 	# Check if the projectile is marked for special treatment (chain/double shot/piercing)
 	if has_meta("is_second_arrow"):
 		# For double shot, secondary arrows don't increment Bloodseeker
-		print("Secondary arrow from Double Shot - will not increment Bloodseeker")
 		should_increment_bloodseeker = false
 	elif chain_shot_enabled and current_chains > 0:
 		# For chain shot, only the first hit (current_chains == 0) increments Bloodseeker
-		print("Chain shot with chains > 0 - will not increment Bloodseeker")
 		should_increment_bloodseeker = false
 	elif piercing:
 		# For piercing arrows, we need to check if this is a new target for THIS arrow
@@ -208,7 +196,6 @@ func process_on_hit(target: Node) -> void:
 		
 		if target_key in bs_hit_targets:
 			# Already hit this target with this arrow - don't increment
-			print("Piercing: repeat hit on same target - will not increment Bloodseeker")
 			should_increment_bloodseeker = false
 		else:
 			# First time hitting this target - add it to our tracking and increment
@@ -218,14 +205,11 @@ func process_on_hit(target: Node) -> void:
 			# Only the first target hit by each arrow should increment
 			if not has_meta("bloodseeker_hit_first"):
 				set_meta("bloodseeker_hit_first", true)
-				print("Piercing: first hit detected - will increment Bloodseeker")
 				should_increment_bloodseeker = true
 			else:
-				print("Piercing: not first hit - will not increment Bloodseeker")
 				should_increment_bloodseeker = false
 	else:
 		# Normal arrow - should increment
-		print("Normal arrow - will increment Bloodseeker")
 		should_increment_bloodseeker = true
 	
 	# Store our decision for Bloodseeker stacking in metadata
@@ -278,10 +262,8 @@ func process_on_hit(target: Node) -> void:
 						"interval": dot_data.get("interval", 0.5),
 						"type": dot_data.get("type", "fire")
 					})
-					print("Added fire DoT to damage package with damage: ", dot_damage)
 					
 		health_component.take_complex_damage(damage_package)
-		print("Prestes a chamar process_special_dot_effects")
 		# Process special DoT effects like bleeding using DoTManager
 		process_special_dot_effects(damage_package, target)
 	
@@ -315,11 +297,8 @@ func process_on_hit(target: Node) -> void:
 	
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
-		print("Chain shot check - current:", current_chains, "max:", max_chains)
-		
 		# IMPORTANTE: Aborta os ricochetes se já atingimos o máximo
 		if current_chains >= max_chains:
-			print("MAX CHAINS REACHED - aborting chain")
 			will_chain = false
 			chain_calculated = true
 			is_processing_ricochet = false
@@ -328,10 +307,8 @@ func process_on_hit(target: Node) -> void:
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
 			chain_calculated = true
-			print("Initial chain roll:", roll, "chance:", chain_chance, "success:", will_chain)
 		
 		if will_chain and current_chains < max_chains:
-			print("Will chain to next target")
 			is_processing_ricochet = true
 			call_deferred("find_chain_target", target)
 			should_destroy = false  # Permite que a flecha continue
@@ -340,7 +317,6 @@ func process_on_hit(target: Node) -> void:
 	
 	# Verifica Piercing - apenas se não estiver fazendo ricochet
 	if piercing and not will_chain:
-		print("Piercing enabled")
 		# Get hit_targets from meta
 		hit_targets = get_meta("hit_targets") if has_meta("hit_targets") else []
 		var current_pierce_count = hit_targets.size() - 1  # -1 because first hit isn't counted as pierce
@@ -348,9 +324,6 @@ func process_on_hit(target: Node) -> void:
 		
 		if has_meta("piercing_count"):
 			max_pierce = get_meta("piercing_count")
-		
-		print("Pierce count: ", current_pierce_count, "/", max_pierce)    
-		
 		# IMPORTANT: Set an explicit metadata entry to track current pierce count
 		set_meta("current_pierce_count", current_pierce_count)
 		
@@ -373,13 +346,11 @@ func process_on_hit(target: Node) -> void:
 			print("Max pierce count reached")
 			
 	if will_chain:
-		print("Arrow will chain")
 		is_processing_ricochet = true
 		call_deferred("find_chain_target", target)
 		should_destroy = false  # Permite que a flecha continue
 	# Destruição final
 	if should_destroy:
-		print("Arrow should be destroyed")
 		
 		# Desabilita física e visibilidade imediatamente
 		set_physics_process(false)
@@ -398,12 +369,10 @@ func process_on_hit(target: Node) -> void:
 		
 		# Retorna ao pool com pequeno delay ou destrói
 		if is_pooled():
-			print("Returning to pool")
 			get_tree().create_timer(0.1).timeout.connect(func():
 				return_to_pool()
 			)
 		else:
-			print("Queuing free")
 			queue_free()
 			
 # Versão corrigida para o método process_special_dot_effects
@@ -413,31 +382,24 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 	# Tenta acessar pela propriedade estática
 	if DoTManager.instance:
 		dot_manager = DoTManager.instance
-		print("DoTManager acessado via instância singleton")
 	else:
 		# Fallback: tenta encontrar pelo caminho na árvore
 		dot_manager = get_node_or_null("/root/DoTManager")
 		if dot_manager:
 			print("DoTManager encontrado na árvore de nós")
 		else:
-			print("DoTManager não disponível! Os efeitos DoT serão processados pelo health component")
 			return
 	
 	# Verify the dot_manager has the apply_dot method
 	if not dot_manager.has_method("apply_dot"):
-		print("DoTManager singleton not properly initialized")
 		return
-	
 	# Calculate TOTAL damage before armor reduction
 	var total_damage = damage_package.get("physical_damage", damage)
 	var elemental_damage = damage_package.get("elemental_damage", {})
-	
 	# Add all elemental damage components
 	for element_type in elemental_damage:
 		total_damage += elemental_damage[element_type]
-	
 	if damage_package.get("is_critical", false) and has_meta("has_bleeding_effect"):
-		
 		# Get bleeding metadata from arrow
 		var damage_percent = get_meta("bleeding_damage_percent", 0.3)
 		var duration = get_meta("bleeding_duration", 4.0)
@@ -457,12 +419,6 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 			"bleeding",
 			self  # Source is this arrow
 		)
-		
-		if dot_id:
-			print("Successfully applied bleeding via DoTManager:", dot_id)
-		else:
-			print("Failed to apply bleeding via DoTManager")
-	
 	# Process fire DoT directly via DoTManager if not already added to damage package
 	if has_node("DmgCalculatorComponent"):
 		var dmg_calc = get_node("DmgCalculatorComponent")
@@ -496,17 +452,8 @@ func process_special_dot_effects(damage_package: Dictionary, target: Node) -> vo
 					"fire",
 					self  # Source is this arrow
 				)
-				
-				if dot_id:
-					print("Successfully applied fire DoT via DoTManager:", dot_id)
-				else:
-					print("Failed to apply fire DoT via DoTManager")
-	
-	# Any other specialized DoT effects can be added here
-	
 	# Any other specialized DoT effects can be added here
 func process_talent_effects(target: Node) -> void:
-	print("Processing Talent Effects")
 	# Get flag for Bloodseeker increment
 	var should_increment_bloodseeker = has_meta("should_increment_bloodseeker") and get_meta("should_increment_bloodseeker")
 	
@@ -516,24 +463,18 @@ func process_talent_effects(target: Node) -> void:
 			# Verifica se o atirador tem ArcherTalentManager
 			if shooter.has_node("ArcherTalentManager"):
 				var talent_manager = shooter.get_node("ArcherTalentManager")
-				print("Chamando talent_manager.apply_bloodseeker_hit (should increment: ", should_increment_bloodseeker, ")")
 				talent_manager.apply_bloodseeker_hit(target)
-		else:
-			print("Skipping Bloodseeker increment based on flag")
 			
 	# Process mark effect - nova verificação
 	if has_meta("has_mark_effect") and is_crit:
-		print("Mark effect detected and critical hit - applying mark")
 		apply_mark_on_critical_hit(target)
 	
 	# Process splinter effect
 	if has_meta("has_splinter_effect"):
-		print("Splinter effect detected - processing splinters")
 		process_splinter_effect(target)
 	
 	# Process explosion effect
 	if has_meta("has_explosion_effect"):
-		print("Explosion effect detected - processing explosion")
 		process_explosion_effect(target)
 
 # Process splinter arrow effect
@@ -581,9 +522,6 @@ func apply_mark_on_critical_hit(target: Node) -> void:
 		
 		# Armazena o bônus como metadado no alvo para acesso rápido
 		target.set_meta("mark_crit_bonus", mark_crit_bonus)
-		
-		print("Marked for Death aplicado ao alvo por " + str(mark_duration) + "s com " + 
-			  str(mark_crit_bonus * 100) + "% de bônus de dano crítico")
 
 # Process explosion arrow effect
 func process_explosion_effect(target: Node) -> void:
@@ -598,7 +536,6 @@ func process_explosion_effect(target: Node) -> void:
 			
 func find_chain_target(original_target) -> void:
 	if current_chains >= max_chains:
-		print("CRITICAL: Max chains already reached in find_chain_target, aborting")
 		will_chain = false
 		is_processing_ricochet = false
 		if is_pooled():
@@ -608,11 +545,6 @@ func find_chain_target(original_target) -> void:
 		return
 	# Wait a frame to ensure hit processing is complete
 	await get_tree().process_frame
-	
-	print("CHAIN DEBUG: Finding next chain target")
-	print("Current chains:", current_chains, "/", max_chains)
-	print("Hit targets count:", hit_targets.size())
-	
 	# IMPORTANTE: Verificar e inicializar a lista de hit_targets corretamente
 	if hit_targets == null:
 		hit_targets = []
@@ -621,8 +553,6 @@ func find_chain_target(original_target) -> void:
 	if original_target and not original_target in hit_targets:
 		hit_targets.append(original_target)
 		
-	print("Updated hit targets:", hit_targets)
-	
 	# Find nearby enemies we haven't hit yet
 	var potential_targets = []
 	var space_state = get_world_2d().direct_space_state
@@ -637,7 +567,6 @@ func find_chain_target(original_target) -> void:
 	
 	# Execute query
 	var results = space_state.intersect_shape(query)
-	print("Found", results.size(), "potential targets in range")
 	
 	# Filter and collect target info with velocity
 	var target_info = []
@@ -646,7 +575,6 @@ func find_chain_target(original_target) -> void:
 		
 		# Skip original target and already hit targets
 		if body in hit_targets:
-			print("Skipping already hit target:", body.name)
 			continue
 			
 		# Check if it's an enemy with health
@@ -662,10 +590,6 @@ func find_chain_target(original_target) -> void:
 				"position": body.global_position,
 				"velocity": target_velocity
 			})
-			print("Added valid target:", body.name)
-	
-	print("Found", target_info.size(), "valid targets after filtering")
-	
 	# If we found at least one valid target
 	if target_info.size() > 0:
 		# Choose random target
@@ -674,14 +598,10 @@ func find_chain_target(original_target) -> void:
 		var target_position = target_data.position
 		var target_velocity = target_data.velocity
 		
-		print("Selected target:", next_target.name)
-		
 		# IMPORTANT: Increment chain counter BEFORE continuing
 		current_chains += 1
-		print("Incrementing chain counter to", current_chains)
 		set_meta("is_part_of_chain", true)
 		if current_chains >= max_chains:
-			print("⚠️ MAX CHAINS REACHED - disabling further chains")
 			will_chain = false
 			chain_calculated = true
 		# Adicione o novo alvo à lista de hit_targets
@@ -694,26 +614,20 @@ func find_chain_target(original_target) -> void:
 			if "base_damage" in dmg_calc:
 				var original_base = dmg_calc.base_damage
 				dmg_calc.base_damage = int(dmg_calc.base_damage * (1.0 - chain_damage_decay))
-				print("Chain: Base damage reduced from", original_base, "to", dmg_calc.base_damage)
 			
 			# Reduce damage multiplier
 			if "damage_multiplier" in dmg_calc:
 				var original_mult = dmg_calc.damage_multiplier
 				dmg_calc.damage_multiplier *= (1.0 - chain_damage_decay * 0.5)  # Half effect on multiplier
-				print("Chain: Multiplier reduced from", original_mult, "to", dmg_calc.damage_multiplier)
 			
 			# Reduce elemental damage
 			if "elemental_damage" in dmg_calc and not dmg_calc.elemental_damage.is_empty():
 				for element_type in dmg_calc.elemental_damage.keys():
 					var original_elem = dmg_calc.elemental_damage[element_type]
 					dmg_calc.elemental_damage[element_type] = int(dmg_calc.elemental_damage[element_type] * (1.0 - chain_damage_decay))
-					print("Chain: Element", element_type, "reduced from", original_elem, "to", dmg_calc.elemental_damage[element_type])
-		
 		# Reduce direct damage
 		var original_damage = damage
 		damage = int(damage * (1.0 - chain_damage_decay))
-		print("Chain: Direct damage reduced from", original_damage, "to", damage)
-		
 		# Importante: Reabilitar a física antes de redefinir a trajetória
 		set_physics_process(true)
 		
@@ -768,12 +682,8 @@ func find_chain_target(original_target) -> void:
 		is_processing_ricochet = false
 		
 		# Adicione um log para confirmar que o ricochete foi configurado corretamente
-		print("Ricochet setup complete - physics active:", is_physics_processing(), 
-			  "collision:", collision_mask, 
-			  "velocity:", velocity)
 	else:
 		# No valid targets found, clean up arrow
-		print("No valid chain targets found, ending chain sequence")
 		if is_pooled():
 			return_to_pool()
 		else:
@@ -944,12 +854,10 @@ func reset_for_reuse() -> void:
 	if shooter and "crit_chance" in shooter:
 		crit_chance = shooter.crit_chance
 		is_crit = is_critical_hit(crit_chance)
-		print("NewArrow: Recalculated critical hit. Result:", is_crit, "Chance:", crit_chance)
 	else:
 		# Mantém o valor anterior se não for possível recalcular
 		crit_chance = crit_chance_current
 		is_crit = was_critical
-		print("NewArrow: Maintained previous critical status:", is_crit)
 
 	# Reset physics processing
 	set_physics_process(true)

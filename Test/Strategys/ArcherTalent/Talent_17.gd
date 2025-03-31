@@ -14,10 +14,6 @@ func get_strategy_name() -> String:
 
 # Aplicar estratégia ao projétil
 func apply_upgrade(projectile: Node) -> void:
-	print("Aplicando talento Marked for Death ao projétil")
-	
-	# A maioria da lógica agora será delegada aos sistemas existentes
-	
 	# Apenas adiciona os metadados necessários que serão usados pelo NewProjectileBase e ConsolidatedTalentSystem
 	projectile.set_meta("has_mark_effect", true)
 	projectile.set_meta("mark_duration", mark_duration) 

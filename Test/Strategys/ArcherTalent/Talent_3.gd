@@ -10,7 +10,6 @@ func get_strategy_name() -> String:
 	return "Sharp Arrows"
 
 func apply_upgrade(projectile: Node) -> void:
-	print("Aplicando upgrade de Sharp Arrows - penetração de armadura de ", armor_penetration * 100, "%")
 	
 	# Adiciona tag para identificação
 	if "tags" in projectile:

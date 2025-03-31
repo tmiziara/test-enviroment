@@ -11,15 +11,9 @@ func get_strategy_name() -> String:
 	return "FocusedShotStrategy"
 
 func apply_upgrade(projectile: Node) -> void:
-	print("Aplicando upgrade de Focused Shot - +", 
-		  damage_bonus_percent * 100, "% de dano contra inimigos com mais de ", 
-		  health_threshold * 100, "% de vida")
-	
 	# Adiciona tag para identificação
 	if "tags" in projectile:
 		if projectile.has_method("add_tag"):
 			projectile.add_tag("focused_shot")
 		elif not "focused_shot" in projectile.tags:
 			projectile.tags.append("focused_shot")
-	
-	print("Focused Shot configurado com sucesso no projétil")

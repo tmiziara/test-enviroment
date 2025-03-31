@@ -20,20 +20,15 @@ func _ready():
 	var parent = get_parent()
 	if parent.has_node("DefenseComponent"):
 		defense_component = parent.get_node("DefenseComponent")
-		print("HealthComponent: DefenseComponent encontrado com armadura:", defense_component.armor)
 	else:
 		print("HealthComponent: DefenseComponent NÃO encontrado!")
 
 # Função básica que aplica dano direto à vida
 func take_damage(amount: int, is_crit: bool = false, damage_type: String = ""):
-	print("take_damage chamado com:", amount, is_crit, damage_type)
-	
 	# Aplica redução de dano se possível
 	var final_amount = amount
 	if defense_component and defense_component.has_method("reduce_damage"):
-		print("Aplicando redução via DefenseComponent")
 		final_amount = defense_component.reduce_damage(amount, damage_type)
-		print("Dano após redução:", final_amount)
 	else:
 		print("DefenseComponent não encontrado ou não tem método reduce_damage")
 	
@@ -66,12 +61,9 @@ func update_health_bar():
 
 # Processa um pacote completo de dano
 func take_complex_damage(damage_package: Dictionary):
-	print("take_complex_damage chamado com:", damage_package)
-	
 	# Aplica redução de dano se houver componente de defesa
 	var final_damage = damage_package.duplicate(true)
 	if defense_component and defense_component.has_method("apply_reductions"):
-		print("HealthComponent: Aplicando reduções de dano via DefenseComponent")
 		final_damage = defense_component.apply_reductions(final_damage)
 	else:
 		print("HealthComponent: Sem reduções de dano - DefenseComponent não encontrado")
@@ -85,9 +77,6 @@ func take_complex_damage(damage_package: Dictionary):
 	var total_damage = physical_damage
 	for element_type in elemental_damage:
 		total_damage += elemental_damage[element_type]
-	
-	print("Dano total após reduções:", total_damage)
-	
 	# Mostra números de dano para dano físico
 	if physical_damage > 0:
 		health_changed.emit(current_health, physical_damage, is_critical, "")
@@ -101,9 +90,6 @@ func take_complex_damage(damage_package: Dictionary):
 	# Agora aplica o dano total de uma vez
 	current_health -= total_damage
 	current_health = max(current_health, 0)
-	
-	print("Vida após dano:", current_health, "/", max_health)
-	
 	# Atualiza a barra de vida diretamente
 	update_health_bar()
 	
@@ -149,7 +135,6 @@ func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
 	var parent = get_parent()
 	var debuff_component = parent.get_node_or_null("DebuffComponent")
 	if debuff_component:
-		print("HealthComponent: Using DebuffComponent to apply debuff")
 		# Convert string to enum
 		var debuff_type = GlobalDebuffSystem.DebuffType.NONE
 		match debuff_name:
@@ -168,7 +153,6 @@ func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
 		# Still call the effect function for compatibility
 		effect_func.call()
 		return
-	
 	# Legacy implementation
 	print("WARNING: Using deprecated debuff system in HealthComponent")
 	var debuffs = {}
@@ -180,23 +164,13 @@ func apply_debuff(debuff_name: String, duration: float, effect_func: Callable):
 
 # Simplified DoT application that delegates to DoTManager
 func apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic") -> void:
-	# Log de diagnóstico
-	print("HealthComponent.apply_dot - Delegating to DoTManager")
-	print("  damage:", damage)
-	print("  duration:", duration)
-	print("  interval:", interval)
-	print("  type:", dot_type)
-	
 	# Check if DoTManager is available
 	if not DoTManager.instance:
-		print("ERROR: DoTManager singleton not found, using legacy DoT application")
 		_legacy_apply_dot(damage, duration, interval, dot_type)
 		return
-		
 	# Get parent entity
 	var entity = get_parent()
 	if not entity:
-		print("ERROR: No parent entity found for DoT application")
 		return
 	
 	# Apply DoT through manager
@@ -208,12 +182,6 @@ func apply_dot(damage: int, duration: float, interval: float, dot_type: String =
 		dot_type,
 		null   # No source specified
 	)
-	
-	# Log result
-	if dot_id:
-		print("Successfully applied DoT via manager: ", dot_id)
-	else:
-		print("DoT application failed or was prevented")
 
 # Legacy implementation for backward compatibility
 func _legacy_apply_dot(damage: int, duration: float, interval: float, dot_type: String = "generic") -> void:
@@ -222,11 +190,9 @@ func _legacy_apply_dot(damage: int, duration: float, interval: float, dot_type: 
 	# Verifica se o componente de defesa pode reduzir o DoT
 	if defense_component and defense_component.has_method("reduce_dot_damage"):
 		damage = defense_component.reduce_dot_damage(damage, dot_type)
-		print("Damage after reduction: ", damage)
 	
 	# Se o dano for reduzido a zero ou menos, não aplica o DoT
 	if damage <= 0:
-		print("Damage reduced to 0 or less - DoT not applied")
 		return
 	
 	# Cria um timer para aplicar o dano periodicamente

@@ -10,7 +10,6 @@ func get_strategy_name() -> String:
 	return "EnhancedRangeStrategy"
 
 func apply_upgrade(projectile: Node) -> void:
-	print("Aplicando upgrade de Enhanced Range!")
 	
 	# Adiciona tag para identificação
 	if "tags" in projectile:

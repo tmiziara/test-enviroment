@@ -61,18 +61,15 @@ func apply_dot(entity: Node, damage: int, duration: float, interval: float,
 	var defense_component = entity.get_node_or_null("DefenseComponent")
 	
 	if not health_component:
-		print("DoTManager: Entity has no HealthComponent, can't apply DoT")
 		return ""
 	
 	# Process resistance via DefenseComponent
 	var final_damage = damage
 	if defense_component and defense_component.has_method("reduce_dot_damage"):
 		final_damage = defense_component.reduce_dot_damage(damage, dot_type)
-		print("DoTManager: Damage reduced by defense from ", damage, " to ", final_damage)
 	
 	# If damage is reduced to zero or less, don't apply the DoT
 	if final_damage <= 0:
-		print("DoTManager: DoT damage reduced to zero, not applying")
 		return ""
 	
 	# Get entity ID for tracking
@@ -103,14 +100,12 @@ func apply_dot(entity: Node, damage: int, duration: float, interval: float,
 			dot.duration_timer.wait_time = duration
 			dot.duration_timer.start()
 		
-		print("DoTManager: Updated existing ", dot_type, " DoT on entity ", entity_id)
 		return existing_dot_id
 	
 	# Check stacking limit
 	if should_stack:
 		var current_stacks = _count_dot_stacks(entity_id, dot_type)
 		if current_stacks >= max_stacks:
-			print("DoTManager: Max stacks reached for ", dot_type, " on entity ", entity_id)
 			return ""
 	
 	# Create new DoT effect
@@ -163,7 +158,6 @@ func apply_dot(entity: Node, damage: int, duration: float, interval: float,
 	# Emit signal
 	emit_signal("dot_applied", entity, dot_type, dot_effect.dot_id)
 	
-	print("DoTManager: Applied new ", dot_type, " DoT (", dot_effect.dot_id, ") to entity ", entity_id)
 	return dot_effect.dot_id
 
 # Find a matching DoT on the entity
@@ -193,34 +187,27 @@ func _count_dot_stacks(entity_id: int, dot_type: String) -> int:
 func _process_dot_tick(entity_id: int, dot_id: String) -> void:
 	# Verify entity and DoT still exist
 	if not active_dots.has(entity_id) or not active_dots[entity_id].has(dot_id):
-		print("DoTManager: Entity or DoT no longer exists for tick")
 		return
 		
 	var dot = active_dots[entity_id][dot_id]
 	
 	# Verify entity still exists
 	if not is_instance_valid(dot.entity):
-		print("DoTManager: Entity no longer valid for DoT tick")
 		_remove_dot(entity_id, dot_id)
 		return
 	
 	# Get health component
 	var health_component = dot.entity.get_node_or_null("HealthComponent")
 	if not health_component:
-		print("DoTManager: Entity no longer has HealthComponent")
 		_remove_dot(entity_id, dot_id)
 		return
 	
 	# Apply damage
-	print("DoTManager: Applying ", dot.damage, " ", dot.type, " DoT damage to entity ", entity_id)
 	health_component.take_damage(dot.damage, false, dot.type)
-	
 	# Emit tick signal
 	emit_signal("dot_tick", dot.entity, dot.type, dot.damage, dot_id)
-	
 	# Reduce remaining time
 	dot.remaining_time -= dot.interval
-	
 	# If remaining time is zero or negative, remove the DoT
 	if dot.remaining_time <= 0:
 		_remove_dot(entity_id, dot_id)
@@ -263,8 +250,6 @@ func _remove_dot(entity_id: int, dot_id: String) -> void:
 				# Only remove if all DoTs of this type are gone
 				if _count_dot_stacks(entity_id, dot_type) == 0:
 					debuff_component.remove_debuff(debuff_type)
-	
-	print("DoTManager: Removed ", dot_type, " DoT (", dot_id, ") from entity ", entity_id)
 
 # Clean up expired DoTs and invalid entities
 func _cleanup_expired_dots() -> void:

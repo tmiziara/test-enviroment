@@ -59,9 +59,5 @@ func _unhandled_input(event):
 			if performance_monitor.debug_label:
 				# Alterna a visibilidade
 				performance_monitor.debug_label.visible = !performance_monitor.debug_label.visible
-				print("Visibilidade do monitor: ", performance_monitor.debug_label.visible)
-			
-			# Tenta imprimir o resumo
-			print(performance_monitor.get_stats_summary())
 		else:
 			print("ERRO CRÍTICO: Monitor de desempenho NÃO ENCONTRADO")

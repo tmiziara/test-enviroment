@@ -26,7 +26,6 @@ func _ready():
 	# Obtém referência para a entidade pai
 	entity = get_parent() as CharacterBody2D
 	if not entity:
-		push_error("MovementControlComponent deve ser filho de um CharacterBody2D")
 		return
 		
 	# Encontra o componente de debuff, se existir

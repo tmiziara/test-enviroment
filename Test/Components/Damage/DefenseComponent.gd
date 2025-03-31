@@ -15,9 +15,6 @@ const MAX_ARMOR_REDUCTION = 0.75  # Máximo de 75% de redução por armadura
 # Dicionário de debuffs ativos
 var active_debuffs = {}
 
-func _ready():
-	print("DefenseComponent inicializado com armadura:", armor)
-
 # Método simples para reduzir um valor de dano único
 func reduce_damage(amount: int, damage_type: String = "") -> int:
 	var final_amount = amount
@@ -26,7 +23,6 @@ func reduce_damage(amount: int, damage_type: String = "") -> int:
 	match damage_type:
 		"": # Dano físico
 			var reduction = calculate_armor_reduction(armor)
-			print("Redução de armadura: ", reduction * 100, "%")
 			final_amount = int(amount * (1.0 - reduction))
 		"fire":
 			final_amount = int(amount * (1.0 - resistance_fire))
@@ -36,8 +32,6 @@ func reduce_damage(amount: int, damage_type: String = "") -> int:
 			final_amount = int(amount * (1.0 - resistance_poison))
 		_: # Qualquer outro tipo de dano
 			final_amount = int(amount * (1.0 - resistance_generic))
-	
-	print("Dano original: ", amount, " Dano após redução: ", final_amount)
 	return max(1, final_amount) # Garante pelo menos 1 de dano
 
 # Fórmula de redução de armadura com diminuição de retorno para altos valores
@@ -72,11 +66,6 @@ func reduce_dot_damage(amount: int, dot_type: String = "generic") -> int:
 # Aplica reduções a um pacote completo de dano
 func apply_reductions(damage_package: Dictionary) -> Dictionary:
 	var result = damage_package.duplicate(true)
-	
-	# Depuração
-	print("DefenseComponent: Pacote de dano recebido:", damage_package)
-	print("DefenseComponent: Armadura atual:", armor)
-	
 	# Redução de dano físico por armadura
 	if "physical_damage" in result:
 		var original_damage = result.physical_damage
@@ -90,12 +79,6 @@ func apply_reductions(damage_package: Dictionary) -> Dictionary:
 		
 		# Aplica a redução
 		result.physical_damage = int(result.physical_damage * (1.0 - reduction))
-		
-		# Depuração
-		print("DefenseComponent: Dano físico original:", original_damage)
-		print("DefenseComponent: Redução aplicada:", reduction * 100, "%")
-		print("DefenseComponent: Dano físico final:", result.physical_damage)
-	
 	# Redução de dano elemental por resistências
 	if "elemental_damage" in result:
 		for element_type in result.elemental_damage.keys():
@@ -121,12 +104,6 @@ func apply_reductions(damage_package: Dictionary) -> Dictionary:
 				reduced_damage = max(1, reduced_damage)
 				
 			result.elemental_damage[element_type] = reduced_damage
-			
-			# Depuração
-			print("DefenseComponent: Dano elemental ", element_type, " original:", original_damage)
-			print("DefenseComponent: Resistência aplicada:", resistance_value * 100, "%")
-			print("DefenseComponent: Dano elemental final:", result.elemental_damage[element_type])
-	
 	# Retorna o pacote de dano com reduções aplicadas
 	return result
 

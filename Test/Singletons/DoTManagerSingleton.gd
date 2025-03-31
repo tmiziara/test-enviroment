@@ -16,9 +16,6 @@ func _ready():
 	
 	# Opcionalmente, definir a instância estática se a classe DoTManager tiver tal campo
 	DoTManager.instance = dot_manager
-	
-	print("DoTManager singleton initialized")
-
 # Forward method calls to the DoTManager instance
 func apply_dot(entity: Node, damage: int, duration: float, interval: float, 
 			   dot_type: String = "generic", source: Node = null, 

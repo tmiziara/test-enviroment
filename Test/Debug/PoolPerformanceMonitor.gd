@@ -39,8 +39,6 @@ func _init():
 	_setup_debug_interface()
 # Modifique o _ready() para configurar a interface
 func _ready():
-	print("PoolPerformanceMonitor inicializado!")
-	
 	# Use call_deferred para garantir que a cena esteja completamente carregada
 	call_deferred("_setup_debug_interface")
 # Hook para se conectar ao sistema de pooling
@@ -134,7 +132,6 @@ func _update_stats() -> void:
 func _setup_debug_interface() -> void:
 	# Adicione verificações mais robustas
 	if not is_inside_tree():
-		print("ERRO: Nó não está dentro de uma árvore")
 		return
 
 	# Cria a label
@@ -159,7 +156,6 @@ func _setup_debug_interface() -> void:
 		root.add_child(canvas_layer)
 		canvas_layer.add_child(debug_label)
 		debug_label.visible = false  # Começa invisível
-		print("Debug label criada e adicionada")
 	else:
 		print("ERRO: Não foi possível encontrar a root da cena")
 
@@ -176,7 +172,6 @@ func _add_debug_layer(canvas_layer: CanvasLayer, background: ColorRect, label: L
 		# Torna a label visível por padrão
 		label.visible = true
 		
-		print("Debug layer adicionada à cena")
 	else:
 		print("ERRO: Não foi possível adicionar debug layer")
 	

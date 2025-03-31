@@ -12,8 +12,6 @@ func get_strategy_name() -> String:
 	return "PreciseAimStrategy"
 
 func apply_upgrade(projectile: Node) -> void:
-	print("Aplicando upgrade de Mira Precisa!")
-	
 	# Adiciona tag para identificação
 	if "tags" in projectile:
 		if projectile.has_method("add_tag"):

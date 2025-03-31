@@ -38,8 +38,6 @@ func _ready():
 	
 	# Cálculo de crítico
 	is_crit = is_critical_hit(crit_chance)
-	print("Critical Hit Calculated: ", is_crit, " (Chance: ", crit_chance, ")")
-	
 	# Get or create damage calculator
 	dmg_calculator = $DmgCalculatorComponent
 	if not dmg_calculator:
@@ -103,27 +101,13 @@ func _on_lifetime_expired():
 
 # Helper method to return arrow to pool
 func return_to_pool() -> void:
-	print("Attempting to return arrow to pool")
-	print("Is pooled: ", is_pooled())
-	print("Shooter: ", shooter)
-	print("Shooter type: ", typeof(shooter))
-	print("Shooter has instance method: ", shooter.has_method("get_instance_id"))
-	
 	if not is_pooled() or not shooter:
-		print("Cannot return to pool - queuing free")
 		queue_free()
 		return
-	
-	# Log de verificação do pool
-	print("ProjectilePool exists: ", ProjectilePool != null)
-	print("ProjectilePool instance exists: ", ProjectilePool.instance != null)
-	
 	# Return to appropriate pool
 	if ProjectilePool and ProjectilePool.instance:
-		print("Attempting to return arrow via pool method")
 		ProjectilePool.instance.return_arrow_to_pool(self)
 	else:
-		print("No pool instance - queuing free")
 		queue_free()
 
 
@@ -157,7 +141,6 @@ func calculate_critical_hit() -> bool:
 	# Marca como calculado
 	set_meta("crit_calculated", true)
 	
-	print("Acerto crítico calculado: ", is_crit, " (chance: ", final_chance, ")")
 	return is_crit
 
 # Aplicar multiplicador de dano crítico de forma centralizada
@@ -176,7 +159,6 @@ func apply_critical_multiplier(base_damage: int) -> int:
 	
 	# Calcular dano final
 	var final_damage = int(base_damage * crit_multi)
-	print("Multiplicador de acerto crítico aplicado: ", crit_multi, " (", base_damage, " → ", final_damage, ")")
 	
 	return final_damage
 	

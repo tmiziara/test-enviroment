@@ -340,7 +340,6 @@ func unlock_talent(talent_id: int):
 func show_skill_description(skill: SkillNode):
 	# Verifica se skill_description está configurado
 	if not skill_description:
-		print("Erro: skill_description não configurado")
 		return
 	
 	selected_skill_node = skill
@@ -348,7 +347,6 @@ func show_skill_description(skill: SkillNode):
 	# Verifica se o skill tem um talent_id válido
 	var talent_id = skill.talent_id
 	if talent_id == -1:
-		print("Erro: talent_id não configurado")
 		return
 	
 	# Define o ícone

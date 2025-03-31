@@ -14,7 +14,6 @@ func get_strategy_name() -> String:
 
 # Aplicar estratégia ao projétil
 func apply_upgrade(projectile: Node) -> void:
-	print("Aplicando talento Bloodseeker ao projétil")
 	
 	# Adiciona metadados para ConsolidatedTalentSystem e processamento
 	projectile.set_meta("has_bloodseeker_effect", true)

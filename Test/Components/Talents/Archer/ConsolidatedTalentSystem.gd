@@ -157,15 +157,10 @@ func compile_effects() -> CompiledEffects:
 	
 	# Limpa SEMPRE o cache para garantir valores atualizados
 	compiled_effects.clear()
-	
-	# Processa cada estratégia e compila os efeitos
-	print("Compilando efeitos a partir de ", archer.attack_upgrades.size(), " estratégias:")
 	for strategy in archer.attack_upgrades:
 		if strategy:
 			var strategy_name = strategy.get_script().get_path().get_file().get_basename()
-			print("- Processando estratégia: ", strategy_name)
 			_apply_strategy_effects(strategy, effects)
-	
 	# Retorna os efeitos compilados
 	return effects
 
@@ -191,10 +186,6 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 	# Try to get a friendlier name if available
 	if strategy.has_method("get_strategy_name"):
 		strategy_name = strategy.call("get_strategy_name")
-	
-	print("Processing strategy: ", strategy_name)
-	print("Strategy file: ", file_name)
-	
 	# Extract the talent number using regex
 	var regex = RegEx.new()
 	regex.compile("Talent_(\\d+)\\.gd")
@@ -202,8 +193,6 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 	
 	if result:
 		var talent_id = int(result.get_string(1))
-		print("Detected Talent ID: ", talent_id)
-		
 		# Process talents by their numeric ID
 		match talent_id:
 			1:  # Precise Aim
@@ -236,35 +225,21 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.focused_shot_threshold = threshold
 					
 			6:  # Flaming Arrows
-				print("Processing Talent_6 (Flaming Arrows)")
-				
 				# Safely access properties using proper property names
 				var fire_damage_percent = strategy.get("fire_damage_percent")
 				var dot_percent_per_tick = strategy.get("dot_percent_per_tick")
 				var dot_duration = strategy.get("dot_duration")
 				var dot_interval = strategy.get("dot_interval")
 				var dot_chance = strategy.get("dot_chance")  # Default 30% chance
-				
-				print("Flaming Arrows values retrieved:")
-				print("- Fire damage percent: ", fire_damage_percent)
-				print("- DoT damage per tick: ", dot_percent_per_tick)
-				print("- DoT duration: ", dot_duration)
-				print("- DoT interval: ", dot_interval)
-				print("- DoT chance: ", dot_chance)
-				
 				# Apply fire damage effect
 				effects.fire_damage_percent = fire_damage_percent
-				
 				# Apply fire DoT effect
 				effects.fire_dot_damage_percent = dot_percent_per_tick
 				effects.fire_dot_duration = dot_duration
 				effects.fire_dot_interval = dot_interval
 				effects.fire_dot_chance = dot_chance
-				
-				print("Flaming Arrows effect configured successfully")
-				
+
 			11:  # Double Shot
-				print("Processing Talent_11 (Double Shot)")
 				
 				# Get angle spread parameter
 				var angle_spread = strategy.get("angle_spread")
@@ -277,11 +252,8 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 				if damage_mod != null:
 					effects.second_arrow_damage_modifier = damage_mod
 				
-				print("Double Shot configured: angle=" + str(effects.double_shot_angle) + 
-					  ", damage_mod=" + str(effects.second_arrow_damage_modifier))
 					
 			12:  # Chain Shot
-				print("Processing Talent_12 (Chain Shot)")
 				var chain_chance = strategy.get("chain_chance")
 				var chain_range = strategy.get("chain_range")
 				var chain_decay = strategy.get("chain_damage_decay")
@@ -293,12 +265,6 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.chain_range = chain_range
 					effects.chain_damage_decay = chain_decay
 					effects.max_chains = max_chains
-					
-					print("Chain Shot configured:", 
-						  "chance=", effects.chain_chance, 
-						  "range=", effects.chain_range,
-						  "decay=", effects.chain_damage_decay,
-						  "max=", effects.max_chains)
 					
 			13:  # Arrow Rain
 				var arrow_count = strategy.get("arrow_count")
@@ -312,7 +278,6 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.arrow_rain_damage_percent = damage_per_arrow
 					effects.arrow_rain_radius = radius
 					effects.arrow_rain_interval = attacks_threshold
-					print("Arrow Rain configured in ConsolidatedTalentSystem")
 					
 			14:  # Splinter Arrows
 				var splinter_count = strategy.get("splinter_count")
@@ -335,30 +300,17 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.explosion_radius = radius
 					
 			16:  # Serrated Arrows (Bleeding)
-				print("Processing Talent_16 (Serrated Arrows - Bleeding)")
 				
-				# Print all available properties to help diagnose the issue
-				print("Available properties in strategy:")
-				for property in strategy.get_property_list():
-					print("- ", property.name, ": ", strategy.get(property.name) if strategy.get(property.name) != null else "null")
-				
-				# Use the correct property names from your Talent_16 class
+					# Use the correct property names from your Talent_16 class
 				var bleed_damage = strategy.bleeding_damage_percent
 				var bleed_duration = strategy.bleeding_duration
 				var bleed_interval = strategy.dot_interval  # This should match the property name in Talent_16
-				
-				print("Bleeding values retrieved from resource:")
-				print("- Damage percent: ", bleed_damage)
-				print("- Duration: ", bleed_duration)
-				print("- Interval: ", bleed_interval)
-				
+	
 				# Configure bleeding effect with the retrieved values
 				effects.bleed_on_crit = true
 				effects.bleed_damage_percent = bleed_damage
 				effects.bleed_duration = bleed_duration
 				effects.bleed_interval = bleed_interval
-				
-				print("Bleeding effect configured successfully")
 					
 			17:  # Marked for Death
 				var mark_duration = strategy.get("mark_duration")
@@ -375,8 +327,6 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 				
 				if damage_increase != null and max_stacks != null:
 					effects.bloodseeker_enabled = true
-					print("ConsolidatedTalentSystem: effects ID=", effects.get_instance_id(), " bloodseeker_enabled=", effects.bloodseeker_enabled)
-					print(Time.get_ticks_msec(), ": Definindo bloodseeker_enabled=true")
 					effects.bloodseeker_bonus_per_stack = damage_increase
 					effects.bloodseeker_max_stacks = max_stacks
 					
@@ -391,40 +341,34 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 
 
 func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
-	print("ConsolidatedTalentSystem: Applying compiled effects to projectile")
-	
 	# Apply basic stats with proper logging
 	if "damage" in projectile:
 		var original_damage = projectile.damage
 		# Apply damage multiplier properly
 		projectile.damage = int(original_damage * effects.damage_multiplier)
-		print("Damage updated: " + str(original_damage) + " -> " + str(projectile.damage))
 	
 	if "crit_chance" in projectile:
 		var original_crit = projectile.crit_chance
 		projectile.crit_chance = min(projectile.crit_chance + effects.crit_chance_bonus, 1.0)
-		print("Crit chance updated: " + str(original_crit) + " -> " + str(projectile.crit_chance))
 	
 	# CRITICAL: Update the DmgCalculator component
 	if projectile.has_node("DmgCalculatorComponent"):
 		var dmg_calc = projectile.get_node("DmgCalculatorComponent")
-		
+		if dmg_calc.has_meta("fire_dot_data"):
+			var dot_data = dmg_calc.get_meta("fire_dot_data")
 		# Apply damage multiplier to base_damage
 		if "base_damage" in dmg_calc:
 			var original_base = dmg_calc.base_damage
 			dmg_calc.base_damage = int(original_base * effects.damage_multiplier)
-			print("DmgCalc base damage updated: " + str(original_base) + " -> " + str(dmg_calc.base_damage))
 		
 		# Also set the damage_multiplier properly
 		if "damage_multiplier" in dmg_calc:
 			var original_mult = dmg_calc.damage_multiplier
 			dmg_calc.damage_multiplier = effects.damage_multiplier
-			print("DmgCalc multiplier updated: " + str(original_mult) + " -> " + str(dmg_calc.damage_multiplier))
 		
 		# Apply armor penetration
 		if effects.armor_penetration > 0:
 			dmg_calc.armor_penetration = effects.armor_penetration
-			print("DmgCalc armor penetration set to: " + str(dmg_calc.armor_penetration))
 			projectile.add_tag("armor_piercing")
 	
 	# Apply attack tags
@@ -457,14 +401,12 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 	
 	# Aplica piercing
 	if effects.piercing_count > 0:
-		print("Applying piercing: ", effects.piercing_count)
 		projectile.piercing = true
 		projectile.set_meta("piercing_count", effects.piercing_count)
 		projectile.add_tag("piercing")
 		
 		# Para projéteis físicos, desabilita colisão com inimigos
 		if projectile is CharacterBody2D:
-			print("Disabling collision with enemies for piercing")
 			projectile.set_collision_mask_value(2, false)  # Layer 2 = enemy layer
 			
 	# Apply Double Shot 
@@ -473,12 +415,10 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("double_shot_angle", effects.double_shot_angle)
 		projectile.set_meta("second_arrow_damage_modifier", effects.second_arrow_damage_modifier)
 		projectile.add_tag("double_shot")
-		print("Double Shot effect applied to projectile")
 		
 		# Apply Chain Shot
 	if effects.can_chain:
 		_setup_chain_shot(projectile, effects)
-		print("Chain Shot enabled: " + str(effects.chain_chance * 100) + "% chance, " + str(effects.max_chains) + " max chains")
 	
 	# Apply Focused Shot
 	if effects.focused_shot_enabled:
@@ -489,28 +429,14 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("focused_shot_bonus", effects.focused_shot_bonus)
 		projectile.set_meta("focused_shot_threshold", effects.focused_shot_threshold)
 		
-		print("Focused Shot enabled: " + str(effects.focused_shot_bonus * 100) + "% damage boost above " + str(effects.focused_shot_threshold * 100) + "% health")
-	
-	print("CRITICAL DEBUG: effects.bleed_on_crit=", effects.bleed_on_crit)
-	
 	if effects.bleed_on_crit:
-		print("CRITICAL DEBUG: Applying bleeding metadata to projectile")
-		
 		# Force the metadata directly on the projectile
 		projectile.set_meta("has_bleeding_effect", true)
 		projectile.set_meta("bleeding_damage_percent", effects.bleed_damage_percent)
 		projectile.set_meta("bleeding_duration", effects.bleed_duration)
 		projectile.set_meta("bleeding_interval", effects.bleed_interval)
-		
 		# Add tag
 		projectile.add_tag("bleeding")
-		
-		print("Bleeding metadata configured:")
-		print("- has_bleeding_effect:", projectile.has_meta("has_bleeding_effect"))
-		print("- bleeding_damage_percent:", projectile.get_meta("bleeding_damage_percent"))
-		print("- bleeding_duration:", projectile.get_meta("bleeding_duration"))
-		print("- bleeding_interval:", projectile.get_meta("bleeding_interval"))
-
 	# Apply Marked for Death
 	if effects.mark_enabled:
 		projectile.set_meta("has_mark_effect", true)
@@ -523,7 +449,6 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("explosion_damage_percent", effects.explosion_damage_percent)
 		projectile.set_meta("explosion_radius", effects.explosion_radius)
 		projectile.add_tag("explosive")
-		print("Explosion enabled: " + str(effects.explosion_damage_percent * 100) + "% damage in " + str(effects.explosion_radius) + " radius")
 	
 	# Apply Splinter
 	if effects.can_splinter:
@@ -532,7 +457,6 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 		projectile.set_meta("splinter_damage_percent", effects.splinter_damage_percent)
 		projectile.set_meta("splinter_range", effects.splinter_range)
 		projectile.add_tag("splinter")
-		print("Splinter enabled: " + str(effects.splinter_count) + " splinters, " + str(effects.splinter_damage_percent * 100) + "% damage each")
 	
 	# Apply Bloodseeker
 	if effects.bloodseeker_enabled:
@@ -549,17 +473,13 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 				var bonus = effects.bloodseeker_bonus_per_stack * stacks
 				var pre_bonus_damage = projectile.damage
 				projectile.damage = int(projectile.damage * (1 + bonus))
-				print("Applied Bloodseeker stacks: " + str(stacks) + " (" + str(pre_bonus_damage) + " -> " + str(projectile.damage) + ")")
 				
 				if projectile.has_node("DmgCalculatorComponent"):
 					var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 					if "damage_multiplier" in dmg_calc:
 						dmg_calc.damage_multiplier *= (1 + bonus)
-						print("Applied Bloodseeker multiplier: " + str(dmg_calc.damage_multiplier))
 
 func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
-	print("Setting up chain shot with max_chains =", effects.max_chains)
-	
 	if projectile is NewArrow:
 		projectile.chain_shot_enabled = true
 		projectile.chain_chance = effects.chain_chance
@@ -583,7 +503,6 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 		})
 		
 		projectile.add_tag("chain_shot")
-		print("Chain Shot enabled on Arrow with max_chains =", effects.max_chains)
 	else:
 		# For non-Arrow projectiles, use metadata
 		projectile.set_meta("chain_shot_enabled", true)
@@ -604,7 +523,6 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 		})
 		
 		projectile.add_tag("chain_shot")
-		print("Chain Shot enabled via metadata with max_chains =", effects.max_chains)
 		
 # Helper to ensure tags array exists
 func _ensure_tags_array(projectile: Node) -> void:
@@ -617,26 +535,21 @@ func _ensure_tags_array(projectile: Node) -> void:
 			if not tag_name in projectile.tags:
 				projectile.tags.append(tag_name)
 func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> void:
-	print("==== DOUBLE SHOT DEBUG ====")
 	if not effects.double_shot_enabled:
-		print("Double shot not enabled in effects - returning")
 		return
 		
 	var shooter = original_projectile.shooter
 	if not shooter:
-		print("No shooter found - returning")
 		return
 		
 	# Get references
 	var direction = original_projectile.direction
 	var start_position = original_projectile.global_position
-	print("Original projectile position: ", start_position)
 	
 	# Get arrow from pool if possible
 	var second_arrow = null
 	if ProjectilePool and ProjectilePool.instance:
 		# Try to get arrow from pool
-		print("Getting second arrow from pool for Double Shot")
 		second_arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
 		if second_arrow:
 			print("Got arrow from pool: ", second_arrow)
@@ -647,21 +560,16 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 	
 	# Fallback to instantiation if pooling failed
 	if not second_arrow:
-		print("Fallback: Instantiating new arrow")
 		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
 		if not arrow_scene:
-			print("ERROR: Could not load arrow scene for double shot")
 			return
 		second_arrow = arrow_scene.instantiate()
-		print("Created new arrow instance: ", second_arrow)
 	
 	# Check if it's already in the scene
 	if second_arrow.get_parent():
-		print("WARNING: Second arrow already has a parent: ", second_arrow.get_parent().name)
 		# Remove it from current parent
 		var current_parent = second_arrow.get_parent()
 		current_parent.remove_child(second_arrow)
-		print("Removed arrow from current parent")
 	
 	# Configure position and direction with angle offset
 	second_arrow.global_position = start_position
@@ -729,7 +637,6 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 	
 	# Add to scene first
 	if shooter and shooter.get_parent():
-		print("Adding second arrow to scene")
 		shooter.get_parent().call_deferred("add_child", second_arrow)
 		
 		# IMPORTANT: Defer the timer reset until after arrow is in the scene tree
@@ -741,14 +648,12 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 func _reset_secondary_arrow_timer(arrow: Node) -> void:
 	# Make sure arrow is valid and in the tree
 	if not arrow or not is_instance_valid(arrow) or not arrow.is_inside_tree():
-		print("Arrow is not valid or not in tree - can't reset timer")
 		return
 	# Find and reset the lifetime timer
 	var found_timer = false
 	for child in arrow.get_children():
 		if child is Timer and child.has_signal("timeout") and arrow.has_method("_on_lifetime_expired"):
 			if child.timeout.is_connected(arrow._on_lifetime_expired):
-				print("Found and resetting lifetime timer for secondary arrow")
 				child.stop()
 				child.start()
 				found_timer = true
@@ -757,7 +662,6 @@ func _reset_secondary_arrow_timer(arrow: Node) -> void:
 	if not found_timer:
 		for child in arrow.get_children():
 			if child is Timer and child.one_shot and child.wait_time > 1.0:
-				print("Found potential lifetime timer for secondary arrow")
 				child.stop()
 				child.start()
  
@@ -778,27 +682,23 @@ func check_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> boo
 	var counter = shooter.get_meta("arrow_rain_counter")
 	counter += 1
 	shooter.set_meta("arrow_rain_counter", counter)
-	
-	print("Arrow Rain: Attack counter increased to", counter, "/", effects.arrow_rain_interval)
-	
 	# Check if threshold reached
 	if counter >= effects.arrow_rain_interval:
 		# Reset counter
 		shooter.set_meta("arrow_rain_counter", 0)
 		
 		# Spawn arrow rain
-		print("Arrow Rain triggered!")
 		spawn_arrow_rain(current_projectile, effects)
 		return true
 	
 	return false
 
 # Spawn arrow rain based on original projectile
+# Update this function in your ConsolidatedTalentSystem.gd
+
 func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
-	print("ConsolidatedTalentSystem: Spawning Arrow Rain")
 	var shooter = projectile.shooter
 	if not shooter:
-		print("No shooter reference found")
 		return
 		
 	# Define target position
@@ -817,8 +717,17 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 	else:
 		# If no target, use a position in front of the shooter
 		target_position = projectile.global_position + projectile.direction * 300
+	# IMPORTANT: Save bleeding effect metadata from original projectile
+	var has_bleeding = projectile.has_meta("has_bleeding_effect")
+	var bleeding_data = {}
 	
-	print("Target position for arrow rain:", target_position)
+	if has_bleeding:
+		bleeding_data = {
+			"has_bleeding_effect": true,
+			"bleeding_damage_percent": projectile.get_meta("bleeding_damage_percent", 0.3),
+			"bleeding_duration": projectile.get_meta("bleeding_duration", 4.0),
+			"bleeding_interval": projectile.get_meta("bleeding_interval", 0.5)
+		}
 	
 	# Get arrows from the pool or instantiate them
 	for i in range(effects.arrow_rain_count):
@@ -832,13 +741,11 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		if not arrow:
 			var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
 			if not arrow_scene:
-				print("Failed to load arrow scene")
 				continue
 			arrow = arrow_scene.instantiate()
 		
 		# Make sure we have a valid arrow
 		if not arrow:
-			print("Failed to get arrow from pool or instantiate")
 			continue
 		
 		# Calculate a random position within the radius for the arrow to land
@@ -861,6 +768,26 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		arrow.direction = (fall_position - arrow.global_position).normalized()
 		arrow.rotation = arrow.direction.angle()
 		
+		# IMPORTANT: Copy critical hit status and chance from original projectile
+		if "is_crit" in projectile and "is_crit" in arrow:
+			# Each arrow should roll for critical hit independently
+			if "crit_chance" in projectile:
+				arrow.crit_chance = projectile.crit_chance
+				arrow.is_crit = arrow.is_critical_hit(arrow.crit_chance)
+			else:
+				arrow.is_crit = randf() < 0.1  # Default 10% chance
+		
+		# IMPORTANT: Apply bleeding effect if original had it
+		if has_bleeding:
+			arrow.set_meta("has_bleeding_effect", bleeding_data.has_bleeding_effect)
+			arrow.set_meta("bleeding_damage_percent", bleeding_data.bleeding_damage_percent)
+			arrow.set_meta("bleeding_duration", bleeding_data.bleeding_duration)
+			arrow.set_meta("bleeding_interval", bleeding_data.bleeding_interval)
+			
+			# Add bleeding tag
+			if arrow.has_method("add_tag"):
+				arrow.add_tag("bleeding")
+		
 		# Add rain tag to distinguish from normal arrows
 		if arrow.has_method("add_tag"):
 			arrow.add_tag("rain_arrow")
@@ -880,14 +807,11 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		var rain_effects = effects.copy()
 		rain_effects.double_shot_enabled = false
 		rain_effects.can_chain = false
-		
 		# Apply the modified effects
 		apply_compiled_effects(arrow, rain_effects)
 		
 		# Setup custom trajectory system for the arrow
 		setup_rain_arrow_trajectory(arrow, fall_position, shooter.get_parent())
-		
-		print("Spawned rain arrow at position:", arrow.global_position, " targeting:", fall_position)
 	
 func setup_rain_arrow_trajectory(arrow: Node, impact_position: Vector2, parent_node: Node) -> void:
 	# Disable standard physics and collisions initially
@@ -898,282 +822,39 @@ func setup_rain_arrow_trajectory(arrow: Node, impact_position: Vector2, parent_n
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
 	
-	if arrow is CharacterBody2D:
-		arrow.set_collision_layer_value(1, false)
-		arrow.set_collision_mask_value(1, false)
-		arrow.set_collision_mask_value(2, false)
-	
-	# Create a shadow to show where the arrow will land
-	var shadow = create_impact_shadow(impact_position, parent_node)
-	
 	# Calculate flight time
 	var distance = arrow.global_position.distance_to(impact_position)
 	var flight_time = distance / arrow.speed
 	
-	# Create impact timer
-	var impact_timer = Timer.new()
-	impact_timer.one_shot = true
-	impact_timer.wait_time = flight_time
-	arrow.add_child(impact_timer)
+	# Store parameters as metadata
+	arrow.set_meta("rain_start_pos", arrow.global_position)
+	arrow.set_meta("rain_target_pos", impact_position)
+	arrow.set_meta("rain_time", flight_time)
 	
-	# Store references for cleanup
-	var arrow_ref = weakref(arrow)
-	var shadow_ref = weakref(shadow)
+	# Add the processor
+	var processor = RainArrowProcessor.new()
+	processor.name = "RainArrowProcessor"
+	arrow.add_child(processor)
 	
-	# Connect impact timer
-	impact_timer.timeout.connect(func():
-		var arrow_inst = arrow_ref.get_ref()
-		var shadow_inst = shadow_ref.get_ref()
-		
-		if arrow_inst and is_instance_valid(arrow_inst):
-			process_arrow_impact(arrow_inst, impact_position)
-		
-		# Clean up shadow
-		if shadow_inst and is_instance_valid(shadow_inst):
-			shadow_inst.queue_free()
-	)
-	impact_timer.start()
-	
-	# Safety cleanup timer
+	# Add safety cleanup timer
 	var safety_timer = Timer.new()
+	safety_timer.name = "SafetyCleanupTimer"
 	safety_timer.one_shot = true
-	safety_timer.wait_time = flight_time + 1.0  # Extra second for safety
+	safety_timer.wait_time = flight_time + 2.0  # Extra time for safety
 	arrow.add_child(safety_timer)
+	
+	# Store references for cleanup using weak references
+	var arrow_ref = weakref(arrow)
 	
 	safety_timer.timeout.connect(func():
 		var arrow_inst = arrow_ref.get_ref()
-		var shadow_inst = shadow_ref.get_ref()
-		
 		if arrow_inst and is_instance_valid(arrow_inst):
 			if ProjectilePool and ProjectilePool.instance and arrow_inst.is_pooled():
 				ProjectilePool.instance.return_arrow_to_pool(arrow_inst)
 			else:
 				arrow_inst.queue_free()
-		
-		if shadow_inst and is_instance_valid(shadow_inst):
-			shadow_inst.queue_free()
 	)
 	safety_timer.start()
-	
-	# Create custom motion processor
-	var processor = Node.new()
-	processor.name = "RainArrowProcessor"
-	arrow.add_child(processor)
-	
-	# Initial parameters for the processor
-	var start_pos = arrow.global_position
-	var target_pos = impact_position
-	
-	# Create script for processor
-	var script = GDScript.new()
-	script.source_code = """
-	extends Node
-
-	var start_position: Vector2
-	var target_position: Vector2
-	var total_time: float
-	var elapsed_time: float = 0.0
-	var arrow_speed: float = 500.0
-
-	func _ready():
-		var arrow = get_parent()
-		if arrow:
-			start_position = arrow.global_position
-			arrow_speed = arrow.speed
-			
-			# These will be set by our caller
-			if arrow.has_meta('rain_start_pos'):
-				start_position = arrow.get_meta('rain_start_pos')
-			
-			if arrow.has_meta('rain_target_pos'):
-				target_position = arrow.get_meta('rain_target_pos')
-				
-			if arrow.has_meta('rain_time'):
-				total_time = arrow.get_meta('rain_time')
-			else:
-				# Calculate based on distance and speed
-				var distance = start_position.distance_to(target_position)
-				total_time = distance / arrow_speed
-			
-			# Ensure arrow is pointing in the right direction
-			arrow.direction = (target_position - start_position).normalized()
-			arrow.rotation = arrow.direction.angle()
-			
-	func _physics_process(delta):
-		var arrow = get_parent()
-		
-		# Update elapsed time
-		elapsed_time += delta
-		
-		# Calculate progress (0 to 1)
-		var progress = min(elapsed_time / total_time, 1.0)
-		
-		# Linear interpolation for position
-		var new_position = start_position.lerp(target_position, progress)
-		
-		# Add small arc for visual effect
-		var arc_height = start_position.distance_to(target_position) * 0.1
-		var arc_offset = sin(progress * PI) * arc_height
-		
-		# Apply arc offset
-		new_position.y -= arc_offset
-		
-		# Update arrow position
-		arrow.global_position = new_position
-		
-		# Update direction for proper rotation
-		var next_progress = min(progress + 0.01, 1.0)
-		var next_position = start_position.lerp(target_position, next_progress)
-		next_position.y -= sin(next_progress * PI) * arc_height
-		
-		var direction = (next_position - arrow.global_position).normalized()
-		if direction.length() > 0.1:
-			arrow.direction = direction
-			arrow.rotation = direction.angle()
-		
-		# If nearly at impact point, stop processing
-		if progress >= 0.99:
-			set_physics_process(false)
-	"""
-	
-	processor.set_script(script)
-	
-	# Store needed parameters as metadata
-	arrow.set_meta("rain_start_pos", start_pos)
-	arrow.set_meta("rain_target_pos", impact_position)
-	arrow.set_meta("rain_time", flight_time)
-	
-	# Allow the processor to handle physics
-	processor.set_physics_process(true)
-
-# Create shadow indicator for arrow landing spot
-func create_impact_shadow(position: Vector2, parent: Node) -> Node2D:
-	var shadow = Node2D.new()
-	shadow.name = "ArrowRainShadow"
-	shadow.position = position
-	shadow.z_index = -1  # Below other elements
-	
-	# Add simple circle visual
-	var shadow_circle = Node2D.new()
-	shadow.add_child(shadow_circle)
-	
-	# Custom drawing script
-	var draw_script = GDScript.new()
-	draw_script.source_code = """
-	extends Node2D
-
-	var radius = 5.0
-	var pulse_time = 0.0
-	var fade_alpha = 0.5
-
-	func _process(delta):
-		pulse_time += delta * 3.0
-		fade_alpha = 0.3 + 0.2 * sin(pulse_time)
-		queue_redraw()
-
-	func _draw():
-		draw_circle(Vector2.ZERO, radius, Color(0.1, 0.1, 0.1, fade_alpha))
-		draw_arc(Vector2.ZERO, radius + 2, 0, TAU, 32, Color(0.3, 0.3, 0.3, fade_alpha * 0.7), 1.0)
-	"""
-	
-	shadow_circle.set_script(draw_script)
-	parent.add_child(shadow)
-	
-	return shadow
-
-# Process arrow impact with area damage
-func process_arrow_impact(arrow: Node, impact_position: Vector2) -> void:
-	# Find targets in small area around impact position
-	var space_state = arrow.get_world_2d().direct_space_state
-	
-	var query = PhysicsShapeQueryParameters2D.new()
-	var circle_shape = CircleShape2D.new()
-	circle_shape.radius = 20.0  # Small detection radius
-	query.shape = circle_shape
-	query.transform = Transform2D(0, impact_position)
-	query.collision_mask = 2  # Enemy layer
-	
-	var results = space_state.intersect_shape(query)
-	
-	var hit_any_target = false
-	
-	# Process hits on enemies
-	for result in results:
-		var body = result.collider
-		
-		if body.is_in_group("enemies") or body.get_collision_layer_value(2):
-			hit_any_target = true
-			
-			if body.has_node("HealthComponent"):
-				var health_component = body.get_node("HealthComponent")
-				
-				if arrow.has_method("get_damage_package"):
-					var damage_package = arrow.get_damage_package()
-					health_component.take_complex_damage(damage_package)
-				else:
-					# Fallback to basic damage
-					var damage = arrow.damage
-					var is_crit = arrow.is_crit if "is_crit" in arrow else false
-					health_component.take_damage(damage, is_crit, "rain_arrow")
-	
-	# Create impact visual effect
-	create_impact_effect(impact_position, arrow)
-	
-	# Return arrow to pool or destroy it
-	if ProjectilePool and ProjectilePool.instance and arrow.is_pooled():
-		ProjectilePool.instance.return_arrow_to_pool(arrow)
-	else:
-		arrow.queue_free()
-		
-func create_impact_effect(position: Vector2, arrow: Node) -> void:
-	var impact = Node2D.new()
-	impact.name = "ArrowImpact"
-	impact.position = position
-	
-	# Add particles system
-	var particles = CPUParticles2D.new()
-	particles.emitting = true
-	particles.one_shot = true
-	particles.explosiveness = 0.8
-	particles.amount = 8
-	particles.lifetime = 0.4
-	particles.initial_velocity_min = 20
-	particles.initial_velocity_max = 40
-	particles.spread = 180
-	particles.gravity = Vector2(0, 98)
-	particles.color = Color(0.8, 0.8, 0.8)
-	
-	impact.add_child(particles)
-	
-	# Add to the scene
-	if arrow.get_parent():
-		arrow.get_parent().add_child(impact)
-	
-	# Auto-destroy after animation
-	var timer = Timer.new()
-	timer.one_shot = true
-	timer.wait_time = 0.8
-	impact.add_child(timer)
-	
-	timer.timeout.connect(func(): impact.queue_free())
-	timer.start()
-
-# Process effects that trigger on hit
-func process_on_hit_effects(arrow: Node, position: Vector2) -> void:
-	# Get effects metadata
-	var has_explosion = arrow.has_meta("has_explosion_effect")
-	var has_splinter = arrow.has_meta("has_splinter_effect")
-	
-	# Find a valid target for effects
-	var target = find_nearest_enemy(position, 25.0)
-	
-	# Process explosion
-	if has_explosion and target:
-		create_explosion(arrow, target, position)
-		
-	# Process splinter
-	if has_splinter and target:
-		create_splinters(arrow, target, position)
 
 
 # Create explosion effect

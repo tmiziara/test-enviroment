@@ -65,28 +65,18 @@ func refresh_talents():
 			archer.attack_range *= current_effects.range_multiplier
 
 func apply_talents_to_projectile(projectile: Node) -> Node:
-	print("ArcherTalentManager: apply_talents_to_projectile called")
-	
 	# Check for valid archer
 	if not archer:
-		push_error("ArcherTalentManager: Cannot apply talents - archer is null")
 		return projectile
 	
 	# Ensure talent system is initialized
 	if not talent_system:
-		print("Initializing talent system in apply_talents_to_projectile")
 		initialize_talent_system()
 	
 	# IMPORTANT: Always recompile effects to ensure they're current
-	print("FORÇANDO recompilação de efeitos para garantir valores corretos")
 	current_effects = talent_system.compile_effects()
 	
 	if current_effects:
-		print("Compilando efeitos a partir de " + str(archer.attack_upgrades.size()) + " estratégias:")
-		# Log which strategies are being processed
-		for strategy in archer.attack_upgrades:
-			if strategy:
-				print("- Processando estratégia: " + strategy.get_strategy_name())
 		talent_system.apply_compiled_effects(projectile, current_effects)
 		
 		# Check for special abilities
@@ -100,17 +90,12 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 				var counter = archer.get_meta("arrow_rain_counter")
 				counter += 1
 				archer.set_meta("arrow_rain_counter", counter)
-				
-				print("Arrow Rain counter: " + str(counter) + "/" + str(current_effects.arrow_rain_interval))
-				
 				# If we've reached the threshold, trigger Arrow Rain and reset counter
 				if counter >= current_effects.arrow_rain_interval:
-					print("Arrow Rain triggered!")
 					archer.set_meta("arrow_rain_counter", 0)
 					talent_system.spawn_arrow_rain(projectile, current_effects)
 		
 		if projectile.has_meta("double_shot_enabled") and not projectile.has_meta("is_second_arrow"):
-			print("Double Shot enabled - will spawn second arrow")
 			# Let the ConsolidatedTalentSystem handle the spawning to ensure proper effect application
 			if talent_system and current_effects:
 				talent_system.spawn_double_shot(projectile, current_effects)

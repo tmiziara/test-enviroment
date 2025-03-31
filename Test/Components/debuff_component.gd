@@ -17,15 +17,8 @@ func _ready():
 
 # Adiciona ou atualiza um debuff
 func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_renew: bool = true) -> void:
-	# Diagnóstico inicial
-	print("Adding Debuff: ", debuff_type)
-	print("Duration: ", duration)
-	print("Can Renew: ", can_renew)
-	print("Data: ", data)
-
 	# Verifica se o tipo de debuff é válido
 	if debuff_type == GlobalDebuffSystem.DebuffType.NONE:
-		print("Invalid debuff type - not adding")
 		return
 
 	# Recupera o debuff existente, se houver
@@ -33,7 +26,6 @@ func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_re
 
 	# Se já existe um debuff deste tipo e não pode renovar, retorna
 	if existing_debuff and not can_renew:
-		print("Existing debuff cannot be renewed")
 		return
 
 	# Remove o timer existente se houver
@@ -48,15 +40,12 @@ func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_re
 	if existing_debuff:
 		# Atualiza duração
 		existing_debuff.duration = duration
-		print("Updating existing debuff duration to: ", duration)
-
 		# Atualiza stack count, se fornecido
 		var max_stacks = data.get("max_stacks", existing_debuff.max_stacks)
 		existing_debuff.stack_count = min(
 			existing_debuff.stack_count + 1, 
 			max_stacks
 		)
-		print("Updated stack count to: ", existing_debuff.stack_count)
 	else:
 		# Cria novo debuff
 		var new_debuff = GlobalDebuffSystem.DebuffData.new()
@@ -68,7 +57,6 @@ func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_re
 		
 		active_debuffs[debuff_type] = new_debuff
 		emit_signal("debuff_added", debuff_type)
-		print("New debuff created")
 
 	# Cria timer para gerenciar duração do debuff
 	var timer = Timer.new()
@@ -78,9 +66,6 @@ func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_re
 
 	# Função de verificação de término do debuff
 	var check_debuff_end = func():
-		# Log de diagnóstico
-		print("Debuff timeout reached for type: ", debuff_type)
-
 		# Obtém o HealthComponent
 		var parent = get_parent()
 		
@@ -89,18 +74,13 @@ func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_re
 		if dot_manager and dot_manager.has_method("has_dot_type") and parent and is_instance_valid(parent):
 			# Mapeia o debuff para tipo de DoT
 			var dot_type = GlobalDebuffSystem.map_debuff_to_dot_type(debuff_type)
-			print("Mapped DoT type: ", dot_type)
-
 			# Verifica se o DoT ainda está ativo
 			if dot_type != "" and dot_manager.has_dot_type(parent, dot_type):
-				print("DoT ainda ativo - agendando verificação periódica")
 				schedule_debuff_check(debuff_type)
 			else:
-				print("No active DoT found - removing debuff")
 				remove_debuff(debuff_type)
 		else:
 			# Sem DoTManager, remove normalmente
-			print("No DoTManager found - removing debuff")
 			remove_debuff(debuff_type)
 
 	# Conecta o timeout do timer
@@ -111,10 +91,6 @@ func add_debuff(debuff_type: int, duration: float, data: Dictionary = {}, can_re
 	
 	# Armazena referência do timer
 	active_timers[debuff_type] = timer
-
-	# Log final
-	print("Debuff added successfully")
-
 # Nova função para agendar verificações periódicas
 func schedule_debuff_check(debuff_type: int) -> void:
 	var check_timer = Timer.new()
@@ -164,8 +140,6 @@ func _on_dot_ended(dot_type: String):
 		remove_debuff(debuff_type)
 	
 func remove_debuff(debuff_type: int) -> void:
-	print("Removendo debuff: ", debuff_type)  # Debug print
-	
 	if debuff_type in active_debuffs:
 		active_debuffs.erase(debuff_type)
 		emit_signal("debuff_removed", debuff_type)

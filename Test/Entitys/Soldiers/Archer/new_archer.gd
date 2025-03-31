@@ -47,10 +47,6 @@ func _ready():
 	call_deferred("_initialize_arrow_pool")
 
 func _initialize_arrow_pool() -> void:
-	print("Initializing arrow pool for archer")
-	print("ProjectilePool exists: ", ProjectilePool != null)
-	print("ProjectilePool instance exists: ", ProjectilePool.instance != null)
-	
 	# Verifica se o sistema de pool está disponível
 	if ProjectilePool and ProjectilePool.instance:
 		# Carrega a cena da flecha
@@ -58,11 +54,8 @@ func _initialize_arrow_pool() -> void:
 		if arrow_scene:
 			# Cria o nome do pool baseado no ID do arqueiro
 			var pool_name = "arrow_" + str(get_instance_id())
-			print("Pool name: ", pool_name)
-			
 			# Cria o pool com uma quantidade inicial de flechas
 			ProjectilePool.instance.create_pool(pool_name, arrow_scene, get_parent(), 20)
-			print("Pool created successfully")
 
 func _physics_process(delta):
 	super._physics_process(delta)
@@ -127,8 +120,6 @@ func spawn_arrow():
 			if arrow.has_node("DmgCalculatorComponent"):
 				var dmg_calc = arrow.get_node("DmgCalculatorComponent")
 				dmg_calc.initialize_from_shooter(self)
-				print("Inicializando main_stat do atirador: " + str(dmg_calc.main_stat))
-			
 			# NOW calculate critical hit based on archer stats
 			if "crit_chance" in self and arrow.has_method("is_critical_hit"):
 				arrow.crit_chance = self.crit_chance
@@ -165,7 +156,6 @@ func spawn_arrow():
 	if "crit_chance" in self and arrow.has_method("is_critical_hit"):
 		arrow.crit_chance = self.crit_chance
 		arrow.is_crit = arrow.is_critical_hit(arrow.crit_chance)
-		print("Critical hit calculation: ", arrow.is_crit, " (chance: ", arrow.crit_chance, ")")
 	
 	# Initialize DmgCalculator before applying upgrades
 	if arrow.dmg_calculator:
@@ -173,7 +163,6 @@ func spawn_arrow():
 	
 	# Apply upgrades consistently using talent manager
 	if talent_manager:
-		print("Aplicando talentos via talent_manager no método fallback")
 		arrow = talent_manager.apply_talents_to_projectile(arrow)
 	else:
 		print("ERROR: No talent manager available!")

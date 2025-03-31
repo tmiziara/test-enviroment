@@ -10,8 +10,6 @@ func apply_upgrade(projectile: Node) -> void:
 	if not projectile:
 		return
 		
-	print("Double Shot: Applying upgrade to projectile")
-	
 	# Enable double shot in the projectile
 	if "double_shot_enabled" in projectile:
 		projectile.double_shot_enabled = true
@@ -31,9 +29,6 @@ func apply_upgrade(projectile: Node) -> void:
 	
 	# Note: We don't spawn the second arrow here
 	# This is handled in the ConsolidatedTalentSystem and archer's talent manager
-	
-	print("Double Shot: Upgrade applied successfully")
-
 # Provide a name for debugging
 func get_strategy_name() -> String:
 	return "DoubleShot"

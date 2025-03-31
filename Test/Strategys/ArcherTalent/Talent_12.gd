@@ -2,7 +2,7 @@ extends BaseProjectileStrategy
 class_name ChainShotStrategy
 
 # Chain shot properties
-@export var chain_chance: float = 0.3        # 30% chance to ricochet
+@export var chain_chance: float = 0.0       # 30% chance to ricochet
 @export var chain_range: float = 150.0       # Maximum range for finding targets
 @export var chain_damage_decay: float = 0.2  # 20% damage reduction for chained hit
 @export var max_chains: int = 3              # Maximum number of ricochets - INCREASED to 3 for testing
@@ -14,9 +14,6 @@ func get_strategy_name() -> String:
 func apply_upgrade(projectile: Node) -> void:
 	if not projectile:
 		return
-	
-	print("ChainShot: Applying with max_chains =", max_chains)
-	
 	# Add tag for system identification
 	if projectile.has_method("add_tag"):
 		projectile.add_tag("chain_shot")
@@ -45,7 +42,6 @@ func apply_upgrade(projectile: Node) -> void:
 			"chance_computed": false  # Track if we've made the initial chain chance calculation
 		})
 		
-		print("ChainShot: Applied to Arrow with chain chance:", chain_chance, ", max_chains:", max_chains)
 	else:
 		# For generic projectiles, set metadata
 		projectile.set_meta("chain_shot_enabled", true)
@@ -63,5 +59,3 @@ func apply_upgrade(projectile: Node) -> void:
 			"strategy_instance_id": get_instance_id(),
 			"chance_computed": false 
 		})
-		
-		print("ChainShot: Applied to generic projectile via metadata with max_chains:", max_chains)

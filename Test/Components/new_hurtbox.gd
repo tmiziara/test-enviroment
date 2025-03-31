@@ -7,10 +7,7 @@ func _ready():
 	connect("body_entered", Callable(self, "_on_body_entered"))
 
 func _on_body_entered(body):
-	print("Hurtbox._on_body_entered called with: ", body)
-	
 	if not body.is_in_group("enemies") or not body.has_node("HealthComponent"):
-		print("Body is not an enemy or doesn't have HealthComponent")
 		return
 	
 	# Initialize hit_targets array if needed
@@ -22,7 +19,6 @@ func _on_body_entered(body):
 	
 	# Skip if target was already hit
 	if body in hit_targets:
-		print("Target already hit by this projectile, ignoring.")
 		return
 		
 	# Add target to hit_targets array
@@ -33,11 +29,9 @@ func _on_body_entered(body):
 	if owner_entity is NewArrow or (owner_entity.has_method("process_on_hit") and owner_entity.get_script().get_path().find("arrow") >= 0):
 		# For NewArrow, we delegate ALL damage handling to the arrow itself
 		# to avoid double-damage application
-		print("Delegating hit processing to Arrow.process_on_hit")
 		owner_entity.process_on_hit(body)
 	else:
 		# Standard handling for non-Arrow projectiles
-		print("Standard projectile hit processing")
 		var health_component = body.get_node("HealthComponent")
 		
 		# Get calculated damage package
@@ -45,11 +39,9 @@ func _on_body_entered(body):
 		
 		# Apply damage to enemy (including DoTs)
 		if health_component.has_method("take_complex_damage"):
-			print("Applying complex damage")
 			health_component.take_complex_damage(damage_package)
 		else:
 			# Fallback to old method
-			print("Applying simple damage")
 			var physical_damage = damage_package.get("physical_damage", owner_entity.damage)
 			var is_crit = damage_package.get("is_critical", owner_entity.is_crit)
 			health_component.take_damage(physical_damage, is_crit)
@@ -74,17 +66,13 @@ func _on_body_entered(body):
 			elif "piercing_count" in owner_entity:
 				max_pierce = owner_entity.piercing_count
 			
-			print("Pierced ", current_pierce_count, " of ", max_pierce, " possible enemies")
-			
 			if current_pierce_count >= max_pierce:
-				print("Piercing limit reached, destroying projectile")
 				if owner_entity.has_method("return_to_pool") and owner_entity.has_meta("pooled"):
 					owner_entity.return_to_pool()
 				else:
 					owner_entity.queue_free()
 		else:
 			# Non-piercing projectile
-			print("Non-piercing projectile hit, destroying")
 			if owner_entity.has_method("return_to_pool") and owner_entity.has_meta("pooled"):
 				owner_entity.return_to_pool()
 			else:
