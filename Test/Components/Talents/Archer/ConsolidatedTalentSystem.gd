@@ -309,9 +309,10 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 				if arrow_count != null and damage_per_arrow != null and radius != null and attacks_threshold != null:
 					effects.arrow_rain_enabled = true
 					effects.arrow_rain_count = arrow_count
-					effects.arrow_rain_damage_percent = damage_per_arrow / 10.0
+					effects.arrow_rain_damage_percent = damage_per_arrow
 					effects.arrow_rain_radius = radius
 					effects.arrow_rain_interval = attacks_threshold
+					print("Arrow Rain configured in ConsolidatedTalentSystem")
 					
 			14:  # Splinter Arrows
 				var splinter_count = strategy.get("splinter_count")
@@ -760,7 +761,6 @@ func _reset_secondary_arrow_timer(arrow: Node) -> void:
 				child.stop()
 				child.start()
  
-		
 # Check and possibly trigger Arrow Rain
 func check_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> bool:
 	if not effects.arrow_rain_enabled:
@@ -779,12 +779,15 @@ func check_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> boo
 	counter += 1
 	shooter.set_meta("arrow_rain_counter", counter)
 	
+	print("Arrow Rain: Attack counter increased to", counter, "/", effects.arrow_rain_interval)
+	
 	# Check if threshold reached
 	if counter >= effects.arrow_rain_interval:
 		# Reset counter
 		shooter.set_meta("arrow_rain_counter", 0)
 		
 		# Spawn arrow rain
+		print("Arrow Rain triggered!")
 		spawn_arrow_rain(current_projectile, effects)
 		return true
 	
@@ -792,8 +795,10 @@ func check_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> boo
 
 # Spawn arrow rain based on original projectile
 func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
+	print("ConsolidatedTalentSystem: Spawning Arrow Rain")
 	var shooter = projectile.shooter
 	if not shooter:
+		print("No shooter reference found")
 		return
 		
 	# Define target position
@@ -810,330 +815,347 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 	if target and is_instance_valid(target):
 		target_position = target.global_position
 	else:
+		# If no target, use a position in front of the shooter
 		target_position = projectile.global_position + projectile.direction * 300
 	
-	# Load arrow scene
-	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-	if not arrow_scene:
-		return
-		
-	# Remove double shot from rain arrows
-	var rain_effects = effects.duplicate()
-	rain_effects.double_shot_enabled = false
+	print("Target position for arrow rain:", target_position)
 	
-	# Spawn arrows
+	# Get arrows from the pool or instantiate them
 	for i in range(effects.arrow_rain_count):
-		var arrow = arrow_scene.instantiate()
+		var arrow = null
 		
-		# Fall position with dispersion
+		# Try to get from pool first
+		if ProjectilePool and ProjectilePool.instance:
+			arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
+		
+		# Fallback to instantiation if pool failed
+		if not arrow:
+			var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+			if not arrow_scene:
+				print("Failed to load arrow scene")
+				continue
+			arrow = arrow_scene.instantiate()
+		
+		# Make sure we have a valid arrow
+		if not arrow:
+			print("Failed to get arrow from pool or instantiate")
+			continue
+		
+		# Calculate a random position within the radius for the arrow to land
 		var fall_position = target_position
-		
 		if effects.arrow_rain_count > 1:
-			var angle = randf() * TAU
-			var rand_radius = sqrt(randf()) * effects.arrow_rain_radius
+			var angle = randf() * TAU  # Random angle in radians
+			var rand_radius = sqrt(randf()) * effects.arrow_rain_radius  # Square root for even distribution
 			var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
 			fall_position += random_offset
 		
-		# Initial height for spawn
+		# Set initial position with height offset
 		var random_height = randf_range(200, 250)
 		var horizontal_offset = randf_range(-50, 50)
 		arrow.global_position = Vector2(fall_position.x + horizontal_offset, fall_position.y - random_height)
 		
-		# Base configuration
+		# Basic configuration
 		arrow.damage = int(projectile.damage * effects.arrow_rain_damage_percent)
-		arrow.crit_chance = projectile.crit_chance
 		arrow.shooter = shooter
-		arrow.speed = 500.0
+		arrow.speed = 500.0  # Faster downward movement
 		arrow.direction = (fall_position - arrow.global_position).normalized()
 		arrow.rotation = arrow.direction.angle()
 		
-		# Add rain tag
-		arrow.tags = []
-		arrow.add_tag = func(tag_name: String) -> void:
-			if not tag_name in arrow.tags:
-				arrow.tags.append(tag_name)
-		arrow.add_tag("rain_arrow")
+		# Add rain tag to distinguish from normal arrows
+		if arrow.has_method("add_tag"):
+			arrow.add_tag("rain_arrow")
+		else:
+			arrow.tags = ["rain_arrow"]
+			arrow.add_tag = func(tag_name: String) -> void:
+				if not tag_name in arrow.tags:
+					arrow.tags.append(tag_name)
 		
-		# Apply effects to arrow
+		# Disable features that shouldn't trigger for rain arrows
+		# Block double shot, chain shot, and ricochet abilities
+		arrow.set_meta("is_rain_arrow", true)
+		arrow.set_meta("no_double_shot", true)
+		arrow.set_meta("no_chain_shot", true)
+		
+		# Create a modified copy of effects with disabled problematic abilities
+		var rain_effects = effects.copy()
+		rain_effects.double_shot_enabled = false
+		rain_effects.can_chain = false
+		
+		# Apply the modified effects
 		apply_compiled_effects(arrow, rain_effects)
 		
-		# Custom motion setup
-		setup_custom_motion(arrow, fall_position)
+		# Setup custom trajectory system for the arrow
+		setup_rain_arrow_trajectory(arrow, fall_position, shooter.get_parent())
 		
-		# Add to scene
-		shooter.get_parent().add_child(arrow)
+		print("Spawned rain arrow at position:", arrow.global_position, " targeting:", fall_position)
 	
-# Setup custom motion for arrow rain
-func setup_custom_motion(arrow: Node, impact_position: Vector2) -> void:
-	# Disable standard collisions
+func setup_rain_arrow_trajectory(arrow: Node, impact_position: Vector2, parent_node: Node) -> void:
+	# Disable standard physics and collisions initially
+	arrow.set_physics_process(false)
+	
 	if arrow.has_node("Hurtbox"):
 		var hurtbox = arrow.get_node("Hurtbox")
-		hurtbox.monitoring = false
-		hurtbox.monitorable = false
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", false)
 	
 	if arrow is CharacterBody2D:
-		arrow.collision_layer = 0
-		arrow.collision_mask = 0
-		
-		for child in arrow.get_children():
-			if child is CollisionShape2D or child is CollisionPolygon2D:
-				child.disabled = true
+		arrow.set_collision_layer_value(1, false)
+		arrow.set_collision_mask_value(1, false)
+		arrow.set_collision_mask_value(2, false)
 	
-	# Calculate time for impact
-	var fall_distance = arrow.global_position.distance_to(impact_position)
-	var fall_time = fall_distance / arrow.speed
+	# Create a shadow to show where the arrow will land
+	var shadow = create_impact_shadow(impact_position, parent_node)
 	
-	# Store impact data
-	arrow.set_meta("impact_position", impact_position)
-	arrow.set_meta("fall_time", fall_time)
+	# Calculate flight time
+	var distance = arrow.global_position.distance_to(impact_position)
+	var flight_time = distance / arrow.speed
 	
-	# Create timer for impact
+	# Create impact timer
 	var impact_timer = Timer.new()
 	impact_timer.one_shot = true
-	impact_timer.wait_time = fall_time
+	impact_timer.wait_time = flight_time
 	arrow.add_child(impact_timer)
 	
-	# Create shadow
-	var shadow = create_shadow(impact_position, arrow.get_parent())
-	
-	# Setup impact
+	# Store references for cleanup
 	var arrow_ref = weakref(arrow)
 	var shadow_ref = weakref(shadow)
 	
+	# Connect impact timer
 	impact_timer.timeout.connect(func():
 		var arrow_inst = arrow_ref.get_ref()
 		var shadow_inst = shadow_ref.get_ref()
 		
 		if arrow_inst and is_instance_valid(arrow_inst):
-			process_impact(arrow_inst, impact_position, shadow_inst)
+			process_arrow_impact(arrow_inst, impact_position)
+		
+		# Clean up shadow
+		if shadow_inst and is_instance_valid(shadow_inst):
+			shadow_inst.queue_free()
 	)
 	impact_timer.start()
 	
-	# Safety timer
-	var destroy_timer = Timer.new()
-	destroy_timer.one_shot = true 
-	destroy_timer.wait_time = fall_time + 0.5
-	arrow.add_child(destroy_timer)
+	# Safety cleanup timer
+	var safety_timer = Timer.new()
+	safety_timer.one_shot = true
+	safety_timer.wait_time = flight_time + 1.0  # Extra second for safety
+	arrow.add_child(safety_timer)
 	
-	destroy_timer.timeout.connect(func():
+	safety_timer.timeout.connect(func():
 		var arrow_inst = arrow_ref.get_ref()
+		var shadow_inst = shadow_ref.get_ref()
+		
 		if arrow_inst and is_instance_valid(arrow_inst):
-			arrow_inst.queue_free()
+			if ProjectilePool and ProjectilePool.instance and arrow_inst.is_pooled():
+				ProjectilePool.instance.return_arrow_to_pool(arrow_inst)
+			else:
+				arrow_inst.queue_free()
+		
+		if shadow_inst and is_instance_valid(shadow_inst):
+			shadow_inst.queue_free()
 	)
-	destroy_timer.start()
+	safety_timer.start()
 	
-	# Create processor script
-	var custom_script = GDScript.new()
-	custom_script.source_code = """
+	# Create custom motion processor
+	var processor = Node.new()
+	processor.name = "RainArrowProcessor"
+	arrow.add_child(processor)
+	
+	# Initial parameters for the processor
+	var start_pos = arrow.global_position
+	var target_pos = impact_position
+	
+	# Create script for processor
+	var script = GDScript.new()
+	script.source_code = """
 	extends Node
-	
+
 	var start_position: Vector2
-	var impact_position: Vector2
+	var target_position: Vector2
 	var total_time: float
 	var elapsed_time: float = 0.0
-	
+	var arrow_speed: float = 500.0
+
 	func _ready():
 		var arrow = get_parent()
-		start_position = arrow.global_position
-		
-		# Get stored properties
-		if arrow.has_meta("impact_position"):
-			impact_position = arrow.get_meta("impact_position")
-		
-		if arrow.has_meta("fall_time"):
-			total_time = arrow.get_meta("fall_time")
+		if arrow:
+			start_position = arrow.global_position
+			arrow_speed = arrow.speed
 			
-		# Apply correct rotation
-		var direction = (impact_position - start_position).normalized()
-		arrow.direction = direction
-		arrow.rotation = direction.angle()
-	
+			# These will be set by our caller
+			if arrow.has_meta('rain_start_pos'):
+				start_position = arrow.get_meta('rain_start_pos')
+			
+			if arrow.has_meta('rain_target_pos'):
+				target_position = arrow.get_meta('rain_target_pos')
+				
+			if arrow.has_meta('rain_time'):
+				total_time = arrow.get_meta('rain_time')
+			else:
+				# Calculate based on distance and speed
+				var distance = start_position.distance_to(target_position)
+				total_time = distance / arrow_speed
+			
+			# Ensure arrow is pointing in the right direction
+			arrow.direction = (target_position - start_position).normalized()
+			arrow.rotation = arrow.direction.angle()
+			
 	func _physics_process(delta):
 		var arrow = get_parent()
 		
-		# Increment elapsed time
+		# Update elapsed time
 		elapsed_time += delta
 		
 		# Calculate progress (0 to 1)
 		var progress = min(elapsed_time / total_time, 1.0)
 		
-		# Linear interpolation of position
-		var new_position = start_position.lerp(impact_position, progress)
+		# Linear interpolation for position
+		var new_position = start_position.lerp(target_position, progress)
 		
-		# Add arc effect
-		var arc_height = start_position.distance_to(impact_position) * 0.05
+		# Add small arc for visual effect
+		var arc_height = start_position.distance_to(target_position) * 0.1
 		var arc_offset = sin(progress * PI) * arc_height
 		
-		# Apply offset
+		# Apply arc offset
 		new_position.y -= arc_offset
 		
-		# Update position
+		# Update arrow position
 		arrow.global_position = new_position
 		
-		# Calculate tangent direction for rotation
+		# Update direction for proper rotation
 		var next_progress = min(progress + 0.01, 1.0)
-		var next_position = start_position.lerp(impact_position, next_progress)
+		var next_position = start_position.lerp(target_position, next_progress)
+		next_position.y -= sin(next_progress * PI) * arc_height
 		
-		# Add arc to next position
-		var next_arc_offset = sin(next_progress * PI) * arc_height
-		next_position.y -= next_arc_offset
-		
-		# Calculate direction
 		var direction = (next_position - arrow.global_position).normalized()
-		
-		# Update direction and rotation
 		if direction.length() > 0.1:
 			arrow.direction = direction
 			arrow.rotation = direction.angle()
 		
-		# End condition
-		if progress >= 1.0:
-			arrow.global_position = impact_position
+		# If nearly at impact point, stop processing
+		if progress >= 0.99:
 			set_physics_process(false)
 	"""
 	
-	var processor = Node.new()
-	processor.name = "CustomPhysicsProcessor"
-	processor.set_script(custom_script)
-	arrow.add_child(processor)
+	processor.set_script(script)
 	
-	# Disable original physics
-	arrow.set_physics_process(false)
+	# Store needed parameters as metadata
+	arrow.set_meta("rain_start_pos", start_pos)
+	arrow.set_meta("rain_target_pos", impact_position)
+	arrow.set_meta("rain_time", flight_time)
+	
+	# Allow the processor to handle physics
+	processor.set_physics_process(true)
 
-# Create a shadow marker
-func create_shadow(position: Vector2, parent: Node) -> Node2D:
+# Create shadow indicator for arrow landing spot
+func create_impact_shadow(position: Vector2, parent: Node) -> Node2D:
 	var shadow = Node2D.new()
-	shadow.name = "ImpactShadow"
+	shadow.name = "ArrowRainShadow"
+	shadow.position = position
+	shadow.z_index = -1  # Below other elements
 	
-	# Create shadow sprite
-	var shadow_sprite = Sprite2D.new()
+	# Add simple circle visual
+	var shadow_circle = Node2D.new()
+	shadow.add_child(shadow_circle)
 	
-	# Create shadow image
-	var img = Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
+	# Custom drawing script
+	var draw_script = GDScript.new()
+	draw_script.source_code = """
+	extends Node2D
+
+	var radius = 5.0
+	var pulse_time = 0.0
+	var fade_alpha = 0.5
+
+	func _process(delta):
+		pulse_time += delta * 3.0
+		fade_alpha = 0.3 + 0.2 * sin(pulse_time)
+		queue_redraw()
+
+	func _draw():
+		draw_circle(Vector2.ZERO, radius, Color(0.1, 0.1, 0.1, fade_alpha))
+		draw_arc(Vector2.ZERO, radius + 2, 0, TAU, 32, Color(0.3, 0.3, 0.3, fade_alpha * 0.7), 1.0)
+	"""
 	
-	# Draw circle
-	for x in range(16):
-		for y in range(16):
-			var dx = (x - 8) / 8.0
-			var dy = (y - 8) / 8.0
-			var dist = sqrt(dx*dx + dy*dy)
-			
-			if dist <= 1.0:
-				var alpha = 0.4 * (1.0 - dist)
-				img.set_pixel(x, y, Color(0, 0, 0, alpha))
-	
-	# Create texture
-	var texture = ImageTexture.create_from_image(img)
-	shadow_sprite.texture = texture
-	
-	# Set size
-	shadow_sprite.scale = Vector2(0.8, 0.5)
-	
-	# Add to shadow
-	shadow.add_child(shadow_sprite)
-	
-	# Position shadow
-	shadow.global_position = position
-	
-	# Set low z_index
-	shadow.z_index = -10
-	
-	# Add to scene
+	shadow_circle.set_script(draw_script)
 	parent.add_child(shadow)
-	
-	# Create pulse animation
-	var tween = parent.create_tween()
-	tween.tween_property(shadow_sprite, "modulate:a", 0.8, 0.2)
-	tween.tween_property(shadow_sprite, "modulate:a", 0.3, 0.2)
-	tween.set_loops(10)
-	
-	# Store tween reference
-	shadow.set_meta("tween", tween)
 	
 	return shadow
 
-# Process arrow impact
-func process_impact(arrow: Node, impact_position: Vector2, shadow: Node = null) -> void:
-	# Find targets in area
+# Process arrow impact with area damage
+func process_arrow_impact(arrow: Node, impact_position: Vector2) -> void:
+	# Find targets in small area around impact position
 	var space_state = arrow.get_world_2d().direct_space_state
 	
 	var query = PhysicsShapeQueryParameters2D.new()
 	var circle_shape = CircleShape2D.new()
-	circle_shape.radius = 25.0  # Impact radius
+	circle_shape.radius = 20.0  # Small detection radius
 	query.shape = circle_shape
 	query.transform = Transform2D(0, impact_position)
 	query.collision_mask = 2  # Enemy layer
 	
 	var results = space_state.intersect_shape(query)
 	
-	# Apply damage to enemies
+	var hit_any_target = false
+	
+	# Process hits on enemies
 	for result in results:
 		var body = result.collider
-		if body.is_in_group("enemies") and body.has_node("HealthComponent"):
-			var health = body.get_node("HealthComponent")
+		
+		if body.is_in_group("enemies") or body.get_collision_layer_value(2):
+			hit_any_target = true
 			
-			# Get damage package if available
-			if arrow.has_method("get_damage_package"):
-				var damage_package = arrow.get_damage_package()
-				health.take_complex_damage(damage_package)
-			else:
-				# Fallback to basic damage
-				health.take_damage(arrow.damage, arrow.is_crit)
+			if body.has_node("HealthComponent"):
+				var health_component = body.get_node("HealthComponent")
+				
+				if arrow.has_method("get_damage_package"):
+					var damage_package = arrow.get_damage_package()
+					health_component.take_complex_damage(damage_package)
+				else:
+					# Fallback to basic damage
+					var damage = arrow.damage
+					var is_crit = arrow.is_crit if "is_crit" in arrow else false
+					health_component.take_damage(damage, is_crit, "rain_arrow")
 	
-	# Create visual effect
-	create_impact_effect(impact_position, arrow.get_parent())
+	# Create impact visual effect
+	create_impact_effect(impact_position, arrow)
 	
-	# Process effects that trigger on hit
-	process_on_hit_effects(arrow, impact_position)
-	
-	# Clean up shadow
-	if shadow and is_instance_valid(shadow):
-		if shadow.has_meta("tween"):
-			var tween = shadow.get_meta("tween")
-			if tween and is_instance_valid(tween):
-				tween.kill()
-		shadow.queue_free()
-	
-	# Destroy arrow
-	if arrow and is_instance_valid(arrow):
+	# Return arrow to pool or destroy it
+	if ProjectilePool and ProjectilePool.instance and arrow.is_pooled():
+		ProjectilePool.instance.return_arrow_to_pool(arrow)
+	else:
 		arrow.queue_free()
-
-# Create visual impact effect
-func create_impact_effect(position: Vector2, parent: Node) -> void:
-	# Create container
-	var effect = Node2D.new()
-	effect.name = "ImpactEffect"
-	effect.position = position
+		
+func create_impact_effect(position: Vector2, arrow: Node) -> void:
+	var impact = Node2D.new()
+	impact.name = "ArrowImpact"
+	impact.position = position
 	
-	# Add particles
+	# Add particles system
 	var particles = CPUParticles2D.new()
-	effect.add_child(particles)
-	
-	# Configure particles
 	particles.emitting = true
 	particles.one_shot = true
 	particles.explosiveness = 0.8
-	particles.amount = 10
-	particles.lifetime = 0.5
-	particles.direction = Vector2(0, -1)
-	particles.spread = 180.0
-	particles.gravity = Vector2.ZERO
+	particles.amount = 8
+	particles.lifetime = 0.4
 	particles.initial_velocity_min = 20
 	particles.initial_velocity_max = 40
-	particles.scale_amount_min = 1.0
-	particles.scale_amount_max = 2.0
-	particles.color = Color(0.9, 0.9, 0.9, 0.8)
+	particles.spread = 180
+	particles.gravity = Vector2(0, 98)
+	particles.color = Color(0.8, 0.8, 0.8)
 	
-	# Add to scene
-	parent.add_child(effect)
+	impact.add_child(particles)
 	
-	# Auto-destruct timer
+	# Add to the scene
+	if arrow.get_parent():
+		arrow.get_parent().add_child(impact)
+	
+	# Auto-destroy after animation
 	var timer = Timer.new()
-	effect.add_child(timer)
-	timer.wait_time = 1.0
 	timer.one_shot = true
-	timer.timeout.connect(func(): effect.queue_free())
+	timer.wait_time = 0.8
+	impact.add_child(timer)
+	
+	timer.timeout.connect(func(): impact.queue_free())
 	timer.start()
 
 # Process effects that trigger on hit
@@ -1152,6 +1174,7 @@ func process_on_hit_effects(arrow: Node, position: Vector2) -> void:
 	# Process splinter
 	if has_splinter and target:
 		create_splinters(arrow, target, position)
+
 
 # Create explosion effect
 func create_explosion(arrow: Node, target: Node, position: Vector2) -> void:

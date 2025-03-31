@@ -1,6 +1,13 @@
 extends NewProjectileBase
 class_name NewArrow
 
+# Arrow Rain properties
+var arrow_rain_enabled: bool = false
+var arrow_rain_counter: int = 0
+var arrow_rain_threshold: int = 10
+var arrow_rain_count: int = 5
+var arrow_rain_radius: float = 80.0
+
 # Arrow Storm properties
 var arrow_storm_enabled: bool = false
 var arrow_storm_trigger_chance: float = 0.1
@@ -56,6 +63,15 @@ func _ready():
 	# Mark as initialized for pooled objects
 	if is_pooled():
 		set_meta("initialized", true)
+
+func _physics_process(delta):
+	# If this is an arrow rain arrow with a dedicated processor, skip normal movement
+	if has_meta("is_rain_arrow") and has_node("RainArrowProcessor"):
+		# Let the processor handle it
+		return
+		
+	# Normal movement code continues below...
+	super._physics_process(delta)
 
 # Substituir o método get_damage_package para incluir a lógica do Mark of Death
 func get_damage_package() -> Dictionary:
@@ -279,6 +295,24 @@ func process_on_hit(target: Node) -> void:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
 
+	if has_meta("is_rain_arrow"):
+		# Simplified hit logic for rain arrows
+		if target.has_node("HealthComponent"):
+			var health_component = target.get_node("HealthComponent")
+			# Get basic damage package
+			var damage_package = get_damage_package()
+			health_component.take_complex_damage(damage_package)
+			
+		# Basic signal emission
+		emit_signal("on_hit", target, self)
+		
+		# Clean up immediately
+		if is_pooled():
+			return_to_pool()
+		else:
+			queue_free()
+		return  # Skip the rest of processing
+	
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
 		print("Chain shot check - current:", current_chains, "max:", max_chains)
@@ -337,6 +371,7 @@ func process_on_hit(target: Node) -> void:
 			should_destroy = false  # Permite que a flecha continue
 		else:
 			print("Max pierce count reached")
+			
 	if will_chain:
 		print("Arrow will chain")
 		is_processing_ricochet = true
@@ -789,7 +824,11 @@ func reset_for_reuse() -> void:
 	
 	# Reset damage to base value
 	damage = 10  # Use your base arrow damage
-	
+	arrow_rain_enabled = false
+	arrow_rain_counter = 0
+	arrow_rain_threshold = 10
+	arrow_rain_count = 5
+	arrow_rain_radius = 80.0
 	# Reset DmgCalculator
 	if has_node("DmgCalculatorComponent"):
 		var dmg_calc = get_node("DmgCalculatorComponent")
@@ -815,14 +854,28 @@ func reset_for_reuse() -> void:
 		
 	if has_meta("should_increment_bloodseeker"):
 		remove_meta("should_increment_bloodseeker")
-		
+	#reset das variavesi do rain arrow
+	if has_meta("is_rain_arrow"):
+		remove_meta("is_rain_arrow")
+	if has_meta("no_double_shot"):
+		remove_meta("no_double_shot")
+	if has_meta("no_chain_shot"):
+		remove_meta("no_chain_shot")
+	if has_meta("rain_start_pos"):
+		remove_meta("rain_start_pos")
+	if has_meta("rain_target_pos"):
+		remove_meta("rain_target_pos")
+	if has_meta("rain_time"):
+		remove_meta("rain_time")
 	# Reset collision layers
 	set_deferred("collision_layer", 4)  # Projectile layer
 	set_deferred("collision_mask", 2)   # Enemy layer
 	
 	# Reset physics processing
 	set_physics_process(true)
-	
+	var rain_processor = get_node_or_null("RainArrowProcessor")
+	if rain_processor:
+		rain_processor.queue_free()
 	# Mantém uma cópia das tags antes de limpar
 	var old_tags = tags.duplicate() if "tags" in self else []
 	

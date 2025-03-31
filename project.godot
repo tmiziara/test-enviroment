@@ -23,6 +23,17 @@ ProjectilePool="*res://Test/Singletons/ProjectilePool.gd"
 PoolPerformanceMonitor2="*res://Test/Debug/PoolPerformanceMonitor.gd"
 DoTManagerSingleton="*res://Test/Singletons/DoTManagerSingleton.gd"
 
+[debug]
+
+gdscript/warnings/unassigned_variable=0
+gdscript/warnings/unassigned_variable_op_assign=0
+gdscript/warnings/unused_variable=0
+gdscript/warnings/unused_local_constant=0
+gdscript/warnings/unused_private_class_variable=0
+gdscript/warnings/unused_parameter=0
+gdscript/warnings/unused_signal=0
+gdscript/warnings/shadowed_variable=0
+
 [display]
 
 window/size/resizable=false

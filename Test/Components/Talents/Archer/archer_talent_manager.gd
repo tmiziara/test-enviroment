@@ -91,10 +91,23 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 		
 		# Check for special abilities
 		if "arrow_rain_enabled" in current_effects and current_effects.arrow_rain_enabled:
-			attack_counter += 1
-			if attack_counter >= current_effects.arrow_rain_interval:
-				attack_counter = 0
-				talent_system.spawn_arrow_rain(projectile, current_effects)
+			# Only increment counter for normal arrows, not for Arrow Rain arrows themselves
+			if not projectile.has_meta("is_rain_arrow"):
+				# Track attack counter
+				if not archer.has_meta("arrow_rain_counter"):
+					archer.set_meta("arrow_rain_counter", 0)
+				
+				var counter = archer.get_meta("arrow_rain_counter")
+				counter += 1
+				archer.set_meta("arrow_rain_counter", counter)
+				
+				print("Arrow Rain counter: " + str(counter) + "/" + str(current_effects.arrow_rain_interval))
+				
+				# If we've reached the threshold, trigger Arrow Rain and reset counter
+				if counter >= current_effects.arrow_rain_interval:
+					print("Arrow Rain triggered!")
+					archer.set_meta("arrow_rain_counter", 0)
+					talent_system.spawn_arrow_rain(projectile, current_effects)
 		
 		if projectile.has_meta("double_shot_enabled") and not projectile.has_meta("is_second_arrow"):
 			print("Double Shot enabled - will spawn second arrow")
