@@ -693,9 +693,6 @@ func check_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> boo
 	
 	return false
 
-# Spawn arrow rain based on original projectile
-# Update this function in your ConsolidatedTalentSystem.gd
-
 func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 	var shooter = projectile.shooter
 	if not shooter:
@@ -717,6 +714,7 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 	else:
 		# If no target, use a position in front of the shooter
 		target_position = projectile.global_position + projectile.direction * 300
+	
 	# IMPORTANT: Save bleeding effect metadata from original projectile
 	var has_bleeding = projectile.has_meta("has_bleeding_effect")
 	var bleeding_data = {}
@@ -736,6 +734,12 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		# Try to get from pool first
 		if ProjectilePool and ProjectilePool.instance:
 			arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
+			
+			# Garantir que a flecha obtida do pool tenha estado limpo
+			if arrow and arrow.is_pooled():
+				# Forçar reinicialização da flecha do pool
+				if arrow.has_method("reset_for_reuse"):
+					arrow.reset_for_reuse()
 		
 		# Fallback to instantiation if pool failed
 		if not arrow:
@@ -749,24 +753,41 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 			continue
 		
 		# Calculate a random position within the radius for the arrow to land
-		var fall_position = target_position
-		if effects.arrow_rain_count > 1:
-			var angle = randf() * TAU  # Random angle in radians
-			var rand_radius = sqrt(randf()) * effects.arrow_rain_radius  # Square root for even distribution
-			var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
-			fall_position += random_offset
+		# Com distribuição ampliada e deslocada para trás do alvo
+		var fall_positions = _get_smart_fall_positions(target_position, effects, shooter, effects.arrow_rain_count)
 		
-		# Set initial position with height offset
-		var random_height = randf_range(200, 250)
-		var horizontal_offset = randf_range(-50, 50)
-		arrow.global_position = Vector2(fall_position.x + horizontal_offset, fall_position.y - random_height)
+		for j in range(effects.arrow_rain_count):
+			# Aumenta o raio efetivo para maior dispersão
+			var effective_radius = effects.arrow_rain_radius * 1.5
+			
+			# Ângulo aleatório, mas com maior probabilidade para o norte (trás do alvo)
+			var angle = randf() * TAU
+			
+			# Determina a distribuição radial com sqrt para distribuição uniforme
+			var rand_radius = sqrt(randf()) * effective_radius
+			
+			# Calcula o offset base
+			var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
+			
+			# Adiciona um deslocamento para trás (norte)
+			# Considerando que y negativo é "para cima/norte" em coordenadas 2D
+			var back_offset = Vector2(0, -effective_radius * 0.3) 
+			
+			# Combina os offsets
+			var fall_position = fall_positions[j]
+		
+		# ---- MUDANÇA PRINCIPAL: Posição inicial é o arqueiro ----
+		# Define a posição inicial da flecha no arqueiro
+		arrow.global_position = shooter.global_position
 		
 		# Basic configuration
 		arrow.damage = int(projectile.damage * effects.arrow_rain_damage_percent)
 		arrow.shooter = shooter
-		arrow.speed = 500.0  # Faster downward movement
-		arrow.direction = (fall_position - arrow.global_position).normalized()
-		arrow.rotation = arrow.direction.angle()
+		arrow.speed = 500.0  # Velocidade da flecha
+		
+		# ---- MUDANÇA: Direção inicial é para cima com leve inclinação ----
+		# A direção inicial não precisa ser configurada - o processador vai definir
+		# baseado na trajetória do arco
 		
 		# IMPORTANT: Copy critical hit status and chance from original projectile
 		if "is_crit" in projectile and "is_crit" in arrow:
@@ -803,6 +824,12 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		arrow.set_meta("no_double_shot", true)
 		arrow.set_meta("no_chain_shot", true)
 		
+		# ---- NOVAS CONFIGURAÇÕES PARA O ARCO ALTO ----
+		# Configura os metadados necessários para o RainArrowProcessor
+		arrow.set_meta("rain_start_pos", shooter.global_position)  # Posição inicial no arqueiro
+		arrow.set_meta("rain_target_pos", fall_positions)           # Posição alvo
+		arrow.set_meta("rain_arc_height", randf_range(200, 300))   # Altura aleatória para o arco (bem alto)
+		
 		# Create a modified copy of effects with disabled problematic abilities
 		var rain_effects = effects.copy()
 		rain_effects.double_shot_enabled = false
@@ -810,8 +837,21 @@ func spawn_arrow_rain(projectile: Node, effects: CompiledEffects) -> void:
 		# Apply the modified effects
 		apply_compiled_effects(arrow, rain_effects)
 		
-		# Setup custom trajectory system for the arrow
-		setup_rain_arrow_trajectory(arrow, fall_position, shooter.get_parent())
+		# Verifica se a flecha já tem um pai antes de adicionar à cena
+		if arrow.get_parent():
+			arrow.get_parent().remove_child(arrow)
+			
+		# Adiciona o arrow ao parent antes de configurar o processador
+		shooter.get_parent().add_child(arrow)
+		
+		# ---- NOVO MÉTODO DE CONFIGURAÇÃO DA TRAJETÓRIA ----
+		# Cria um processador de arco diretamente 
+		var processor = RainArrowProcessor.new()
+		arrow.add_child(processor)
+		
+		# Varia ligeiramente o tempo de voo para criar efeito visual de lançamento sequencial
+		# Em vez de usar um timer que pode falhar antes do nó estar na árvore
+		arrow.set_meta("rain_time", 1.0 + (i * 0.05))  # Adiciona 0.05s por flecha
 	
 func setup_rain_arrow_trajectory(arrow: Node, impact_position: Vector2, parent_node: Node) -> void:
 	# Disable standard physics and collisions initially
@@ -1089,6 +1129,181 @@ func find_nearby_enemies(position: Vector2, range_value: float, exclude: Array =
 	)
 	
 	return enemies
+
+# Encontra inimigos na área para direcionamento inteligente
+func _find_enemies_in_area(center: Vector2, search_radius: float, shooter) -> Array:
+	var enemies = []
+	
+	# Verifica se o mundo 2D está disponível
+	if not shooter or not is_instance_valid(shooter):
+		return enemies
+	
+	var space_state = shooter.get_world_2d().direct_space_state
+	
+	# Configura a query de física
+	var query = PhysicsShapeQueryParameters2D.new()
+	var circle_shape = CircleShape2D.new()
+	circle_shape.radius = search_radius * 1.5  # Raio aumentado para encontrar mais inimigos
+	query.shape = circle_shape
+	query.transform = Transform2D(0, center)
+	query.collision_mask = 2  # Layer de inimigos
+	
+	# Executa a query
+	var results = space_state.intersect_shape(query)
+	
+	# Filtra e classifica os resultados
+	for result in results:
+		var body = result.collider
+		if (body.is_in_group("enemies") or body.get_collision_layer_value(2)) and body.has_node("HealthComponent"):
+			enemies.append(body)
+	
+	# Ordena por distância ao centro
+	enemies.sort_custom(func(a, b): 
+		return a.global_position.distance_to(center) < b.global_position.distance_to(center)
+	)
+	
+	return enemies
+
+# Na função spawn_arrow_rain, substitua o cálculo de fall_position por:
+func _get_smart_fall_positions(target_position: Vector2, effects, shooter, arrow_count: int) -> Array:
+	var fall_positions = []
+	
+	# Raio de busca expansivo - quanto mais flechas, maior a área de busca
+	var search_radius = effects.arrow_rain_radius * (1.0 + (arrow_count * 0.05))
+	
+	# Encontra inimigos na área para priorizar
+	var enemies_in_area = _find_enemies_in_area(target_position, search_radius, shooter)
+	
+	# Estratégia baseada no número de inimigos encontrados
+	if enemies_in_area.size() == 0:
+		# Sem inimigos: padrão de área padrão deslocado para trás
+		for i in range(arrow_count):
+			var angle = randf() * TAU
+			var rand_radius = sqrt(randf()) * effects.arrow_rain_radius * 1.2
+			var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
+			var back_offset = Vector2(0, -effects.arrow_rain_radius * 0.4)
+			fall_positions.append(target_position + random_offset + back_offset)
+	
+	elif enemies_in_area.size() <= 2:
+		# Poucos inimigos: foco maior nos inimigos com algumas flechas de cobertura
+		# 70% das flechas nos inimigos, 30% em cobertura de área
+		var enemy_focus_count = int(arrow_count * 0.7)
+		var area_count = arrow_count - enemy_focus_count
+		
+		# Direciona flechas para os inimigos, com ligeira distribuição
+		for i in range(enemy_focus_count):
+			var enemy_idx = i % enemies_in_area.size()
+			var enemy_pos = enemies_in_area[enemy_idx].global_position
+			
+			# Pequena variação ao redor do inimigo para aumentar chance de acerto
+			var variation = Vector2(
+				randf_range(-15, 15),
+				randf_range(-15, 15)
+			)
+			
+			# Adiciona posição para o inimigo com pequena variação
+			fall_positions.append(enemy_pos + variation)
+			
+			# Adiciona posições extras atrás do inimigo (zona de movimento provável)
+			if i < enemy_focus_count / 2:
+				var behind_offset = (enemy_pos - target_position).normalized() * 30
+				fall_positions.append(enemy_pos + behind_offset + variation)
+		
+		# Adiciona flechas de cobertura de área
+		for i in range(area_count):
+			var angle = randf() * TAU
+			var rand_radius = sqrt(randf()) * effects.arrow_rain_radius * 1.5
+			var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
+			fall_positions.append(target_position + random_offset)
+			
+	else:
+		# Múltiplos inimigos: distribuição inteligente
+		# 50% dos inimigos, 30% em agrupamentos, 20% cobertura
+		
+		# Direciona flechas para inimigos individuais
+		var enemies_to_target = min(enemies_in_area.size(), int(arrow_count * 0.5))
+		for i in range(enemies_to_target):
+			var enemy_pos = enemies_in_area[i].global_position
+			
+			# Pequena variação para aumentar chance de acerto
+			var variation = Vector2(
+				randf_range(-20, 20),
+				randf_range(-20, 20)
+			)
+			
+			fall_positions.append(enemy_pos + variation)
+		
+		# Identifica clusters de inimigos para cobertura de área
+		var cluster_centers = _find_enemy_clusters(enemies_in_area)
+		var cluster_count = min(cluster_centers.size(), int(arrow_count * 0.3))
+		
+		for i in range(cluster_count):
+			if i < cluster_centers.size():
+				fall_positions.append(cluster_centers[i])
+		
+		# Flechas restantes distribuídas em padrão de cobertura
+		var remaining = arrow_count - fall_positions.size()
+		for i in range(remaining):
+			var angle = randf() * TAU
+			var rand_radius = sqrt(randf()) * effects.arrow_rain_radius * 1.6
+			var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
+			# Deslocamento para trás (considerando que inimigos vêm do norte)
+			var back_bias = Vector2(0, -effects.arrow_rain_radius * 0.25)
+			fall_positions.append(target_position + random_offset + back_bias)
+	
+	# Se por algum motivo temos menos posições que flechas, completa com posições adicionais
+	while fall_positions.size() < arrow_count:
+		var angle = randf() * TAU
+		var rand_radius = sqrt(randf()) * effects.arrow_rain_radius
+		var random_offset = Vector2(cos(angle) * rand_radius, sin(angle) * rand_radius)
+		fall_positions.append(target_position + random_offset)
+	
+	# Se temos mais posições que flechas, mantém apenas o necessário
+	if fall_positions.size() > arrow_count:
+		fall_positions = fall_positions.slice(0, arrow_count)
+	
+	return fall_positions
+
+# Encontra clusters (agrupamentos) de inimigos para cobertura de área eficiente
+func _find_enemy_clusters(enemies: Array, cluster_radius: float = 80.0) -> Array:
+	if enemies.size() <= 1:
+		if enemies.size() == 1:
+			return [enemies[0].global_position]
+		return []
+	
+	var clusters = []
+	var processed = []
+	
+	for enemy in enemies:
+		if enemy in processed:
+			continue
+			
+		var cluster_members = [enemy]
+		processed.append(enemy)
+		
+		# Encontra todos os inimigos próximos
+		for other in enemies:
+			if other == enemy or other in processed:
+				continue
+				
+			if enemy.global_position.distance_to(other.global_position) <= cluster_radius:
+				cluster_members.append(other)
+				processed.append(other)
+		
+		# Se encontramos um cluster, calcula seu centro
+		if cluster_members.size() > 1:
+			var center = Vector2.ZERO
+			for member in cluster_members:
+				center += member.global_position
+			center /= cluster_members.size()
+			
+			clusters.append(center)
+		elif cluster_members.size() == 1:
+			# Inimigo isolado
+			clusters.append(enemy.global_position)
+	
+	return clusters
+
 
 # Helper function to convert degrees to radians
 func deg_to_rad(degrees: float) -> float:

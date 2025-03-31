@@ -2,7 +2,7 @@ extends BaseProjectileStrategy
 class_name ChainShotStrategy
 
 # Chain shot properties
-@export var chain_chance: float = 0.0       # 30% chance to ricochet
+@export var chain_chance: float = 0.3       # 30% chance to ricochet
 @export var chain_range: float = 150.0       # Maximum range for finding targets
 @export var chain_damage_decay: float = 0.2  # 20% damage reduction for chained hit
 @export var max_chains: int = 3              # Maximum number of ricochets - INCREASED to 3 for testing
