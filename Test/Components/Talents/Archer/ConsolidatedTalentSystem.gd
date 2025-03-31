@@ -71,7 +71,14 @@ class CompiledEffects:
 	var bloodseeker_enabled: bool = false
 	var bloodseeker_bonus_per_stack: float = 0.0
 	var bloodseeker_max_stacks: int = 0
-# Add this method to the CompiledEffects class in ConsolidatedTalentSystem.gd
+
+	var pressure_wave_enabled: bool = false
+	var knockback_force: float = 0.0
+	var slow_percent: float = 0.0
+	var slow_duration: float = 0.0
+	var arrow_rain_area_multiplier: float = 1.0
+	var wave_visual_enabled: bool = false
+	var ground_duration: float = 3.0  # Add this new property
 
 	# Creates a copy of this CompiledEffects instance
 	func copy() -> CompiledEffects:
@@ -84,6 +91,14 @@ class CompiledEffects:
 		new_effects.armor_penetration = self.armor_penetration
 		new_effects.range_multiplier = self.range_multiplier
 		new_effects.attack_speed_multiplier = self.attack_speed_multiplier
+		
+		new_effects.pressure_wave_enabled = self.pressure_wave_enabled
+		new_effects.knockback_force = self.knockback_force
+		new_effects.slow_percent = self.slow_percent
+		new_effects.slow_duration = self.slow_duration
+		new_effects.arrow_rain_area_multiplier = self.arrow_rain_area_multiplier
+		new_effects.wave_visual_enabled = self.wave_visual_enabled
+		new_effects.ground_duration = self.ground_duration  # Copy the new property
 		
 		# Elemental effects
 		new_effects.fire_damage_percent = self.fire_damage_percent
@@ -279,16 +294,33 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.arrow_rain_radius = radius
 					effects.arrow_rain_interval = attacks_threshold
 					
-			14:  # Splinter Arrows
-				var splinter_count = strategy.get("splinter_count")
-				var splinter_damage = strategy.get("splinter_damage_percent")
-				var splinter_range = strategy.get("splinter_range")
+			14:  # Pressure Wave
+				print("Processing Pressure Wave talent")
+				var knockback_force = strategy.get("knockback_force")
+				var slow_percent = strategy.get("slow_percent")
+				var slow_duration = strategy.get("slow_duration")
+				var area_multiplier = strategy.get("area_multiplier")
+				var wave_visual = strategy.get("wave_visual_enabled")
+				var ground_duration = strategy.get("ground_duration")  # Get the new property
 				
-				if splinter_count != null and splinter_damage != null and splinter_range != null:
-					effects.can_splinter = true
-					effects.splinter_count = splinter_count
-					effects.splinter_damage_percent = splinter_damage
-					effects.splinter_range = splinter_range
+				if knockback_force != null:
+					effects.pressure_wave_enabled = true
+					effects.knockback_force = knockback_force
+				
+				if slow_percent != null:
+					effects.slow_percent = slow_percent
+				
+				if slow_duration != null:
+					effects.slow_duration = slow_duration
+				
+				if area_multiplier != null:
+					effects.arrow_rain_area_multiplier = area_multiplier
+				
+				if wave_visual != null:
+					effects.wave_visual_enabled = wave_visual
+					
+				if ground_duration != null:
+					effects.ground_duration = ground_duration  # Set the new property
 					
 			15:  # Arrow Explosion
 				var damage_percent = strategy.get("explosion_damage_percent")
@@ -478,7 +510,26 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 					var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 					if "damage_multiplier" in dmg_calc:
 						dmg_calc.damage_multiplier *= (1 + bonus)
+						
+	# Augment Arrow Rain radius
+	if projectile.has_meta("arrow_rain_radius") and effects.arrow_rain_area_multiplier > 1.0:
+		var current_radius = projectile.get_meta("arrow_rain_radius")
+		projectile.set_meta("arrow_rain_radius", current_radius * effects.arrow_rain_area_multiplier)
 
+	if effects.pressure_wave_enabled and (projectile.has_meta("arrow_rain_enabled") or projectile.has_meta("is_rain_arrow")):
+		projectile.set_meta("pressure_wave_enabled", true)
+		projectile.set_meta("knockback_force", effects.knockback_force)
+		projectile.set_meta("slow_percent", effects.slow_percent)
+		projectile.set_meta("slow_duration", effects.slow_duration)
+		projectile.set_meta("wave_visual_enabled", effects.wave_visual_enabled)
+		projectile.set_meta("ground_duration", effects.ground_duration)  # Set the new property
+		projectile.add_tag("pressure_wave")
+		
+		# Augment Arrow Rain radius
+		if projectile.has_meta("arrow_rain_radius") and effects.arrow_rain_area_multiplier > 1.0:
+			var current_radius = projectile.get_meta("arrow_rain_radius")
+			projectile.set_meta("arrow_rain_radius", current_radius * effects.arrow_rain_area_multiplier)
+		
 func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 	if projectile is NewArrow:
 		projectile.chain_shot_enabled = true

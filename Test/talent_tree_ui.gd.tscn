@@ -1,4 +1,4 @@
-[gd_scene load_steps=53 format=3 uid="uid://clurda8aosh4e"]
+[gd_scene load_steps=54 format=3 uid="uid://clurda8aosh4e"]
 
 [ext_resource type="Script" uid="uid://defmqd8prppkh" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
 [ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
@@ -24,7 +24,7 @@
 [ext_resource type="Texture2D" uid="uid://bqo7gccxxrnb4" path="res://Test/Assets/Icons/ArcherSkill/11.png" id="14_xa5yu"]
 [ext_resource type="Texture2D" uid="uid://bkfg2c8ybthks" path="res://Test/Assets/Icons/ArcherSkill/12.png" id="15_evbns"]
 [ext_resource type="Texture2D" uid="uid://bfgb6661urlnl" path="res://Test/Assets/Icons/ArcherSkill/13.png" id="16_kwscv"]
-[ext_resource type="Texture2D" uid="uid://co2bpj3f5p3pp" path="res://Test/Assets/Icons/ArcherSkill/14.png" id="17_5f38h"]
+[ext_resource type="Texture2D" uid="uid://ckdttc7v4rpii" path="res://Test/Assets/Icons/ArcherSkill/14.png" id="17_5f38h"]
 [ext_resource type="Resource" uid="uid://dvd5ph7btp2e" path="res://Test/Strategys/ArcherTalent/Talent_11.tres" id="17_kml1r"]
 [ext_resource type="Texture2D" uid="uid://c8r30foegmkmk" path="res://Test/Assets/Icons/ArcherSkill/15.png" id="18_voe78"]
 [ext_resource type="Texture2D" uid="uid://drcbxap10cxgg" path="res://Test/Assets/Icons/ArcherSkill/16.png" id="19_rfep8"]
@@ -55,6 +55,9 @@ texture = ExtResource("2_p8tcx")
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_p8tcx"]
 texture = ExtResource("3_p8tcx")
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_p8tcx"]
+load_path = "res://.godot/imported/14.png-823164b9884d019a4bae4258478e03d9.ctex"
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_5w0hd"]
 load_path = "res://.godot/imported/18.png-a906efba5b545014858fabbead56a059.ctex"
@@ -458,9 +461,9 @@ offset_left = 510.0
 offset_top = 224.0
 offset_right = 550.0
 offset_bottom = 264.0
-texture_normal = ExtResource("17_5f38h")
+texture_normal = SubResource("CompressedTexture2D_p8tcx")
 talent_id = 14
-skill_name = "Arrow Storm"
+skill_name = "Pressure Wave"
 icon = ExtResource("17_5f38h")
 talent_strategy = ExtResource("27_bqmob")
 

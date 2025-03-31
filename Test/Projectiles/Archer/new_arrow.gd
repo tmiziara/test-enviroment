@@ -284,16 +284,18 @@ func process_on_hit(target: Node) -> void:
 			# Get basic damage package
 			var damage_package = get_damage_package()
 			health_component.take_complex_damage(damage_package)
-			
+		if has_meta("is_rain_arrow") and has_meta("pressure_wave_enabled"):
+			# Apply knockback and slow effect
+			apply_pressure_wave_effect(target)
+			# Clean up immediately
+			if is_pooled():
+				return_to_pool()
+			else:
+				queue_free()
+			return  # Skip the rest of processing
 		# Basic signal emission
 		emit_signal("on_hit", target, self)
-		
-		# Clean up immediately
-		if is_pooled():
-			return_to_pool()
-		else:
-			queue_free()
-		return  # Skip the rest of processing
+
 	
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
@@ -522,6 +524,40 @@ func apply_mark_on_critical_hit(target: Node) -> void:
 		
 		# Armazena o bônus como metadado no alvo para acesso rápido
 		target.set_meta("mark_crit_bonus", mark_crit_bonus)
+
+func apply_pressure_wave_effect(target: Node) -> void:
+	# Check if we have the required metadata
+	if not has_meta("pressure_wave_enabled") or not has_meta("knockback_force"):
+		return
+	
+	var knockback_force = get_meta("knockback_force")
+	var slow_percent = get_meta("slow_percent")
+	var slow_duration = get_meta("slow_duration")
+	var wave_visual_enabled = get_meta("wave_visual_enabled")
+	var ground_duration = get_meta("ground_duration", 3.0)
+	
+	# Aplicar efeito imediato no alvo atingido
+	# (Código existente para knockback e slow no alvo)
+	
+	# Criar o efeito de área persistente
+	if wave_visual_enabled:
+		var parent = get_parent()
+		if parent:
+			# Configurações para o efeito
+			var settings = {
+				"duration": ground_duration,
+				"slow_percent": slow_percent,
+				"slow_duration": slow_duration,
+				"knockback_force": knockback_force
+			}
+			
+			# Usar diretamente a classe para criar
+			PersistentPressureWaveProcessor.create_at_position(
+				target.global_position, 
+				parent, 
+				shooter, 
+				settings
+			)
 
 # Process explosion arrow effect
 func process_explosion_effect(target: Node) -> void:
