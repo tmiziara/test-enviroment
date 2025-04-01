@@ -1,7 +1,7 @@
 extends Node
 class_name RainArrowProcessor
 
-# Configuraçao da trajetória
+# Configuração da trajetória
 var start_position: Vector2          # Posição inicial da flecha
 var target_position: Vector2         # Posição alvo onde a flecha cairá
 var arc_height: float = 150.0        # Altura máxima do arco (ajustável)
@@ -14,21 +14,36 @@ var arrow: NewArrow                  # Referência à flecha pai
 var shadow: Node2D                   # Referência à sombra de previsão
 var show_shadow: bool = true         # Mostrar uma sombra antes da flecha cair?
 var shadow_preview_time: float = 0.5 # Quanto tempo a sombra aparece antes da flecha?
-var has_hit: bool = false
+var has_hit: bool = false            # Flag para evitar processamento duplicado
+
 # Efeitos visuais
 var impact_particles: bool = true    # Criar partículas ao atingir o solo?
+var initialization_completed: bool = false # Flag para confirmar inicialização completa
+
+# Identificador único para este processador
+var processor_id: String = ""
+
+func _init():
+	# Gera um ID único para cada processador
+	processor_id = str(Time.get_ticks_msec()) + "_" + str(randi() % 10000)
 
 func _ready():
 	# Obtém referência à flecha pai
 	arrow = get_parent()
-	if not arrow:
-		push_error("RainArrowProcessor: Arrow parent not found!")
+	if not arrow or not is_instance_valid(arrow):
 		queue_free()
 		return
 		
-	# Imprimir uma mensagem para confirmar que o processador está sendo usado
-	print("RainArrowProcessor ativado")
-
+	# PROTEÇÃO CONTRA DUPLICAÇÃO: Verifica se a flecha já tem um processador
+	if arrow.has_meta("active_rain_processor_id"):
+		var existing_id = arrow.get_meta("active_rain_processor_id")
+		print("WARNING: Arrow already has processor ID: ", existing_id)
+		queue_free()
+		return
+		
+	# Marca esta flecha como tendo um processador ativo
+	arrow.set_meta("active_rain_processor_id", processor_id)
+		
 	# Obtém configurações da trajetória
 	_initialize_trajectory()
 	
@@ -38,8 +53,34 @@ func _ready():
 	
 	# Desativa física e colisões no início
 	_prepare_arrow_for_arc()
+	
+	# Adiciona um timer de segurança para auto-destruição se algo der errado
+	var safety_timer = Timer.new()
+	safety_timer.name = "SafetyTimer"
+	safety_timer.wait_time = total_time * 2.0  # O dobro do tempo esperado
+	safety_timer.one_shot = true
+	safety_timer.autostart = true
+	safety_timer.timeout.connect(_safety_timeout)
+	add_child(safety_timer)
+	
+	print("Initialized rain arrow processor for ", arrow, " with ID: ", processor_id)
+	initialization_completed = true
+	print("Starting initialization of RainArrowProcessor for ", get_parent(), " with ", get_path())
+
+func _safety_timeout():
+	print("Safety timeout reached for processor: ", processor_id)
+	if arrow and is_instance_valid(arrow):
+		if arrow.has_meta("active_rain_processor_id") and arrow.get_meta("active_rain_processor_id") == processor_id:
+			arrow.remove_meta("active_rain_processor_id")
+		
+		if arrow.is_pooled():
+			arrow.return_to_pool()
+		else:
+			arrow.queue_free()
+	queue_free()
 
 func _physics_process(delta):
+	# Verificação de segurança - se a flecha não for válida, remove o processador
 	if not arrow or not is_instance_valid(arrow):
 		queue_free()
 		return
@@ -95,6 +136,7 @@ func _initialize_trajectory():
 	# Armazena para uso posterior
 	if arrow.has_meta("rain_time"):
 		total_time = arrow.get_meta("rain_time")
+	print("_initialize_trajectory a flecha é ", arrow, " com ID: ", processor_id)
 
 # Prepara a flecha para a trajetória em arco
 func _prepare_arrow_for_arc():
@@ -121,7 +163,7 @@ func _create_target_shadow():
 	
 	# Cria o nó de sombra
 	shadow = Node2D.new()
-	shadow.name = "ArrowShadow"
+	shadow.name = "ArrowShadow_" + processor_id
 	shadow.global_position = target_position
 	shadow.z_index = -1
 	shadow.modulate = Color(1, 1, 1, 0)  # Começa invisível
@@ -181,7 +223,6 @@ func _calculate_arc_position(progress: float) -> Vector2:
 	
 	# Subtrai do Y para subir (em coordenadas 2D, Y aumenta para baixo)
 	pos.y -= height_offset
-	
 	return pos
 
 # Atualiza a rotação da flecha para apontar na direção do movimento
@@ -213,13 +254,13 @@ func _enable_arrow_collisions():
 	if arrow is CollisionObject2D:
 		arrow.set_deferred("collision_layer", 4)  # Layer de projétil 
 		arrow.set_deferred("collision_mask", 2)   # Layer de inimigo
-		
+	print("_enable_arrow_collisions a flecha é ", arrow, " com ID: ", processor_id)
+
 # Processa o impacto no destino
 func _handle_impact():
 	# Previne processamento duplicado
 	if has_hit:
 		return
-		
 	has_hit = true
 	
 	# Remover a sombra se existir
@@ -232,21 +273,26 @@ func _handle_impact():
 	# Cria efeito de impacto
 	if impact_particles:
 		_create_impact_effect()
-	
-	# Aplica efeito de pressure wave se habilitado (Talent 14)
-	if arrow.has_meta("pressure_wave_enabled"):
-		_apply_pressure_wave()
-	
+		
 	# Aplica dano a inimigos próximos 
 	var enemies = _find_enemies_at_impact()
 	for enemy in enemies:
 		# Usa o método on_hit do Arrow para garantir processamento completo
 		arrow.process_on_hit(enemy)
+		
+		# Aplica efeito de pressure wave se habilitado (Talent 14)
+		if arrow.has_meta("pressure_wave_enabled"):
+			_apply_pressure_wave(enemy)
+	print("_handle_impact a flecha é ", arrow, " com ID: ", processor_id)
 	
 	# Agenda retorno ao pool ou destruição
 	var cleanup_delay = 0.1
 	get_tree().create_timer(cleanup_delay).timeout.connect(func():
 		if arrow and is_instance_valid(arrow):
+			# Remove o ID de processador ativo antes de retornar
+			if arrow.has_meta("active_rain_processor_id") and arrow.get_meta("active_rain_processor_id") == processor_id:
+				arrow.remove_meta("active_rain_processor_id")
+				
 			# Verifica se é um objeto pooled
 			if arrow.is_pooled():
 				arrow.return_to_pool()
@@ -284,7 +330,7 @@ func _find_enemies_at_impact() -> Array:
 		var body = result.collider
 		if (body.is_in_group("enemies") or body.get_collision_layer_value(2)) and body.has_node("HealthComponent"):
 			enemies.append(body)
-	
+	print("_find_enemies_at_impact a flecha é ", arrow, " com ID: ", processor_id)
 	return enemies
 
 # Cria um efeito visual de impacto
@@ -296,7 +342,7 @@ func _create_impact_effect():
 	
 	# Cria nó de impacto
 	var impact = Node2D.new()
-	impact.name = "ArrowImpact"
+	impact.name = "ArrowImpact_" + processor_id
 	impact.global_position = arrow.global_position
 	parent.add_child(impact)
 	
@@ -318,31 +364,69 @@ func _create_impact_effect():
 	particles.scale_amount_min = 2.0
 	particles.scale_amount_max = 2.0
 	particles.color = Color(0.8, 0.8, 0.8)
+	print("_create_impact_effect a flecha é ", arrow, " com ID: ", processor_id)
 	
 	# Auto-destruição após efeito
 	impact.create_tween().tween_callback(func(): impact.queue_free()).set_delay(1.0)
 
 # Aplica o efeito Pressure Wave (Talent 14)
-func _apply_pressure_wave():
-	# Verifica se a classe PersistentPressureWaveProcessor está disponível
-	var PressureWaveClass = load("res://Test/Processors/PersistentPressureWaveProcessor.gd")
-	
-	if not PressureWaveClass:
-		print("ERRO: Não foi possível carregar PersistentPressureWaveProcessor")
+func _apply_pressure_wave(target: Node) -> void:
+	# Verifica se o projétil tem os metadados necessários
+	if not arrow.has_meta("pressure_wave_enabled"):
 		return
 	
-	# Obtém as configurações dos metadados da flecha
-	var settings = {
-		"duration": arrow.get_meta("ground_duration", 3.0),
-		"slow_percent": arrow.get_meta("slow_percent", 0.3),
-		"slow_duration": arrow.get_meta("slow_duration", 1.5),
-		"knockback_force": arrow.get_meta("knockback_force", 150.0),
-		"max_radius": arrow.get_meta("arrow_rain_radius", 80.0)
-	}
+	# Obtém os parâmetros de configuração
+	var knockback_force = arrow.get_meta("knockback_force", 150.0)
+	var slow_percent = arrow.get_meta("slow_percent", 0.3)
+	var slow_duration = arrow.get_meta("slow_duration", 0.5)
+	var wave_visual_enabled = arrow.get_meta("wave_visual_enabled", true)
+	var ground_duration = arrow.get_meta("ground_duration", 3.0)
 	
-	# Cria o efeito de onda de pressão
-	var parent = arrow.get_parent()
-	if parent:
-		# Usa o método estático para criar a onda de pressão
-		PressureWaveClass.create_at_position(arrow.global_position, parent, arrow.shooter, settings)
-		print("Pressure Wave aplicada na posição", arrow.global_position)
+	# Aplicar knockback imediatamente se houver alvo
+	if target != null and is_instance_valid(target):
+		# Pegar posição da flecha - correção-chave
+		var arrow_position = arrow.global_position
+		
+		# Calcular direção do knockback (afastando do ponto de impacto)
+		var knockback_direction = (target.global_position - arrow_position).normalized()
+		# Aplicar knockback diretamente se disponível
+		if target.has_node("MovementControlComponent"):
+			var movement_control = target.get_node("MovementControlComponent")
+			if movement_control.has_method("apply_knockback"):
+				movement_control.apply_knockback(knockback_direction, knockback_force)
+		elif target is CharacterBody2D:
+			# Modificação direta da velocidade como fallback
+			target.velocity += knockback_direction * knockback_force
+	
+	
+	# Cria o efeito de área persistente que afeta APENAS com slow (não knockback)
+	if wave_visual_enabled:
+		var parent = arrow.get_parent()
+		if parent:
+			# Configurações para o efeito
+			var settings = {
+				"duration": ground_duration,
+				"slow_percent": slow_percent,
+				"slow_duration": slow_duration,
+				"knockback_force": 0.0,  # Remove knockback for the area effect
+				"only_slow": true  # Flag específica para indicar apenas slow (não knockback)
+			}
+			# Usar diretamente a classe para criar
+			var wave = PersistentPressureWaveProcessor.create_at_position(
+				arrow.global_position, 
+				parent, 
+				arrow.shooter, 
+				settings
+			)
+
+func _exit_tree():
+	# Perform any necessary cleanup when this processor is being removed
+	print("RainArrowProcessor being removed from ", get_parent(), " with ID: ", processor_id)
+	
+	var arrow = get_parent()
+	if is_instance_valid(arrow):
+		# Remove a referência ao processor_id apenas se for deste processador
+		if arrow.has_meta("active_rain_processor_id") and arrow.get_meta("active_rain_processor_id") == processor_id:
+			arrow.remove_meta("active_rain_processor_id")
+		
+		print("_exit_tree a flecha é ", arrow, " com ID: ", processor_id)

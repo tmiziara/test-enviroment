@@ -294,33 +294,28 @@ func _apply_strategy_effects(strategy: BaseProjectileStrategy, effects: Compiled
 					effects.arrow_rain_radius = radius
 					effects.arrow_rain_interval = attacks_threshold
 					
-			14:  # Pressure Wave
-				print("Processing Pressure Wave talent")
+			14:  # Arrow Storm - melhoria para o Arrow Rain com novo efeito de onda de pressão
+				# Obtém os parâmetros da estratégia
 				var knockback_force = strategy.get("knockback_force")
 				var slow_percent = strategy.get("slow_percent")
 				var slow_duration = strategy.get("slow_duration")
 				var area_multiplier = strategy.get("area_multiplier")
 				var wave_visual = strategy.get("wave_visual_enabled")
-				var ground_duration = strategy.get("ground_duration")  # Get the new property
+				var ground_duration = strategy.get("ground_duration")
 				
+				effects.pressure_wave_enabled = true
 				if knockback_force != null:
-					effects.pressure_wave_enabled = true
 					effects.knockback_force = knockback_force
-				
 				if slow_percent != null:
 					effects.slow_percent = slow_percent
-				
 				if slow_duration != null:
 					effects.slow_duration = slow_duration
-				
 				if area_multiplier != null:
 					effects.arrow_rain_area_multiplier = area_multiplier
-				
 				if wave_visual != null:
 					effects.wave_visual_enabled = wave_visual
-					
 				if ground_duration != null:
-					effects.ground_duration = ground_duration  # Set the new property
+					effects.ground_duration = ground_duration
 					
 			15:  # Arrow Explosion
 				var damage_percent = strategy.get("explosion_damage_percent")
@@ -602,10 +597,6 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 	if ProjectilePool and ProjectilePool.instance:
 		# Try to get arrow from pool
 		second_arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
-		if second_arrow:
-			print("Got arrow from pool: ", second_arrow)
-		else:
-			print("Pool returned null arrow")
 	else:
 		print("ProjectilePool not available")
 	
@@ -781,6 +772,12 @@ func spawn_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> voi
 	# Calculate fall positions using smart targeting
 	var fall_positions = _get_smart_fall_positions(target_position, effects, shooter, effects.arrow_rain_count)
 	
+	# Generate a unique batch ID for this spawn_arrow_rain call
+	var batch_id = str(Time.get_ticks_msec()) + "_" + str(randi() % 1000)
+	
+	# Count how many valid arrows we process
+	var success_count = 0
+	
 	# Spawn rain arrows
 	for i in range(effects.arrow_rain_count):
 		var arrow = null
@@ -791,9 +788,18 @@ func spawn_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> voi
 			
 			# Ensure the pooled arrow has a clean state
 			if arrow and arrow.is_pooled():
-				# Force reinitialization of pooled arrow
+				# Force reinitialization of pooled arrow - LIMPA COMPLETAMENTE
 				if arrow.has_method("reset_for_reuse"):
 					arrow.reset_for_reuse()
+					
+					# ADICIONADO: Garante que qualquer processador existente seja removido
+					for child in arrow.get_children():
+						if child.get_class() == "RainArrowProcessor" or (child.get_script() and "RainArrowProcessor" in child.get_script().get_path()):
+							child.queue_free()
+							
+					# ADICIONADO: Remove qualquer metadado de processador existente
+					if arrow.has_meta("active_rain_processor_id"):
+						arrow.remove_meta("active_rain_processor_id")
 		
 		# Fallback to instantiation if pool failed
 		if not arrow:
@@ -850,7 +856,7 @@ func spawn_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> voi
 		arrow.set_meta("no_double_shot", true)
 		arrow.set_meta("no_chain_shot", true)
 		
-		# Configure rain arrow specifics
+		# Configure rain arrow specifics with unique timestamps to avoid collisions
 		arrow.set_meta("rain_start_pos", shooter.global_position)
 		arrow.set_meta("rain_target_pos", fall_position)
 		arrow.set_meta("rain_arc_height", randf_range(200, 300))
@@ -864,18 +870,54 @@ func spawn_arrow_rain(current_projectile: Node, effects: CompiledEffects) -> voi
 		# Apply the modified effects
 		apply_compiled_effects(arrow, rain_effects)
 		
-		# Remove from current parent if any
-		if arrow.get_parent():
-			arrow.get_parent().remove_child(arrow)
+		# Add to the scene
+		if not arrow.get_parent():
+			shooter.get_parent().add_child(arrow)
 		
-		# Add to parent before setting up processor
-		shooter.get_parent().add_child(arrow)
-		
-		# Create rain arrow processor
+		# MUDANÇA CRUCIAL: Criar o processador diretamente, sem deferred call
 		var processor = RainArrowProcessor.new()
 		processor.name = "RainArrowProcessor"
 		arrow.add_child(processor)
+		
+		# Track successful arrow creation
+		success_count += 1
 	
+	print("Created ", success_count, " rain arrows, all with processors attached")
+
+# Helper method to safely apply effects with proper timing
+func _delayed_apply_effects(arrow: Node, effects: CompiledEffects) -> void:
+	if not arrow or not is_instance_valid(arrow):
+		return
+		
+	# Apply effects to the arrow
+	apply_compiled_effects(arrow, effects)
+	
+	# Use a small timer instead of await physics_frame
+	var timer = Timer.new()
+	timer.wait_time = 0.05  # Short delay
+	timer.one_shot = true
+	timer.autostart = true
+	
+	# Add the timer to arrow and connect its timeout signal
+	arrow.add_child(timer)
+	timer.timeout.connect(func():
+		# Cleanup the timer itself
+		timer.queue_free()
+		
+		# Verify arrow is still valid
+		if not is_instance_valid(arrow):
+			return
+			
+		# Only add the processor if the arrow doesn't already have one
+		if not arrow.has_meta("active_rain_processor_id"):
+			# Create rain arrow processor after all other processing
+			var processor = RainArrowProcessor.new()
+			processor.name = "RainArrowProcessor"
+			arrow.add_child(processor)
+		else:
+			print("WARNING: Arrow already has a processor, skipping processor creation")
+	)
+
 func setup_rain_arrow_trajectory(arrow: Node, impact_position: Vector2, parent_node: Node) -> void:
 	# Disable standard physics and collisions initially
 	arrow.set_physics_process(false)

@@ -8,19 +8,6 @@ var arrow_rain_threshold: int = 10
 var arrow_rain_count: int = 5
 var arrow_rain_radius: float = 80.0
 
-# Arrow Storm properties
-var arrow_storm_enabled: bool = false
-var arrow_storm_trigger_chance: float = 0.1
-var arrow_storm_additional_arrows: int = 2
-var arrow_storm_spread_angle: float = 30.0
-
-# Method to configure Arrow Storm
-func configure_arrow_storm(is_enabled: bool, trigger_chance: float, additional_arrows: int, spread_angle: float) -> void:
-	arrow_storm_enabled = is_enabled
-	arrow_storm_trigger_chance = trigger_chance
-	arrow_storm_additional_arrows = additional_arrows
-	arrow_storm_spread_angle = spread_angle
-	
 # Focused Shot properties
 var focused_shot_enabled: bool = false
 var focused_shot_bonus: float = 0.0
@@ -683,6 +670,7 @@ func find_chain_target(original_target) -> void:
 			queue_free()
 
 func reset_for_reuse() -> void:
+	print("Resetting arrow for reuse: ", self, " child count: ", get_child_count())
 	# Salva o estado de crítico atual e metadados importantes antes da limpeza
 	var was_critical = is_crit
 	var crit_chance_current = crit_chance
@@ -732,6 +720,38 @@ func reset_for_reuse() -> void:
 	arrow_rain_threshold = 10
 	arrow_rain_count = 5
 	arrow_rain_radius = 80.0
+	
+	# IMPROVED CLEANUP: Properly remove RainArrowProcessor
+	var rain_processors = []
+	for child in get_children():
+		if child.get_class() == "RainArrowProcessor" or child.get_script() and child.get_script().get_path().get_file() == "RainArrowProcessor.gd":
+			rain_processors.append(child)
+
+	# Remove each processor safely
+	for processor in rain_processors:
+		# Desabilita processamento para evitar erros
+		processor.set_process(false)
+		processor.set_physics_process(false)
+		# Remove conexões de sinais para evitar chamadas depois de destruído
+		processor.queue_free()
+
+	# Limpa todos os metadados relacionados a Arrow Rain e processador
+	if has_meta("active_rain_processor_id"):
+		remove_meta("active_rain_processor_id")
+	if has_meta("is_rain_arrow"):
+		remove_meta("is_rain_arrow")
+	if has_meta("no_double_shot"):
+		remove_meta("no_double_shot")
+	if has_meta("no_chain_shot"):
+		remove_meta("no_chain_shot")
+	if has_meta("rain_start_pos"):
+		remove_meta("rain_start_pos")
+	if has_meta("rain_target_pos"):
+		remove_meta("rain_target_pos")
+	if has_meta("rain_time"):
+		remove_meta("rain_time")
+	if has_meta("rain_arc_height"):
+		remove_meta("rain_arc_height")
 	# Reset DmgCalculator
 	if has_node("DmgCalculatorComponent"):
 		var dmg_calc = get_node("DmgCalculatorComponent")
@@ -742,7 +762,7 @@ func reset_for_reuse() -> void:
 		dmg_calc.elemental_damage = {}
 		dmg_calc.additional_effects = []
 		dmg_calc.dot_effects = []
-	
+
 	# Reset collision properties safely
 	if has_node("Hurtbox"):
 		var hurtbox = get_node("Hurtbox")
@@ -757,28 +777,17 @@ func reset_for_reuse() -> void:
 		
 	if has_meta("should_increment_bloodseeker"):
 		remove_meta("should_increment_bloodseeker")
-	#reset das variavesi do rain arrow
-	if has_meta("is_rain_arrow"):
-		remove_meta("is_rain_arrow")
+
 	if has_meta("no_double_shot"):
 		remove_meta("no_double_shot")
 	if has_meta("no_chain_shot"):
 		remove_meta("no_chain_shot")
-	if has_meta("rain_start_pos"):
-		remove_meta("rain_start_pos")
-	if has_meta("rain_target_pos"):
-		remove_meta("rain_target_pos")
-	if has_meta("rain_time"):
-		remove_meta("rain_time")
 	# Reset collision layers
 	set_deferred("collision_layer", 4)  # Projectile layer
 	set_deferred("collision_mask", 2)   # Enemy layer
 	
 	# Reset physics processing
 	set_physics_process(true)
-	var rain_processor = get_node_or_null("RainArrowProcessor")
-	if rain_processor:
-		rain_processor.queue_free()
 	# Mantém uma cópia das tags antes de limpar
 	var old_tags = tags.duplicate() if "tags" in self else []
 	
@@ -826,6 +835,13 @@ func reset_for_reuse() -> void:
 		remove_meta("homing_target")
 	if has_meta("homing_strength"):
 		remove_meta("homing_strength")
+		
+	var rain_related_meta = ["is_rain_arrow", "rain_start_pos", "rain_target_pos", 
+							"rain_arc_height", "rain_time"]
+	for meta_key in rain_related_meta:
+		if has_meta(meta_key):
+			remove_meta(meta_key)
+
 	# Limpa as tags para depois restaurá-las de forma seletiva
 	if "tags" in self:
 		tags.clear()
@@ -854,6 +870,7 @@ func reset_for_reuse() -> void:
 
 	# Reset physics processing
 	set_physics_process(true)
+
 # Helper method to check if arrow is from pool
 func is_pooled() -> bool:
 	return has_meta("pooled") and get_meta("pooled") == true

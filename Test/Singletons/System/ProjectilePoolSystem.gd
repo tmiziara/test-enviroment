@@ -248,29 +248,175 @@ func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 			
 		create_pool(pool_name, arrow_scene, archer.get_parent())
 	
-	# Obtém uma flecha do pool
-	var arrow = get_projectile(pool_name)
-	if not arrow:
-		return null
-	# Garante que a flecha tenha a flag "pooled"
+	# MUDANÇA: Obtenha TODAS as flechas disponíveis
+	var available_arrows = []
+	for arrow in pools[pool_name].available:
+		# Verifica se a flecha está marcada como parte de Arrow Rain
+		if not arrow.has_meta("is_rain_arrow") and not arrow.has_meta("active_rain_processor_id"):
+			available_arrows.append(arrow)
+	
+	# Se não houver flechas disponíveis, expande o pool
+	if available_arrows.size() == 0:
+		_expand_pool(pool_name)
+		
+		# Tenta novamente após expandir
+		for arrow in pools[pool_name].available:
+			if not arrow.has_meta("is_rain_arrow") and not arrow.has_meta("active_rain_processor_id"):
+				available_arrows.append(arrow)
+	
+	# Se ainda não houver flechas disponíveis, cria uma nova
+	if available_arrows.size() == 0:
+		print("AVISO: Nenhuma flecha disponível mesmo após expandir o pool. Criando uma nova...")
+		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+		if not arrow_scene:
+			return null
+			
+		var new_arrow = arrow_scene.instantiate()
+		new_arrow.set_meta("pooled", true)
+		
+		# Adiciona à cena, mas não ao pool (flecha temporária)
+		archer.get_parent().call_deferred("add_child", new_arrow)
+		return new_arrow
+	
+	# Obtém a primeira flecha válida
+	var arrow = available_arrows[0]
+	
+	# Remove do array de disponíveis
+	var index = pools[pool_name].available.find(arrow)
+	if index >= 0:
+		pools[pool_name].available.remove_at(index)
+	
+	# Adiciona ao array de ativos
+	pools[pool_name].active.append(arrow)
+	
+	# Prepara a flecha
+	arrow.process_mode = Node.PROCESS_MODE_INHERIT
+	arrow.visible = true
+	
+	# Emite sinal para monitoramento
+	emit_signal("projectile_reused", pool_name)
+	
+	# Marca como pooled
 	arrow.set_meta("pooled", true)
-	# Simplify reset - just clear key properties but don't apply talents yet
-	if arrow.has_method("reset_for_reuse"):
-		arrow.reset_for_reuse()
 	
-	# Set shooter reference but let caller handle talent application
-	arrow.shooter = archer
+	print("Obtendo flecha do pool: ", arrow, " para uso normal")
+	
 	return arrow
+
+# Função especial para obter flechas especificamente para Arrow Rain
+func get_arrow_for_rain(archer: Soldier_Base) -> Node:
+	# Nome do pool para flechas do arqueiro
+	var pool_name = "arrow_" + str(archer.get_instance_id())
+	# Verifica se o pool existe, caso contrário cria
+	if not pool_name in pools:
+		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+		if not arrow_scene:
+			return null
+			
+		create_pool(pool_name, arrow_scene, archer.get_parent())
 	
+	# Tenta encontrar uma flecha sem uso no pool
+	var arrow = null
+	
+	# Primeiro, verifica no array de disponíveis
+	if pools[pool_name].available.size() > 0:
+		arrow = pools[pool_name].available[0]
+		pools[pool_name].available.remove_at(0)
+		pools[pool_name].active.append(arrow)
+	else:
+		# Se não houver disponíveis, expande o pool
+		_expand_pool(pool_name)
+		
+		# Tenta novamente
+		if pools[pool_name].available.size() > 0:
+			arrow = pools[pool_name].available[0]
+			pools[pool_name].available.remove_at(0)
+			pools[pool_name].active.append(arrow)
+		else:
+			# Ainda sem flechas disponíveis, cria uma nova
+			var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+			if not arrow_scene:
+				return null
+				
+			arrow = arrow_scene.instantiate()
+			arrow.set_meta("pooled", true)
+			
+			# A nova flecha vai direto para o array de ativos
+			pools[pool_name].active.append(arrow)
+	
+	# Configura a flecha para uso
+	arrow.process_mode = Node.PROCESS_MODE_INHERIT
+	arrow.visible = true
+	
+	# IMPORTANTE: Marca a flecha como sendo usada para Arrow Rain
+	arrow.set_meta("is_rain_arrow", true)
+	
+	# Emite sinal para monitoramento
+	emit_signal("projectile_reused", pool_name)
+	
+	print("Obtendo flecha do pool: ", arrow, " para Arrow Rain")
+	
+	return arrow
+
 # Retorna uma flecha ao seu pool de arqueiro
-# No método return_arrow_to_pool() em ProjectilePoolSystem.gd
 func return_arrow_to_pool(arrow: Node) -> void:
 	if not is_pooled(arrow) or not arrow.shooter:
+		print("AVISO: Tentativa de retornar flecha não-pooled ou sem atirador")
 		return
 		
 	var archer = arrow.shooter
 	var pool_name = "arrow_" + str(archer.get_instance_id())
 	# Verifica se o pool existe
 	if not pool_name in pools:
+		print("AVISO: Pool não encontrado para: ", pool_name)
 		return
+	
+	# LIMPEZA ESPECIAL para Arrow Rain
+	if arrow.has_meta("is_rain_arrow") or arrow.has_meta("active_rain_processor_id"):
+		print("Limpando flecha de Arrow Rain: ", arrow)
+		
+		# Remove os processadores
+		var processors = []
+		for child in arrow.get_children():
+			if child.get_class() == "RainArrowProcessor" or (child.get_script() and "RainArrowProcessor" in child.get_script().get_path()):
+				processors.append(child)
+		
+		for processor in processors:
+			processor.queue_free()
+		
+		# Remove metadados de Arrow Rain
+		if arrow.has_meta("is_rain_arrow"):
+			arrow.remove_meta("is_rain_arrow")
+		if arrow.has_meta("active_rain_processor_id"):
+			arrow.remove_meta("active_rain_processor_id")
+		if arrow.has_meta("rain_start_pos"):
+			arrow.remove_meta("rain_start_pos")
+		if arrow.has_meta("rain_target_pos"):
+			arrow.remove_meta("rain_target_pos")
+		if arrow.has_meta("rain_time"):
+			arrow.remove_meta("rain_time")
+		if arrow.has_meta("rain_arc_height"):
+			arrow.remove_meta("rain_arc_height")
+	
+	# Continua com o processo normal de retorno
 	return_projectile(pool_name, arrow)
+	
+# Method to run before returning to pool
+func prepare_for_pool() -> void:
+	# Remove any processors that could affect behavior when reused
+	for child in get_children():
+		if child is RainArrowProcessor or child.name == "RainArrowProcessor":
+			child.queue_free()
+	
+	# Reset physics processing
+	set_physics_process(false)
+	
+	# Only set velocity if the property exists
+	if "velocity" in self:
+		self.velocity = Vector2.ZERO
+	
+	# Clear all metadata except pooled flag
+	var meta_list = get_meta_list()
+	for prop in meta_list:
+		if prop != "pooled":
+			remove_meta(prop)

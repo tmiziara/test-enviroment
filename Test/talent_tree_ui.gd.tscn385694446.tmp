@@ -1,0 +1,736 @@
+[gd_scene load_steps=54 format=3 uid="uid://clurda8aosh4e"]
+
+[ext_resource type="Script" uid="uid://defmqd8prppkh" path="res://Test/talent_tree_ui.gd.gd" id="1_0tkk1"]
+[ext_resource type="PackedScene" uid="uid://bdkviwqe7miyl" path="res://Test/skill_button_test.tscn" id="2_edoxy"]
+[ext_resource type="Texture2D" uid="uid://bx57hewr8ydrv" path="res://Test/Assets/UI/ui_background.png" id="2_p8tcx"]
+[ext_resource type="Texture2D" uid="uid://leh8xkgwyu5u" path="res://Test/Assets/Icons/ArcherSkill/0.png" id="3_l53o2"]
+[ext_resource type="Texture2D" uid="uid://di46gyo7cdlwl" path="res://Test/Assets/UI/ArcherSymbol.png" id="3_p8tcx"]
+[ext_resource type="Texture2D" uid="uid://c87xnymfgya76" path="res://Test/Assets/Icons/ArcherSkill/1.png" id="4_d2vu7"]
+[ext_resource type="Texture2D" uid="uid://ccvdoif876s61" path="res://Test/Assets/Icons/ArcherSkill/2.png" id="5_tu26t"]
+[ext_resource type="Resource" uid="uid://b3twni6a08hah" path="res://Test/Strategys/ArcherTalent/Talent_1.tres" id="5_y6fry"]
+[ext_resource type="Texture2D" uid="uid://5yjeuctmq6kv" path="res://Test/Assets/Icons/ArcherSkill/3.png" id="6_yqxhp"]
+[ext_resource type="Texture2D" uid="uid://bvw6divckq3ux" path="res://Test/Assets/Icons/ArcherSkill/4.png" id="7_nwq3q"]
+[ext_resource type="Resource" uid="uid://b3k4iexvnptf3" path="res://Test/Strategys/ArcherTalent/Talent_2.tres" id="7_v5qnm"]
+[ext_resource type="Texture2D" uid="uid://dcx01i7uqiu26" path="res://Test/Assets/Icons/ArcherSkill/5.png" id="8_abbjq"]
+[ext_resource type="Texture2D" uid="uid://cl68l7fo1rryx" path="res://Test/Assets/Icons/ArcherSkill/6.png" id="9_tboi8"]
+[ext_resource type="Resource" uid="uid://nwxxf3cf7fn6" path="res://Test/Strategys/ArcherTalent/Talent_3.tres" id="9_xind3"]
+[ext_resource type="Texture2D" uid="uid://0vyvluc35uaq" path="res://Test/Assets/Icons/ArcherSkill/7.png" id="10_mjvwq"]
+[ext_resource type="Resource" uid="uid://bk13qo7eoht87" path="res://Test/Strategys/ArcherTalent/Talent_6.tres" id="10_vwo7v"]
+[ext_resource type="Texture2D" uid="uid://csl3ecp4iwsrx" path="res://Test/Assets/Icons/ArcherSkill/8.png" id="11_l23rc"]
+[ext_resource type="Resource" uid="uid://rjd88mabw72i" path="res://Test/Strategys/ArcherTalent/Talent_4.tres" id="11_owmts"]
+[ext_resource type="Texture2D" uid="uid://kwckvf4ycsvf" path="res://Test/Assets/Icons/ArcherSkill/9.png" id="12_4k41y"]
+[ext_resource type="Texture2D" uid="uid://dyocwwuyu3e1l" path="res://Test/Assets/Icons/ArcherSkill/10.png" id="13_1fpha"]
+[ext_resource type="Resource" uid="uid://bve2h5xdwx405" path="res://Test/Strategys/ArcherTalent/Talent_5.tres" id="13_amsuu"]
+[ext_resource type="Texture2D" uid="uid://bqo7gccxxrnb4" path="res://Test/Assets/Icons/ArcherSkill/11.png" id="14_xa5yu"]
+[ext_resource type="Texture2D" uid="uid://bkfg2c8ybthks" path="res://Test/Assets/Icons/ArcherSkill/12.png" id="15_evbns"]
+[ext_resource type="Texture2D" uid="uid://bfgb6661urlnl" path="res://Test/Assets/Icons/ArcherSkill/13.png" id="16_kwscv"]
+[ext_resource type="Texture2D" uid="uid://ckdttc7v4rpii" path="res://Test/Assets/Icons/ArcherSkill/14.png" id="17_5f38h"]
+[ext_resource type="Resource" uid="uid://dvd5ph7btp2e" path="res://Test/Strategys/ArcherTalent/Talent_11.tres" id="17_kml1r"]
+[ext_resource type="Texture2D" uid="uid://c8r30foegmkmk" path="res://Test/Assets/Icons/ArcherSkill/15.png" id="18_voe78"]
+[ext_resource type="Texture2D" uid="uid://drcbxap10cxgg" path="res://Test/Assets/Icons/ArcherSkill/16.png" id="19_rfep8"]
+[ext_resource type="Texture2D" uid="uid://cm5rdp0n4jxtn" path="res://Test/Assets/Icons/ArcherSkill/17.png" id="20_108br"]
+[ext_resource type="Texture2D" uid="uid://bhe4n6hva3yx3" path="res://Test/Assets/Icons/ArcherSkill/18.png" id="21_5sr80"]
+[ext_resource type="Texture2D" uid="uid://byn2hpoaxrk42" path="res://Test/Assets/Icons/ArcherSkill/19.png" id="22_tdwa2"]
+[ext_resource type="Resource" uid="uid://bafqtm6o0sp63" path="res://Test/Strategys/ArcherTalent/Talent_12.tres" id="23_ar87f"]
+[ext_resource type="Texture2D" uid="uid://ipfta00gpbny" path="res://Test/Assets/Icons/ArcherSkill/20.png" id="23_yhr6m"]
+[ext_resource type="Texture2D" uid="uid://bmjtvqeqwvrfl" path="res://Test/Assets/Icons/ArcherSkill/21.png" id="24_1phgv"]
+[ext_resource type="Resource" uid="uid://bq34nnmd7ifkd" path="res://Test/Strategys/ArcherTalent/Talent_13.tres" id="25_7ombj"]
+[ext_resource type="Texture2D" uid="uid://bnib1jybhvxqk" path="res://Test/Assets/Icons/ArcherSkill/22.png" id="25_ir8vh"]
+[ext_resource type="Texture2D" uid="uid://c3pr33xwd55qn" path="res://Test/Assets/Icons/ArcherSkill/23.png" id="26_gfuel"]
+[ext_resource type="Resource" uid="uid://cgvfdiiknt2nh" path="res://Test/Strategys/ArcherTalent/Talent_14.tres" id="27_bqmob"]
+[ext_resource type="Texture2D" uid="uid://biwe3pu3h3nir" path="res://Test/Assets/Icons/ArcherSkill/24.png" id="27_rogyu"]
+[ext_resource type="Texture2D" uid="uid://dt1y46ac3bjvj" path="res://Test/Assets/Icons/ArcherSkill/25.png" id="28_gc4n2"]
+[ext_resource type="Texture2D" uid="uid://b578fuywitovb" path="res://Test/Assets/Icons/ArcherSkill/26.png" id="29_curf5"]
+[ext_resource type="Resource" uid="uid://c3k5twigg302h" path="res://Test/Strategys/ArcherTalent/Talent_15.tres" id="29_oyohu"]
+[ext_resource type="Texture2D" uid="uid://b7th7fmko5gt8" path="res://Test/Assets/Icons/ArcherSkill/27.png" id="30_j2ums"]
+[ext_resource type="Resource" uid="uid://dndn5nk4wg62e" path="res://Test/Strategys/ArcherTalent/Talent_16.tres" id="31_hxpgo"]
+[ext_resource type="Texture2D" uid="uid://bbegfny4yir4x" path="res://Test/Assets/Icons/ArcherSkill/28.png" id="31_vfsdg"]
+[ext_resource type="Texture2D" uid="uid://wyfj6bkmhhv8" path="res://Test/Assets/Icons/ArcherSkill/29.png" id="32_essnb"]
+[ext_resource type="Texture2D" uid="uid://dn26dle6ue1sw" path="res://Test/Assets/Icons/ArcherSkill/30.png" id="33_6s1uf"]
+[ext_resource type="Resource" uid="uid://bx4ob0wu05id1" path="res://Test/Strategys/ArcherTalent/Talent_17.tres" id="33_lbfb5"]
+[ext_resource type="Resource" uid="uid://bkneyepjq8cjo" path="res://Test/Strategys/ArcherTalent/Talent_18.tres" id="35_40nic"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_gwla5"]
+texture = ExtResource("2_p8tcx")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_p8tcx"]
+texture = ExtResource("3_p8tcx")
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_p8tcx"]
+load_path = "res://.godot/imported/14.png-823164b9884d019a4bae4258478e03d9.ctex"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_5w0hd"]
+load_path = "res://.godot/imported/18.png-a906efba5b545014858fabbead56a059.ctex"
+
+[node name="TalentTreeUi" type="Control" groups=["skill_tree"]]
+custom_minimum_size = Vector2(1152, 648)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1152.0
+offset_bottom = 648.0
+script = ExtResource("1_0tkk1")
+
+[node name="Panel" type="Panel" parent="."]
+custom_minimum_size = Vector2(1152, 648)
+layout_mode = 2
+offset_right = 1152.0
+offset_bottom = 648.0
+theme_override_styles/panel = SubResource("StyleBoxTexture_gwla5")
+
+[node name="Panel" type="Panel" parent="Panel"]
+custom_minimum_size = Vector2(512, 512)
+layout_mode = 0
+offset_left = 50.0
+offset_right = 562.0
+offset_bottom = 512.0
+theme_override_styles/panel = SubResource("StyleBoxTexture_p8tcx")
+
+[node name="BackgroundPanel" type="PanelContainer" parent="."]
+self_modulate = Color(0, 0, 0, 1)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainLayout" type="HBoxContainer" parent="BackgroundPanel"]
+layout_mode = 2
+
+[node name="SkillTreeArea" type="PanelContainer" parent="BackgroundPanel/MainLayout"]
+custom_minimum_size = Vector2(900, 648)
+layout_mode = 2
+
+[node name="SkillTreeScrollContainer" type="ScrollContainer" parent="BackgroundPanel/MainLayout/SkillTreeArea"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 0
+
+[node name="SkillsContainer" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer"]
+layout_mode = 2
+
+[node name="ConnectionsLayer" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="connection_0_1" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 324, 370, 324)
+width = 3.0
+default_color = Color(0.223103, 0.223103, 0.223103, 1)
+
+[node name="connection_0_6" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(170, 244, 450, 244, 450, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_0_11" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 324, 450, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_1_2" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 324, 290, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_2_3" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(290, 324, 210, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_3_4" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 324, 130, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_3_16" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 324, 210, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_4_5" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(130, 324, 130, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_6_7" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(170, 244, 170, 164, 450, 164)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_6_19" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(170, 244, 55, 244, 55, 564, 290, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_7_8" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 164, 450, 84)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_7_9" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 164, 530, 164)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_8_10" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 84, 530, 84)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_9_10" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 164, 530, 84)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_9_21" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 164, 610, 164)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_11_12" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(450, 404, 530, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_12_13" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 404, 530, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_12_26" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 404, 530, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_13_14" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 324, 530, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_13_15" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 324, 610, 324)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_16_17" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 404, 210, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_17_18" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(210, 484, 370, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_18_19" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 484, 290, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_18_20" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 484, 370, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_18_29" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(370, 484, 450, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_21_22" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(610, 164, 610, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_22_23" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(610, 244, 690, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_23_24" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 244, 770, 244)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_23_25" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 244, 690, 404)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_25_27" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 404, 690, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_26_27" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(530, 484, 690, 484)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_27_28" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 484, 690, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_28_29" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 564, 450, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="connection_28_30" type="Line2D" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ConnectionsLayer"]
+points = PackedVector2Array(690, 564, 770, 564)
+width = 3.0
+default_color = Color(0.223529, 0.223529, 0.223529, 1)
+
+[node name="BasicPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_0" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 304.0
+offset_right = 470.0
+offset_bottom = 344.0
+texture_normal = ExtResource("3_l53o2")
+talent_id = 0
+skill_name = "Basic Attack"
+icon = ExtResource("3_l53o2")
+is_starter = true
+
+[node name="talent_1" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 350.0
+offset_top = 304.0
+offset_right = 390.0
+offset_bottom = 344.0
+texture_normal = ExtResource("4_d2vu7")
+talent_id = 1
+skill_name = "Precise Aim"
+icon = ExtResource("4_d2vu7")
+talent_strategy = ExtResource("5_y6fry")
+
+[node name="talent_2" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 270.0
+offset_top = 304.0
+offset_right = 310.0
+offset_bottom = 344.0
+texture_normal = ExtResource("5_tu26t")
+talent_id = 2
+skill_name = "Enhanced Range"
+icon = ExtResource("5_tu26t")
+talent_strategy = ExtResource("7_v5qnm")
+
+[node name="talent_3" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 190.0
+offset_top = 304.0
+offset_right = 230.0
+offset_bottom = 344.0
+texture_normal = ExtResource("6_yqxhp")
+talent_id = 3
+skill_name = "Sharp Arrows"
+icon = ExtResource("6_yqxhp")
+talent_strategy = ExtResource("9_xind3")
+
+[node name="talent_4" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 304.0
+offset_right = 150.0
+offset_bottom = 344.0
+texture_normal = ExtResource("7_nwq3q")
+talent_id = 4
+skill_name = "Piercing Shot"
+icon = ExtResource("7_nwq3q")
+talent_strategy = ExtResource("11_owmts")
+
+[node name="talent_5" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/BasicPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 384.0
+offset_right = 150.0
+offset_bottom = 424.0
+texture_normal = ExtResource("8_abbjq")
+talent_id = 5
+skill_name = "Focused Shot"
+icon = ExtResource("8_abbjq")
+talent_strategy = ExtResource("13_amsuu")
+
+[node name="ElementalPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_6" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 224.0
+offset_right = 190.0
+offset_bottom = 264.0
+texture_normal = ExtResource("9_tboi8")
+talent_id = 6
+skill_name = "Flaming Arrows"
+icon = ExtResource("9_tboi8")
+talent_strategy = ExtResource("10_vwo7v")
+
+[node name="talent_7" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 144.0
+offset_right = 470.0
+offset_bottom = 184.0
+texture_normal = ExtResource("10_mjvwq")
+talent_id = 7
+skill_name = "Frost Arrows"
+icon = ExtResource("10_mjvwq")
+
+[node name="talent_8" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 64.0
+offset_right = 470.0
+offset_bottom = 104.0
+texture_normal = ExtResource("11_l23rc")
+talent_id = 8
+skill_name = "Freezing Explosion"
+icon = ExtResource("11_l23rc")
+
+[node name="talent_9" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 144.0
+offset_right = 550.0
+offset_bottom = 184.0
+texture_normal = ExtResource("12_4k41y")
+talent_id = 9
+skill_name = "Cutting Winds"
+icon = ExtResource("12_4k41y")
+
+[node name="talent_10" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ElementalPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 64.0
+offset_right = 550.0
+offset_bottom = 104.0
+texture_normal = ExtResource("13_1fpha")
+talent_id = 10
+skill_name = "Rain of Ashes"
+icon = ExtResource("13_1fpha")
+
+[node name="ArcheryPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_11" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 384.0
+offset_right = 470.0
+offset_bottom = 424.0
+texture_normal = ExtResource("14_xa5yu")
+talent_id = 11
+skill_name = "Double Shot"
+icon = ExtResource("14_xa5yu")
+talent_strategy = ExtResource("17_kml1r")
+
+[node name="talent_12" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 384.0
+offset_right = 550.0
+offset_bottom = 424.0
+texture_normal = ExtResource("15_evbns")
+talent_id = 12
+skill_name = "Chain Shot"
+icon = ExtResource("15_evbns")
+talent_strategy = ExtResource("23_ar87f")
+
+[node name="talent_13" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 304.0
+offset_right = 550.0
+offset_bottom = 344.0
+texture_normal = ExtResource("16_kwscv")
+talent_id = 13
+skill_name = "Arrow Rain"
+icon = ExtResource("16_kwscv")
+talent_strategy = ExtResource("25_7ombj")
+
+[node name="talent_14" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 224.0
+offset_right = 550.0
+offset_bottom = 264.0
+texture_normal = SubResource("CompressedTexture2D_p8tcx")
+talent_id = 14
+skill_name = "Pressure Wave"
+icon = ExtResource("17_5f38h")
+talent_strategy = ExtResource("27_bqmob")
+
+[node name="talent_15" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/ArcheryPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 304.0
+offset_right = 630.0
+offset_bottom = 344.0
+texture_normal = ExtResource("18_voe78")
+talent_id = 15
+skill_name = "Arrow Explosion"
+icon = ExtResource("18_voe78")
+talent_strategy = ExtResource("29_oyohu")
+
+[node name="SpecialArrowsPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_16" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 190.0
+offset_top = 384.0
+offset_right = 230.0
+offset_bottom = 424.0
+texture_normal = ExtResource("19_rfep8")
+talent_id = 16
+skill_name = "Serrated Arrows"
+icon = ExtResource("19_rfep8")
+talent_strategy = ExtResource("31_hxpgo")
+
+[node name="talent_17" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 190.0
+offset_top = 464.0
+offset_right = 230.0
+offset_bottom = 504.0
+texture_normal = ExtResource("20_108br")
+talent_id = 17
+skill_name = "Marked for Death"
+icon = ExtResource("20_108br")
+talent_strategy = ExtResource("33_lbfb5")
+
+[node name="talent_18" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 350.0
+offset_top = 464.0
+offset_right = 390.0
+offset_bottom = 504.0
+texture_normal = SubResource("CompressedTexture2D_5w0hd")
+talent_id = 18
+skill_name = "Bloodseeker"
+icon = ExtResource("21_5sr80")
+talent_strategy = ExtResource("35_40nic")
+
+[node name="talent_19" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 270.0
+offset_top = 544.0
+offset_right = 310.0
+offset_bottom = 584.0
+texture_normal = ExtResource("22_tdwa2")
+talent_id = 19
+skill_name = "Burning Flames"
+icon = ExtResource("22_tdwa2")
+
+[node name="talent_20" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/SpecialArrowsPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 350.0
+offset_top = 384.0
+offset_right = 390.0
+offset_bottom = 424.0
+texture_normal = ExtResource("23_yhr6m")
+talent_id = 20
+skill_name = "Penetrating Arrows"
+icon = ExtResource("23_yhr6m")
+
+[node name="PrecisionPath" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_21" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 144.0
+offset_right = 630.0
+offset_bottom = 184.0
+texture_normal = ExtResource("24_1phgv")
+talent_id = 21
+skill_name = "Precise Execution"
+icon = ExtResource("24_1phgv")
+
+[node name="talent_22" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 590.0
+offset_top = 224.0
+offset_right = 630.0
+offset_bottom = 264.0
+texture_normal = ExtResource("25_ir8vh")
+talent_id = 22
+skill_name = "Chaos Arrows"
+icon = ExtResource("25_ir8vh")
+
+[node name="talent_23" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 224.0
+offset_right = 710.0
+offset_bottom = 264.0
+texture_normal = ExtResource("26_gfuel")
+talent_id = 23
+skill_name = "Prey Marker"
+icon = ExtResource("26_gfuel")
+
+[node name="talent_24" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 750.0
+offset_top = 224.0
+offset_right = 790.0
+offset_bottom = 264.0
+texture_normal = ExtResource("27_rogyu")
+talent_id = 24
+skill_name = "Poisoned Shot"
+icon = ExtResource("27_rogyu")
+
+[node name="talent_25" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisionPath" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 384.0
+offset_right = 710.0
+offset_bottom = 424.0
+texture_normal = ExtResource("28_gc4n2")
+talent_id = 25
+skill_name = "Annihilating Shot"
+icon = ExtResource("28_gc4n2")
+
+[node name="PrecisiDamagePath onPath2" type="Control" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer"]
+anchors_preset = 0
+
+[node name="talent_26" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 510.0
+offset_top = 464.0
+offset_right = 550.0
+offset_bottom = 504.0
+texture_normal = ExtResource("29_curf5")
+talent_id = 26
+skill_name = "Intensive Training"
+icon = ExtResource("29_curf5")
+
+[node name="talent_27" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 464.0
+offset_right = 710.0
+offset_bottom = 504.0
+texture_normal = ExtResource("30_j2ums")
+talent_id = 27
+skill_name = "Merciless Shot"
+icon = ExtResource("30_j2ums")
+
+[node name="talent_28" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 544.0
+offset_right = 710.0
+offset_bottom = 584.0
+texture_normal = ExtResource("31_vfsdg")
+talent_id = 28
+skill_name = "Enhanced Damage"
+icon = ExtResource("31_vfsdg")
+
+[node name="talent_29" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 544.0
+offset_right = 470.0
+offset_bottom = 584.0
+texture_normal = ExtResource("32_essnb")
+talent_id = 29
+skill_name = "Wind Force"
+icon = ExtResource("32_essnb")
+
+[node name="talent_30" parent="BackgroundPanel/MainLayout/SkillTreeArea/SkillTreeScrollContainer/SkillsContainer/PrecisiDamagePath onPath2" instance=ExtResource("2_edoxy")]
+layout_mode = 0
+offset_left = 750.0
+offset_top = 544.0
+offset_right = 790.0
+offset_bottom = 584.0
+texture_normal = ExtResource("33_6s1uf")
+talent_id = 30
+skill_name = "Supreme Shot"
+icon = ExtResource("33_6s1uf")
+
+[node name="InfoPanel" type="PanelContainer" parent="BackgroundPanel/MainLayout"]
+custom_minimum_size = Vector2(248, 648)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InfoLayout" type="VBoxContainer" parent="BackgroundPanel/MainLayout/InfoPanel"]
+self_modulate = Color(0, 0, 0, 1)
+layout_mode = 2
+
+[node name="TalentPointsLabel" type="Label" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+custom_minimum_size = Vector2(248, 0)
+layout_mode = 2
+text = "Talent Point: rrrrr"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="IconContainer" type="CenterContainer" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+custom_minimum_size = Vector2(100, 200)
+layout_mode = 2
+
+[node name="SkillIcon" type="TextureRect" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/IconContainer"]
+custom_minimum_size = Vector2(150, 150)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SkillDescription" type="RichTextLabel" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+custom_minimum_size = Vector2(248, 300)
+layout_mode = 2
+theme_override_font_sizes/bold_italics_font_size = 10
+theme_override_font_sizes/italics_font_size = 10
+theme_override_font_sizes/mono_font_size = 10
+theme_override_font_sizes/normal_font_size = 10
+theme_override_font_sizes/bold_font_size = 10
+text = "Talent Description"
+fit_content = true
+
+[node name="ButtonContainer" type="CenterContainer" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UnlockButton" type="TextureButton" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/ButtonContainer"]
+custom_minimum_size = Vector2(120, 30)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/ButtonContainer/UnlockButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -59.5
+offset_top = -13.5
+offset_right = 59.5
+offset_bottom = 13.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 15
+text = "Unlock"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DebugTools" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 1221.0
+offset_top = 48.0
+offset_right = 1261.0
+offset_bottom = 88.0
+
+[node name="AddPointsButton" type="Button" parent="DebugTools"]
+layout_mode = 2
+
+[node name="ResetTreeButton" type="Button" parent="DebugTools"]
+layout_mode = 2
+
+[connection signal="pressed" from="BackgroundPanel/MainLayout/InfoPanel/InfoLayout/ButtonContainer/UnlockButton" to="." method="_on_unlock_button_pressed"]

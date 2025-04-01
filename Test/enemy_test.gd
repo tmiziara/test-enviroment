@@ -18,15 +18,15 @@ class_name Enemy
 var active_debuffs = {}                         # Dicionário para armazenar debuffs ativos
 var context_map: ContextMap
 var target_position: Vector2                    # Posição do alvo (mouse)
-
+var move_speed: float
 func _ready():
 	healthbar.init_health(health_component.max_health)
 	context_map = ContextMap.new()              # Cria o mapa de contexto
-	health_component.connect("died", _on_health_component_died)
 	# Configuração refinada do ContextMap
 	context_map.interest_falloff_angle = 45.0
 	context_map.danger_falloff_angle = 30.0  # Aumentado de 30.0 para 60.0
 	context_map.danger_threshold = 0.8  # Reduzido de 0.8 para 0.6
+	move_speed = base_speed
 
 func _physics_process(delta):
 	if target:
@@ -69,11 +69,11 @@ func apply_context_steering(delta):
 	
 	if target:# Aplica movimento com aceleração suave
 		if best_direction != Vector2.ZERO:
-			var target_velocity = best_direction * base_speed
-			velocity = velocity.lerp(target_velocity, min(delta * acceleration / base_speed, 1.0))
+			var target_velocity = best_direction * move_speed
+			velocity = velocity.lerp(target_velocity, min(delta * acceleration / move_speed, 1.0))
 		else:
 			# Desacelera suavemente se não houver direção clara
-			velocity = velocity.lerp(Vector2.ZERO, min(delta * acceleration / base_speed, 1.0))
+			velocity = velocity.lerp(Vector2.ZERO, min(delta * acceleration / move_speed, 1.0))
 	else:
 		velocity = Vector2.ZERO
 	move_and_slide()

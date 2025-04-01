@@ -14,9 +14,6 @@ func get_strategy_name() -> String:
 func apply_upgrade(projectile: Node) -> void:
 	if not projectile:
 		return
-	
-	print("ArrowRain: Applying strategy to projectile")
-	
 	# Add tag for system identification
 	if projectile.has_method("add_tag"):
 		projectile.add_tag("arrow_rain")
