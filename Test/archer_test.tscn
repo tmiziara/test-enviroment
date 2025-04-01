@@ -10,7 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://bhoajenuietjd" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_1out_boxr_v01.png" id="8_uqrf1"]
 [ext_resource type="Texture2D" uid="uid://fapklicwnmhf" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW3_7tlb_qv01_v01.png" id="9_vneyq"]
 [ext_resource type="PackedScene" uid="uid://cvhrkbsgs68ee" path="res://Test/Components/healthbar.tscn" id="10_qjh7y"]
-[ext_resource type="PackedScene" uid="uid://re84ig1gbgry" path="res://Test/Components/BuffDisplayContainer.tscn" id="11_3pymg"]
+[ext_resource type="PackedScene" uid="uid://p80ks5n188v" path="res://Test/Components/BuffDisplayContainer.tscn" id="11_3pymg"]
 [ext_resource type="PackedScene" uid="uid://dd5g5pd8esuhr" path="res://Test/Components/Talents/Archer/ArcherTalentManager.tscn" id="12_3oa4c"]
 
 [sub_resource type="Animation" id="Animation_ltase"]
@@ -4087,8 +4087,26 @@ y_sort_enabled = true
 position = Vector2(400, 183)
 collision_mask = 3
 script = ExtResource("1_3pymg")
+cost_coin = null
+cost_food = null
+attack_upgrades = null
+attack_range = null
+sp = null
+main_stat = null
+main_stat_type = null
+meele = null
+magic = null
+type = null
+classType = null
 attack_cooldown = 0.5
+move_speed = null
+hp = null
+idle_time = null
+soldier_name = null
 crit_chance = 0.5
+crit_multi = null
+equipment_slots = null
+movement_radius = null
 
 [node name="SpriteLayer" type="Node2D" parent="."]
 
@@ -4097,7 +4115,7 @@ visible = false
 texture = ExtResource("2_oeqfw")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="QuiverBehind" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("5_k2kna")
@@ -4108,13 +4126,13 @@ vframes = 8
 texture = ExtResource("3_pcsk4")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="Pants" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("4_bf8xg")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="BowFront" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("2_oeqfw")
@@ -4126,7 +4144,7 @@ visible = false
 texture = ExtResource("5_k2kna")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 24
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {

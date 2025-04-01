@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ctyr38sk76k0o"
-path="res://.godot/imported/burning.png-1412aa2ca491527ceaac65bd80f7edd9.ctex"
+uid="uid://cqe7xl8etfg75"
+path="res://.godot/imported/bleeding_debuff.png-1298dc26aa57861558e90e8673998f92.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/Assets/Icons/debuffs/burning.png"
-dest_files=["res://.godot/imported/burning.png-1412aa2ca491527ceaac65bd80f7edd9.ctex"]
+source_file="res://Test/Assets/Icons/debuffs/bleeding_debuff.png"
+dest_files=["res://.godot/imported/bleeding_debuff.png-1298dc26aa57861558e90e8673998f92.ctex"]
 
 [params]
 

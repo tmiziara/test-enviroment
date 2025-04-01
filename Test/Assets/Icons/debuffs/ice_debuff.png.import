@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cgmbm7nkggmvb"
-path="res://.godot/imported/mark_of_death.png-2d4c1945b61990dcf4a29435020dd863.ctex"
+uid="uid://j4eesmcxtet1"
+path="res://.godot/imported/ice_debuff.png-dcdec51e5cd92f11d6f587428753c5f9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Test/Assets/Icons/debuffs/mark_of_death.png"
-dest_files=["res://.godot/imported/mark_of_death.png-2d4c1945b61990dcf4a29435020dd863.ctex"]
+source_file="res://Test/Assets/Icons/debuffs/ice_debuff.png"
+dest_files=["res://.godot/imported/ice_debuff.png-dcdec51e5cd92f11d6f587428753c5f9.ctex"]
 
 [params]
 

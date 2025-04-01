@@ -1,0 +1,49 @@
+[gd_scene load_steps=3 format=3 uid="uid://hd618j63uxwl"]
+
+[ext_resource type="Script" uid="uid://cp28mg2hvhlpi" path="res://Test/UI/buff_icon.gd" id="1_7vou2"]
+[ext_resource type="Texture2D" uid="uid://j4eesmcxtet1" path="res://Test/Assets/Icons/debuffs/ice_debuff.png" id="2_hltsf"]
+
+[node name="Panel" type="Panel"]
+custom_minimum_size = Vector2(16, 16)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1136.0
+offset_bottom = -632.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_7vou2")
+
+[node name="Background" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 0
+offset_right = 16.0
+offset_bottom = 16.0
+
+[node name="Icon" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 0
+offset_right = 16.0
+offset_bottom = 16.0
+texture = ExtResource("2_hltsf")
+expand_mode = 2
+stretch_mode = 5
+
+[node name="StackCount" type="Label" parent="."]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 7.0
+offset_right = 15.0
+offset_bottom = 15.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_shadow_color = Color(0.621524, 0.621524, 0.621524, 1)
+theme_override_font_sizes/font_size = 5
+text = "16"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="DurationBar" type="ProgressBar" parent="."]
+layout_mode = 0
+offset_right = 16.0
+offset_bottom = 4.0
+show_percentage = false

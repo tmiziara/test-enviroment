@@ -1,246 +1,253 @@
 extends Node
 class_name MovementControlComponent
 
-# Sinais
-signal stun_started(duration)
-signal stun_ended()
-signal knockback_started(direction, strength)
-signal knockback_ended()
+# Movement control component to handle stuns, slows, knockbacks, etc.
+# Attach this to entities that need movement control effects
 
-# Configurações
-@export var knockback_resistance: float = 0.0  # 0.0 = sem resistência, 1.0 = imune
-@export var stun_resistance: float = 0.0       # 0.0 = sem resistência, 1.0 = imune
-@export var mass: float = 1.0                  # Massa para cálculos de física
+# Signals
+signal stun_applied(duration)
+signal stun_removed()
+signal slow_applied(amount)
+signal slow_removed()
+signal knockback_applied(direction, force)
 
-# Estado
+# Movement state tracking
 var is_stunned: bool = false
-var is_being_knocked: bool = false
-var active_forces: Dictionary = {}  # Forças ativas: {id: {força, duração_restante}}
-var frozen_velocity: Vector2 = Vector2.ZERO  # Armazena velocidade durante stun
+var is_slowed: bool = false
+var is_knocked_back: bool = false
 
-# Cache de referências
-var entity: CharacterBody2D  # Entidade que possui este componente
-var debuff_component: DebuffComponent  # Componente de debuff da entidade
+# Effect values
+var slow_amount: float = 0.0
+var previous_slow_amount: float = 0.0  # For stacking slows
+var knockback_force: float = 0.0
+var knockback_direction: Vector2 = Vector2.ZERO
+
+# Timers
+var stun_timer: Timer
+var slow_timer: Timer
+var knockback_timer: Timer
+
+# References
+var entity
 
 func _ready():
-	# Obtém referência para a entidade pai
-	entity = get_parent() as CharacterBody2D
-	if not entity:
-		return
-		
-	# Encontra o componente de debuff, se existir
-	debuff_component = entity.get_node_or_null("DebuffComponent")
+	entity = get_parent()
 	
-	# Conecta ao processo físico da entidade
-	set_physics_process(true)
+	# Create timers
+	stun_timer = _create_timer("StunTimer")
+	slow_timer = _create_timer("SlowTimer")
+	knockback_timer = _create_timer("KnockbackTimer")
+	
+	# Connect timer signals
+	stun_timer.timeout.connect(_on_stun_timer_timeout)
+	slow_timer.timeout.connect(_on_slow_timer_timeout)
+	knockback_timer.timeout.connect(_on_knockback_timer_timeout)
 
-func _physics_process(delta):
-	# Não processa se a entidade não existe
-	if not entity or not is_instance_valid(entity):
+# Apply stun effect
+func apply_stun(duration: float = 1.0) -> void:
+	if is_stunned:
+		# If already stunned, extend duration if new duration is longer
+		if stun_timer.time_left < duration:
+			stun_timer.stop()
+			stun_timer.wait_time = duration
+			stun_timer.start()
 		return
-		
-	# Processa forças ativas
-	process_active_forces(delta)
 	
-	# Se estiver stunado, trava a entidade no lugar
-	if is_stunned:
-		entity.velocity = Vector2.ZERO
-
-# Aplica um stun na entidade
-func apply_stun(duration: float, source = null) -> bool:
-	# Verifica resistência a stun
-	var effective_duration = duration * (1.0 - stun_resistance)
-	if effective_duration <= 0:
-		return false
-		
-	# Já está stunado? Atualiza a duração se for maior
-	if is_stunned:
-		var current_timer = get_node_or_null("StunTimer")
-		if current_timer and current_timer.time_left < effective_duration:
-			current_timer.wait_time = effective_duration
-			current_timer.start()
-		return true
-	
-	# Salva a velocidade atual para restaurar depois
-	frozen_velocity = entity.velocity
-	
-	# Aplica o stun
 	is_stunned = true
-	entity.velocity = Vector2.ZERO
 	
-	# Adiciona o debuff visual, se disponível
-	if debuff_component:
-		debuff_component.add_debuff(GlobalDebuffSystem.DebuffType.STUNNED, effective_duration)
+	# Apply stun effect to entity
+	_modify_entity_for_stun(true)
 	
-	# Configura timer para remover o stun
-	var timer = Timer.new()
-	timer.name = "StunTimer"
-	timer.one_shot = true
-	timer.wait_time = effective_duration
-	add_child(timer)
+	# Start stun timer
+	stun_timer.wait_time = duration
+	stun_timer.start()
 	
-	timer.timeout.connect(func():
-		end_stun()
-		timer.queue_free()
-	)
-	timer.start()
-	
-	# Emite sinal
-	emit_signal("stun_started", effective_duration)
-	
-	# Tenta adicionar efeito visual de stun
-	add_stun_visual_effect(effective_duration)
-	
-	return true
+	# Emit signal
+	emit_signal("stun_applied", duration)
 
-# Finaliza o stun
-func end_stun():
+# Remove stun effect
+func remove_stun() -> void:
 	if not is_stunned:
 		return
-		
+	
 	is_stunned = false
 	
-	# Restaura a velocidade congelada
-	if entity and is_instance_valid(entity):
-		entity.velocity = frozen_velocity
+	# Remove stun effect from entity
+	_modify_entity_for_stun(false)
 	
-	# Remove o debuff visual, se disponível
-	if debuff_component:
-		debuff_component.remove_debuff(GlobalDebuffSystem.DebuffType.STUNNED)
+	# Stop timer
+	stun_timer.stop()
 	
-	# Emite sinal
-	emit_signal("stun_ended")
-	
-	# Remove efeito visual de stun
-	remove_stun_visual_effect()
+	# Emit signal
+	emit_signal("stun_removed")
 
-# Aplica knockback na entidade
-func apply_knockback(direction: Vector2, strength: float, duration: float = 0.5, source = null) -> bool:
-	# Verifica resistência a knockback
-	var effective_strength = strength * (1.0 - knockback_resistance)
-	if effective_strength <= 0:
-		return false
-	
-	# Normaliza a direção
-	direction = direction.normalized()
-	
-	# Calcula força com base na massa
-	var force = direction * effective_strength / mass
-	
-	# Adiciona à lista de forças ativas
-	var force_id = "knockback_" + str(Time.get_ticks_msec())
-	active_forces[force_id] = {
-		"force": force,
-		"duration": duration,
-		"type": "knockback"
-	}
-	
-	# Flag para controle
-	is_being_knocked = true
-	
-	# Emite sinal
-	emit_signal("knockback_started", direction, effective_strength)
-	
-	return true
-
-# Aplica pull na entidade (similar ao knockback, mas na direção oposta)
-func apply_pull(source_position: Vector2, strength: float, duration: float = 0.5, source = null) -> bool:
-	# Calcula direção para o ponto de origem
-	var direction = source_position - entity.global_position
-	direction = direction.normalized()
-	
-	# Usa o mesmo sistema de knockback, mas com direção modificada
-	return apply_knockback(direction, strength, duration, source)
-
-# Aplica empurrão em uma direção específica
-func apply_push(direction: Vector2, strength: float, duration: float = 0.5, source = null) -> bool:
-	# Igual ao knockback, apenas mudando o nome para clareza
-	return apply_knockback(direction, strength, duration, source)
-
-# Processa todas as forças ativas
-func process_active_forces(delta):
-	var total_force = Vector2.ZERO
-	var forces_to_remove = []
-	
-	# Processa cada força ativa
-	for force_id in active_forces:
-		var force_data = active_forces[force_id]
+# Apply slow effect
+func apply_slow(amount: float = 0.3, duration: float = 2.0) -> void:
+	# Apply only the strongest slow if already slowed
+	if is_slowed:
+		if amount > slow_amount:
+			previous_slow_amount = slow_amount
+			slow_amount = amount
+			_modify_entity_for_slow(true)
 		
-		# Atualiza duração
-		force_data.duration -= delta
-		
-		# Força expirou?
-		if force_data.duration <= 0:
-			forces_to_remove.append(force_id)
-			continue
-		
-		# Adiciona à força total
-		total_force += force_data.force
+		# Extend duration if new duration is longer
+		if slow_timer.time_left < duration:
+			slow_timer.stop()
+			slow_timer.wait_time = duration
+			slow_timer.start()
+		return
 	
-	# Remove forças expiradas
-	for force_id in forces_to_remove:
-		if active_forces[force_id].type == "knockback" and is_being_knocked:
-			is_being_knocked = false
-			emit_signal("knockback_ended")
-		active_forces.erase(force_id)
+	is_slowed = true
+	slow_amount = amount
 	
-	# Aplica força total, se não estiver stunado
-	if not is_stunned and total_force != Vector2.ZERO:
-		entity.velocity += total_force
-		# Opcional: limitar velocidade máxima
-		# entity.velocity = entity.velocity.limit_length(max_speed)
+	# Apply slow effect to entity
+	_modify_entity_for_slow(true)
+	
+	# Start slow timer
+	slow_timer.wait_time = duration
+	slow_timer.start()
+	
+	# Emit signal
+	emit_signal("slow_applied", amount)
 
-# Adiciona efeito visual de stun
-func add_stun_visual_effect(duration: float):
-	# Remove efeito existente, se houver
-	remove_stun_visual_effect()
+# Remove slow effect
+func remove_slow() -> void:
+	if not is_slowed:
+		return
 	
-	# Cria o nó visual
-	var stun_effect = Node2D.new()
-	stun_effect.name = "StunVisualEffect"
-	entity.add_child(stun_effect)
+	is_slowed = false
 	
-	# Desenha stars ou símbolos de stun
-	for i in range(3):
-		var star = Sprite2D.new()
-		star.position = Vector2(0, -20)  # Acima da entidade
+	# Remove slow effect from entity
+	_modify_entity_for_slow(false)
+	
+	# Reset slow amount
+	slow_amount = 0.0
+	previous_slow_amount = 0.0
+	
+	# Stop timer
+	slow_timer.stop()
+	
+	# Emit signal
+	emit_signal("slow_removed")
+
+# Apply knockback effect
+func apply_knockback(direction: Vector2, force: float = 150.0) -> void:
+	is_knocked_back = true
+	knockback_direction = direction.normalized()
+	knockback_force = force
+	
+	# Apply knockback to entity
+	_modify_entity_for_knockback(true)
+	
+	# Start knockback timer with short duration
+	knockback_timer.wait_time = 0.3
+	knockback_timer.start()
+	
+	# Emit signal
+	emit_signal("knockback_applied", direction, force)
+
+# Process movement control - called from _physics_process in derived classes
+func process_movement_control(delta: float) -> void:
+	# Handle knockback movement
+	if is_knocked_back and entity is CharacterBody2D:
+		# Gradually reduce knockback force for smoother effect
+		knockback_force = max(0, knockback_force - (knockback_force * 5 * delta))
 		
-		# Tenta carregar textura de stun ou cria sprite customizado
-		var texture_path = "res://Test/Assets/Icons/debuffs/stun.png"
-		if ResourceLoader.exists(texture_path):
-			star.texture = load(texture_path)
+		# Apply knockback velocity
+		entity.velocity = knockback_direction * knockback_force
+		
+		# If force is nearly zero, remove knockback
+		if knockback_force < 5.0:
+			remove_knockback()
+
+# Modify entity for stun
+func _modify_entity_for_stun(apply: bool) -> void:
+	# Store original state for restoration
+	if apply:
+		entity.set_meta("pre_stun_process", entity.get_physics_process())
+		
+		# Get original velocity if it's a CharacterBody2D
+		if entity is CharacterBody2D:
+			entity.set_meta("pre_stun_velocity", entity.velocity)
+		
+		# Disable physics process and attack
+		entity.set_physics_process(false)
+		
+		# If it's a CharacterBody2D, zero out velocity
+		if entity is CharacterBody2D:
+			entity.velocity = Vector2.ZERO
+	else:
+		# Restore physics process
+		if entity.has_meta("pre_stun_process"):
+			entity.set_physics_process(entity.get_meta("pre_stun_process"))
+			entity.remove_meta("pre_stun_process")
+		
+		# Restore velocity if it's a CharacterBody2D
+		if entity is CharacterBody2D and entity.has_meta("pre_stun_velocity"):
+			entity.velocity = entity.get_meta("pre_stun_velocity")
+			entity.remove_meta("pre_stun_velocity")
+
+# Modify entity for slow
+func _modify_entity_for_slow(apply: bool) -> void:
+	# Only apply if entity has movement properties
+	if "base_speed" in entity and "move_speed" in entity:
+		if apply:
+			# Store original speed for restoration if not already stored
+			if not entity.has_meta("original_speed"):
+				entity.set_meta("original_speed", entity.move_speed)
+			
+			# Apply slow
+			entity.move_speed = entity.base_speed * (1.0 - slow_amount)
 		else:
-			# Cria label com símbolo de estrela como fallback
-			var label = Label.new()
-			label.text = "✦"  # Símbolo de estrela
-			label.add_theme_font_size_override("font_size", 24)
-			label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.0))
-			star.add_child(label)
-		
-		# Posição circular ao redor da cabeça
-		var angle = i * TAU / 3  # distribui em círculo
-		var radius = 15
-		star.position += Vector2(cos(angle) * radius, sin(angle) * radius)
-		
-		# Animação
-		var tween = stun_effect.create_tween().set_loops()
-		tween.tween_property(star, "rotation", TAU, 2.0)
-		
-		stun_effect.add_child(star)
-	
-	# Timer para remover após a duração
-	var timer = Timer.new()
-	timer.wait_time = duration
-	timer.one_shot = true
-	stun_effect.add_child(timer)
-	
-	timer.timeout.connect(func():
-		stun_effect.queue_free()
-	)
-	timer.start()
+			# Restore original speed
+			if entity.has_meta("original_speed"):
+				entity.move_speed = entity.get_meta("original_speed")
+				entity.remove_meta("original_speed")
 
-# Remove efeito visual de stun
-func remove_stun_visual_effect():
-	var existing_effect = entity.get_node_or_null("StunVisualEffect")
-	if existing_effect:
-		existing_effect.queue_free()
+# Modify entity for knockback
+func _modify_entity_for_knockback(apply: bool) -> void:
+	if entity is CharacterBody2D:
+		if apply:
+			# Store original velocity for restoration
+			entity.set_meta("pre_knockback_velocity", entity.velocity)
+			
+			# Apply knockback velocity
+			entity.velocity = knockback_direction * knockback_force
+		else:
+			# Restore original velocity
+			if entity.has_meta("pre_knockback_velocity"):
+				entity.velocity = entity.get_meta("pre_knockback_velocity")
+				entity.remove_meta("pre_knockback_velocity")
+
+# Remove knockback effect
+func remove_knockback() -> void:
+	if not is_knocked_back:
+		return
+	
+	is_knocked_back = false
+	knockback_force = 0.0
+	
+	# Remove knockback effect from entity
+	_modify_entity_for_knockback(false)
+	
+	# Stop timer
+	knockback_timer.stop()
+
+# Timer callbacks
+func _on_stun_timer_timeout() -> void:
+	remove_stun()
+
+func _on_slow_timer_timeout() -> void:
+	remove_slow()
+
+func _on_knockback_timer_timeout() -> void:
+	remove_knockback()
+
+# Helper to create a timer
+func _create_timer(name: String) -> Timer:
+	var timer = Timer.new()
+	timer.name = name
+	timer.one_shot = true
+	timer.autostart = false
+	add_child(timer)
+	return timer

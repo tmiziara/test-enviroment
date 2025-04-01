@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://dr52dwcmya0ut"]
+[gd_scene load_steps=24 format=3 uid="uid://dr52dwcmya0ut"]
 
 [ext_resource type="Script" uid="uid://cw53008iqosin" path="res://Test/enemy_test.gd" id="1_d25wl"]
 [ext_resource type="Texture2D" uid="uid://d1grx4h6lygtt" path="res://Test/Assets/enemys/slime/D_Death2.png" id="2_aqd0t"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://c676llufstx63" path="res://Test/Components/health_component.tscn" id="5_5luq3"]
 [ext_resource type="PackedScene" uid="uid://7111yc5ayq1m" path="res://Test/Components/DefenseComponent.tscn" id="6_r8bh5"]
 [ext_resource type="PackedScene" uid="uid://6keapdhfopfk" path="res://Test/Components/DebuffComponent.tscn" id="7_y648p"]
+[ext_resource type="PackedScene" uid="uid://p80ks5n188v" path="res://Test/Components/BuffDisplayContainer.tscn" id="8_0rqou"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_fypkk"]
 
@@ -160,6 +161,14 @@ max_health = 1000
 armor = 10
 
 [node name="DebuffComponent" parent="." instance=ExtResource("7_y648p")]
+
+[node name="BuffDisplayContainer" parent="." instance=ExtResource("8_0rqou")]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
 
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
 [connection signal="health_changed" from="HealthComponent" to="." method="_on_health_component_health_changed"]

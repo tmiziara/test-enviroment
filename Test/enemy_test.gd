@@ -22,7 +22,7 @@ var target_position: Vector2                    # Posição do alvo (mouse)
 func _ready():
 	healthbar.init_health(health_component.max_health)
 	context_map = ContextMap.new()              # Cria o mapa de contexto
-	
+	health_component.connect("died", _on_health_component_died)
 	# Configuração refinada do ContextMap
 	context_map.interest_falloff_angle = 45.0
 	context_map.danger_falloff_angle = 30.0  # Aumentado de 30.0 para 60.0
@@ -82,6 +82,8 @@ func _on_health_component_died() -> void:
 	# Desativa a física e colisão para evitar novos ataques
 	set_physics_process(false)  # Para movimentação e física
 	set_process(false)  # Impede outras lógicas (como IA)
+	if has_node("BuffDisplayContainer"):
+		$BuffDisplayContainer.clear_all_buffs()
 	# Se houver um CollisionShape2D, desativa-o para evitar novas colisões
 	if has_node("CollisionShape2D"):
 		$CollisionShape2D.set_deferred("disabled", true)

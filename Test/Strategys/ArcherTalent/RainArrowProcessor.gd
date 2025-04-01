@@ -14,7 +14,7 @@ var arrow: NewArrow                  # Referência à flecha pai
 var shadow: Node2D                   # Referência à sombra de previsão
 var show_shadow: bool = true         # Mostrar uma sombra antes da flecha cair?
 var shadow_preview_time: float = 0.5 # Quanto tempo a sombra aparece antes da flecha?
-
+var has_hit: bool = false
 # Efeitos visuais
 var impact_particles: bool = true    # Criar partículas ao atingir o solo?
 
@@ -216,6 +216,12 @@ func _enable_arrow_collisions():
 		
 # Processa o impacto no destino
 func _handle_impact():
+	# Previne processamento duplicado
+	if has_hit:
+		return
+		
+	has_hit = true
+	
 	# Remover a sombra se existir
 	if shadow and is_instance_valid(shadow):
 		var fade_out = shadow.create_tween()
@@ -226,6 +232,10 @@ func _handle_impact():
 	# Cria efeito de impacto
 	if impact_particles:
 		_create_impact_effect()
+	
+	# Aplica efeito de pressure wave se habilitado (Talent 14)
+	if arrow.has_meta("pressure_wave_enabled"):
+		_apply_pressure_wave()
 	
 	# Aplica dano a inimigos próximos 
 	var enemies = _find_enemies_at_impact()
@@ -311,3 +321,28 @@ func _create_impact_effect():
 	
 	# Auto-destruição após efeito
 	impact.create_tween().tween_callback(func(): impact.queue_free()).set_delay(1.0)
+
+# Aplica o efeito Pressure Wave (Talent 14)
+func _apply_pressure_wave():
+	# Verifica se a classe PersistentPressureWaveProcessor está disponível
+	var PressureWaveClass = load("res://Test/Processors/PersistentPressureWaveProcessor.gd")
+	
+	if not PressureWaveClass:
+		print("ERRO: Não foi possível carregar PersistentPressureWaveProcessor")
+		return
+	
+	# Obtém as configurações dos metadados da flecha
+	var settings = {
+		"duration": arrow.get_meta("ground_duration", 3.0),
+		"slow_percent": arrow.get_meta("slow_percent", 0.3),
+		"slow_duration": arrow.get_meta("slow_duration", 1.5),
+		"knockback_force": arrow.get_meta("knockback_force", 150.0),
+		"max_radius": arrow.get_meta("arrow_rain_radius", 80.0)
+	}
+	
+	# Cria o efeito de onda de pressão
+	var parent = arrow.get_parent()
+	if parent:
+		# Usa o método estático para criar a onda de pressão
+		PressureWaveClass.create_at_position(arrow.global_position, parent, arrow.shooter, settings)
+		print("Pressure Wave aplicada na posição", arrow.global_position)

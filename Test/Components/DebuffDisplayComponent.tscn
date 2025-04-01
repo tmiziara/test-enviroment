@@ -1,6 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cov3411qkf18n"]
-
-[ext_resource type="Script" uid="uid://di2ahnuq3kyoi" path="res://Test/Components/DebuffDisplayComponent.gd" id="1_dgam1"]
+[gd_scene format=3 uid="uid://tfipjjc0o2d1"]
 
 [node name="DebuffDisplayComponent" type="Control"]
 custom_minimum_size = Vector2(0, 16)
@@ -9,7 +7,6 @@ anchors_preset = 0
 offset_right = 38.0
 offset_bottom = 10.0
 size_flags_vertical = 4
-script = ExtResource("1_dgam1")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 custom_minimum_size = Vector2(0, 16)
