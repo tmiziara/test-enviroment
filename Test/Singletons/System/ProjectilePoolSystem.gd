@@ -178,7 +178,8 @@ func reset_projectile(projectile: Node) -> void:
 			for child in projectile.get_children():
 				if child is CollisionShape2D or child is CollisionPolygon2D:
 					child.call_deferred("set", "disabled", false)
-	
+	if projectile.get_parent():
+		projectile.get_parent().remove_child(projectile)
 	# Limpa metadados, exceto pooled e initialized
 	_clear_meta_properties(projectile)
 
@@ -358,6 +359,75 @@ func get_arrow_for_rain(archer: Soldier_Base) -> Node:
 	
 	return arrow
 
+func get_arrow_for_double_shot(archer: Soldier_Base) -> Node:
+	# Pool name for the archer's second arrows
+	var pool_name = "second_arrow_" + str(archer.get_instance_id())
+	
+	# Create pool if it doesn't exist
+	if not pool_name in pools:
+		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+		if not arrow_scene:
+			return null
+			
+		create_pool(pool_name, arrow_scene, archer.get_parent(), 10)  # Start with smaller pool
+	
+	# Get arrow from pool
+	var arrow = get_projectile(pool_name)
+	
+	if arrow:
+	# CRITICAL: Print debug info
+		print("Arrow parent before removal: ", arrow.get_parent())
+		# IMPORTANT: Remove from current parent if any
+		if arrow.get_parent():
+			print("Removing arrow from parent: ", arrow.get_parent())
+			arrow.get_parent().remove_child(arrow)
+	# Double check parent is really gone
+
+		# Mark as secondary arrow
+		arrow.set_meta("is_second_arrow", true)
+		
+		# Make sure it won't trigger another double shot
+		arrow.set_meta("no_double_shot", true)
+		
+		# Reset it for clean state
+		if arrow.has_method("reset_for_reuse"):
+			arrow.reset_for_reuse()
+		
+		return arrow
+	
+	# Fallback to instantiation
+	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+	if arrow_scene:
+		if arrow.get_parent():
+			print("ERROR: Arrow still has parent after removal: ", arrow.get_parent())
+			# Create a completely new arrow as fallback
+			var new_arrow = arrow_scene.instantiate()
+			new_arrow.set_meta("pooled", true)
+			new_arrow.set_meta("is_second_arrow", true)
+			new_arrow.set_meta("no_double_shot", true)
+			return new_arrow
+		var new_arrow = arrow_scene.instantiate()
+		new_arrow.set_meta("pooled", true)
+		new_arrow.set_meta("is_second_arrow", true)
+		new_arrow.set_meta("no_double_shot", true)
+		
+		return new_arrow
+		
+	return null
+
+func return_second_arrow_to_pool(arrow: Node) -> void:
+	if not is_pooled(arrow) or not arrow.shooter:
+		return
+		
+	var archer = arrow.shooter
+	var pool_name = "second_arrow_" + str(archer.get_instance_id())
+	
+	# Check if pool exists
+	if not pool_name in pools:
+		return
+		
+	return_projectile(pool_name, arrow)
+
 # Retorna uma flecha ao seu pool de arqueiro
 func return_arrow_to_pool(arrow: Node) -> void:
 	if not is_pooled(arrow) or not arrow.shooter:
@@ -383,7 +453,10 @@ func return_arrow_to_pool(arrow: Node) -> void:
 		
 		for processor in processors:
 			processor.queue_free()
-		
+		if has_meta("is_second_arrow"):
+			ProjectilePool.instance.return_second_arrow_to_pool(self)
+		else:
+			ProjectilePool.instance.return_arrow_to_pool(self)
 		# Remove metadados de Arrow Rain
 		if arrow.has_meta("is_rain_arrow"):
 			arrow.remove_meta("is_rain_arrow")
@@ -397,7 +470,8 @@ func return_arrow_to_pool(arrow: Node) -> void:
 			arrow.remove_meta("rain_time")
 		if arrow.has_meta("rain_arc_height"):
 			arrow.remove_meta("rain_arc_height")
-	
+		var current_parent = arrow.get_parent()
+		current_parent.remove_child(arrow)
 	# Continua com o processo normal de retorno
 	return_projectile(pool_name, arrow)
 	
