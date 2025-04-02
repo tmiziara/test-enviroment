@@ -585,70 +585,71 @@ func _ensure_tags_array(projectile: Node) -> void:
 			if not tag_name in projectile.tags:
 				projectile.tags.append(tag_name)
 				
+# Place this function in the ConsolidatedTalentSystem class
 func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> void:
 	if not effects.double_shot_enabled:
 		return
 		
 	var shooter = original_projectile.shooter
-	if not shooter:
+	if not shooter or not is_instance_valid(shooter):
 		return
 		
-	# Get references
+	# CRITICAL: Create a new arrow from scratch every time
+	# This completely avoids parent conflicts by never reusing arrow instances
+	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+	if not arrow_scene:
+		return
+		
+	var second_arrow = arrow_scene.instantiate()
+	
+	# Get the exact position and direction from the original
 	var direction = original_projectile.direction
 	var start_position = original_projectile.global_position
 	
-	# Get arrow from specialized pool
-	var second_arrow = null
-	if ProjectilePool and ProjectilePool.instance:
-		second_arrow = ProjectilePool.instance.get_arrow_for_double_shot(shooter)
-	print("Second arrow parent: ", second_arrow.get_parent())
-	# Fallback to instantiation if pooling failed
-	if not second_arrow:
-		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-		if not arrow_scene:
-			return
-		second_arrow = arrow_scene.instantiate()
-	
-	# IMPORTANT: Check if it's already in the scene and remove it
-	if second_arrow.get_parent():
-		# Remove it from current parent
-		var current_parent = second_arrow.get_parent()
-		current_parent.remove_child(second_arrow)
-	
-	# Configure position and direction with angle offset
-	second_arrow.global_position = start_position
-	var angle_offset = deg_to_rad(-effects.double_shot_angle)  # Negative to go in opposite direction
+	# Calculate offset direction
+	var angle_offset = deg_to_rad(-effects.double_shot_angle)  # Negative for opposite direction
 	var rotated_direction = direction.rotated(angle_offset)
+	
+	# Configure arrow
+	second_arrow.global_position = start_position
 	second_arrow.direction = rotated_direction
 	second_arrow.rotation = rotated_direction.angle()
-	
-	# Set shooter (IMPORTANT: do this before adding to tree)
 	second_arrow.shooter = shooter
+	second_arrow.initial_position = start_position  # Important for distance calculation
 	
-	# Mark as second arrow to avoid recursion
+	# Mark as pooled but avoid actual pooling for double shot arrows
+	second_arrow.set_meta("pooled", true)
 	second_arrow.set_meta("is_second_arrow", true)
 	second_arrow.set_meta("no_double_shot", true)  # Prevent cascading double shots
+	second_arrow.set_meta("disposable", true)  # Mark to be destroyed rather than pooled
 	
-	# IMPORTANT: Reset the initial position for pooled arrows
-	second_arrow.initial_position = start_position
+	# Set basic properties
+	second_arrow.damage = original_projectile.damage
+	if "is_crit" in original_projectile and "is_crit" in second_arrow:
+		second_arrow.is_crit = original_projectile.is_crit
+	if "crit_chance" in original_projectile and "crit_chance" in second_arrow:
+		second_arrow.crit_chance = original_projectile.crit_chance
 	
-	# Disable double shot for this arrow
+	# Temporarily disable double shot for this arrow
 	var original_double_shot_value = effects.double_shot_enabled
 	effects.double_shot_enabled = false
 	
-	# Apply effects with double shot disabled
+	# Apply all the talent effects
 	apply_compiled_effects(second_arrow, effects)
 	
-	# Restore the original value
+	# Restore double shot setting
 	effects.double_shot_enabled = original_double_shot_value
-
-	# Set damage based on the modifier
+	
+	# Copy relevant DmgCalculator settings with damage modifier applied
 	if original_projectile.has_node("DmgCalculatorComponent") and second_arrow.has_node("DmgCalculatorComponent"):
 		var original_calc = original_projectile.get_node("DmgCalculatorComponent")
 		var second_calc = second_arrow.get_node("DmgCalculatorComponent")
 		
-		# Copy ALL relevant values from damage calculator
+		# Set damage with modifier
 		second_calc.base_damage = int(original_calc.base_damage * effects.second_arrow_damage_modifier)
+		second_arrow.damage = int(original_projectile.damage * effects.second_arrow_damage_modifier)
+		
+		# Copy other relevant attributes
 		second_calc.damage_multiplier = original_calc.damage_multiplier
 		second_calc.weapon_damage = original_calc.weapon_damage
 		second_calc.main_stat = original_calc.main_stat
@@ -664,28 +665,19 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 			second_calc.dot_effects = []
 			for dot in original_calc.dot_effects:
 				second_calc.dot_effects.append(dot.duplicate())
-		
-		# Set direct damage for consistency
-		second_arrow.damage = int(original_projectile.damage * effects.second_arrow_damage_modifier)
-
-	# Set any other properties
-	if "is_crit" in original_projectile and "is_crit" in second_arrow:
-		second_arrow.is_crit = original_projectile.is_crit
-
-	# Ensure tags are copied
+	
+	# Copy any tags
 	if "tags" in original_projectile and "tags" in second_arrow:
 		second_arrow.tags = original_projectile.tags.duplicate()
-
-	# Ensure the arrow is visible and active
-	second_arrow.visible = true
-	second_arrow.set_physics_process(true)
-	print("Second arrow parent: ", second_arrow.get_parent())
-	# Add to scene using call_deferred to avoid parent issues
+		# Add special tag for tracking
+		second_arrow.add_tag("double_shot_arrow")
+	
+	# Add to scene
 	if shooter and shooter.get_parent():
-		shooter.get_parent().call_deferred("add_child", second_arrow)
-		print("Second arrow parent: ", second_arrow.get_parent())
+		shooter.get_parent().add_child(second_arrow)
 	else:
-		print("ERROR: Could not add second arrow to scene - invalid shooter parent")
+		print("ERROR: Invalid shooter parent for second arrow")
+		second_arrow.queue_free()
 		
 # Helper method to safely reset the lifetime timer
 func _reset_secondary_arrow_timer(arrow: Node) -> void:

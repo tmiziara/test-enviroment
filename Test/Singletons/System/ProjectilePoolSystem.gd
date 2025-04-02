@@ -372,61 +372,151 @@ func get_arrow_for_double_shot(archer: Soldier_Base) -> Node:
 		create_pool(pool_name, arrow_scene, archer.get_parent(), 10)  # Start with smaller pool
 	
 	# Get arrow from pool
-	var arrow = get_projectile(pool_name)
+	var arrow = null
 	
-	if arrow:
-	# CRITICAL: Print debug info
-		print("Arrow parent before removal: ", arrow.get_parent())
-		# IMPORTANT: Remove from current parent if any
-		if arrow.get_parent():
-			print("Removing arrow from parent: ", arrow.get_parent())
-			arrow.get_parent().remove_child(arrow)
-	# Double check parent is really gone
-
-		# Mark as secondary arrow
-		arrow.set_meta("is_second_arrow", true)
+	# Try to get an available arrow first
+	if pools[pool_name].available.size() > 0:
+		# Get the first available arrow
+		arrow = pools[pool_name].available[0]
 		
-		# Make sure it won't trigger another double shot
+		# Make sure the arrow doesn't have a parent
+		if arrow.get_parent():
+			arrow.get_parent().remove_child(arrow)
+			
+		# Remove from available and add to active
+		pools[pool_name].available.remove_at(0)
+		pools[pool_name].active.append(arrow)
+		
+		# Reset arrow properties for reuse
+		_reset_pooled_arrow(arrow)
+		
+		# Mark as pooled
+		arrow.set_meta("pooled", true)
+		
+		# Mark as second arrow and no double shot
+		arrow.set_meta("is_second_arrow", true)
 		arrow.set_meta("no_double_shot", true)
 		
-		# Reset it for clean state
-		if arrow.has_method("reset_for_reuse"):
-			arrow.reset_for_reuse()
+		# Emit signal
+		emit_signal("projectile_reused", pool_name)
 		
 		return arrow
 	
-	# Fallback to instantiation
+	# If no available arrows, expand the pool
+	_expand_pool(pool_name)
+	
+	# Try again
+	if pools[pool_name].available.size() > 0:
+		arrow = pools[pool_name].available[0]
+		
+		# Make sure the arrow doesn't have a parent
+		if arrow.get_parent():
+			arrow.get_parent().remove_child(arrow)
+			
+		# Remove from available and add to active
+		pools[pool_name].available.remove_at(0)
+		pools[pool_name].active.append(arrow)
+		
+		# Reset arrow properties for reuse
+		_reset_pooled_arrow(arrow)
+		
+		# Mark as pooled
+		arrow.set_meta("pooled", true)
+		
+		# Mark as second arrow and no double shot
+		arrow.set_meta("is_second_arrow", true)
+		arrow.set_meta("no_double_shot", true)
+		
+		# Emit signal
+		emit_signal("projectile_reused", pool_name)
+		
+		return arrow
+	
+	# Fallback to instantiation if pool still fails
 	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
 	if arrow_scene:
-		if arrow.get_parent():
-			print("ERROR: Arrow still has parent after removal: ", arrow.get_parent())
-			# Create a completely new arrow as fallback
-			var new_arrow = arrow_scene.instantiate()
-			new_arrow.set_meta("pooled", true)
-			new_arrow.set_meta("is_second_arrow", true)
-			new_arrow.set_meta("no_double_shot", true)
-			return new_arrow
 		var new_arrow = arrow_scene.instantiate()
 		new_arrow.set_meta("pooled", true)
 		new_arrow.set_meta("is_second_arrow", true)
 		new_arrow.set_meta("no_double_shot", true)
 		
+		# Add to the active pool
+		pools[pool_name].active.append(new_arrow)
+		
 		return new_arrow
 		
 	return null
-
+# Helper function to reset a pooled arrow
+func _reset_pooled_arrow(arrow: Node) -> void:
+	# Reset basic properties
+	arrow.process_mode = Node.PROCESS_MODE_INHERIT
+	arrow.visible = true
+	
+	# Reset collision properties
+	if arrow.has_node("Hurtbox"):
+		var hurtbox = arrow.get_node("Hurtbox")
+		hurtbox.set_deferred("monitoring", true)
+		hurtbox.set_deferred("monitorable", true)
+	
+	# Reset layers
+	if arrow is CharacterBody2D:
+		arrow.set_deferred("collision_layer", 4)  # Projectile layer
+		arrow.set_deferred("collision_mask", 2)   # Enemy layer
+	
+	# Call the arrow's reset method if available
+	if arrow.has_method("reset_for_reuse"):
+		arrow.reset_for_reuse()
+		
 func return_second_arrow_to_pool(arrow: Node) -> void:
 	if not is_pooled(arrow) or not arrow.shooter:
+		arrow.queue_free()
 		return
-		
+	
 	var archer = arrow.shooter
 	var pool_name = "second_arrow_" + str(archer.get_instance_id())
 	
 	# Check if pool exists
 	if not pool_name in pools:
+		arrow.queue_free()
 		return
+	
+	# First ensure the arrow is removed from parent
+	if arrow.get_parent():
+		# Handle this deferring instead of immediately to avoid errors
+		arrow.get_parent().call_deferred("remove_child", arrow)
+	
+	# Reset arrow state for returning to pool
+	arrow.call_deferred("set", "process_mode", Node.PROCESS_MODE_DISABLED)
+	arrow.call_deferred("set", "visible", false)
+	
+	# Reset collision properties safely
+	if arrow is CollisionObject2D:
+		arrow.call_deferred("set", "monitoring", false)
+		arrow.call_deferred("set", "monitorable", false)
+	
+	# For CharacterBody2D, reset collision layers
+	if arrow is CharacterBody2D:
+		arrow.call_deferred("set", "collision_layer", 0)
+		arrow.call_deferred("set", "collision_mask", 0)
+	
+	# Find in active pool and move to available
+	var index = pools[pool_name].active.find(arrow)
+	if index >= 0:
+		pools[pool_name].active.remove_at(index)
 		
-	return_projectile(pool_name, arrow)
+		# Add to available pool
+		# Important: Add a small delay to ensure it's fully removed from parent first
+		await arrow.get_tree().create_timer(0.05).timeout
+		
+		# Double-check it doesn't have a parent before adding to available
+		if arrow.get_parent():
+			print("WARNING: Arrow still has parent when returning to pool, force removing")
+			arrow.get_parent().remove_child(arrow)
+			
+		pools[pool_name].available.append(arrow)
+	
+	# Emit signal for monitoring
+	emit_signal("projectile_returned", pool_name)
 
 # Retorna uma flecha ao seu pool de arqueiro
 func return_arrow_to_pool(arrow: Node) -> void:

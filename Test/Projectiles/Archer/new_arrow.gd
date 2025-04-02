@@ -271,6 +271,7 @@ func process_on_hit(target: Node) -> void:
 			health_component.take_complex_damage(damage_package)
 		# Basic signal emission
 		emit_signal("on_hit", target, self)
+		
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
 		# IMPORTANT: Add debug tracking
@@ -344,9 +345,9 @@ func process_on_hit(target: Node) -> void:
 		is_processing_ricochet = true
 		call_deferred("find_chain_target", target)
 		should_destroy = false  # Permite que a flecha continue
+		
 	# Destruição final
 	if should_destroy:
-		
 		# Desabilita física e visibilidade imediatamente
 		set_physics_process(false)
 		visible = false
@@ -362,9 +363,17 @@ func process_on_hit(target: Node) -> void:
 		set_deferred("collision_mask", 0)
 		velocity = Vector2.ZERO
 		
-		# Retorna ao pool com pequeno delay ou destrói
+		# IMPORTANT: Check if this is a disposable arrow (used for double shot)
+		if has_meta("disposable") and get_meta("disposable"):
+			# For disposable arrows, simply queue_free instead of pooling
+			queue_free()
+			return
+			
+		# Otherwise use the normal pooling logic
 		if is_pooled():
 			get_tree().create_timer(0.1).timeout.connect(func():
+				if not is_instance_valid(self):
+					return
 				return_to_pool()
 			)
 		else:
