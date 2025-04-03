@@ -99,13 +99,12 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 			# Let the ConsolidatedTalentSystem handle the spawning to ensure proper effect application
 			if talent_system and current_effects:
 				talent_system.spawn_double_shot(projectile, current_effects)
-				print("Second arrow parent: ", projectile.get_parent())
 			else:
 				print("ERROR: Cannot spawn second arrow - talent_system or current_effects is null")
 				
 	else:
 		print("ERROR: current_effects is null, talents not applied")
-	print("Second arrow parent: ", projectile.get_parent())
+	
 	return projectile
 	
 func apply_bloodseeker_hit(target: Node) -> void:

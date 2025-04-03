@@ -4087,26 +4087,8 @@ y_sort_enabled = true
 position = Vector2(400, 183)
 collision_mask = 3
 script = ExtResource("1_3pymg")
-cost_coin = null
-cost_food = null
-attack_upgrades = null
-attack_range = null
-sp = null
-main_stat = null
-main_stat_type = null
-meele = null
-magic = null
-type = null
-classType = null
 attack_cooldown = 0.5
-move_speed = null
-hp = null
-idle_time = null
-soldier_name = null
 crit_chance = 0.5
-crit_multi = null
-equipment_slots = null
-movement_radius = null
 
 [node name="SpriteLayer" type="Node2D" parent="."]
 

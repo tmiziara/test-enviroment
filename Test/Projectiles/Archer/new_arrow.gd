@@ -201,6 +201,8 @@ func process_on_hit(target: Node) -> void:
 	
 	# Store our decision for Bloodseeker stacking in metadata
 	set_meta("should_increment_bloodseeker", should_increment_bloodseeker)
+	# ----------------------------------------------------------------------------------
+	
 	# Adiciona o alvo à lista de alvos atingidos (para other tracking)
 	if not has_meta("hit_targets"):
 		set_meta("hit_targets", [])
@@ -271,45 +273,27 @@ func process_on_hit(target: Node) -> void:
 			health_component.take_complex_damage(damage_package)
 		# Basic signal emission
 		emit_signal("on_hit", target, self)
-		
+
+	
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
-		# IMPORTANT: Add debug tracking
-		set_meta("chain_hit_debug", {
-			"hit_time": Time.get_ticks_msec(),
-			"target": target.get_path() if is_instance_valid(target) else "invalid",
-			"current_chains": current_chains,
-			"max_chains": max_chains
-		})
-		
-		# IMPORTANT: Abort chain if we've reached the maximum
+		# IMPORTANTE: Aborta os ricochetes se já atingimos o máximo
 		if current_chains >= max_chains:
-			print("Chain Shot: Max chains reached, stopping chain")
 			will_chain = false
 			chain_calculated = true
 			is_processing_ricochet = false
-			should_destroy = true
-		# Only calculate chance on the first hit
+		# Apenas calcula a chance no primeiro hit
 		elif current_chains == 0 and not chain_calculated:
 			var roll = randf()
 			will_chain = (roll <= chain_chance)
 			chain_calculated = true
-			
-			# Add debug info
-			set_meta("chain_roll", {
-				"rolled": roll, 
-				"chance": chain_chance, 
-				"will_chain": will_chain
-			})
 		
 		if will_chain and current_chains < max_chains:
-			print("Chain Shot: Initiating chain ", current_chains+1, "/", max_chains)
 			is_processing_ricochet = true
 			call_deferred("find_chain_target", target)
-			should_destroy = false  # Keep the arrow active
+			should_destroy = false  # Permite que a flecha continue
 		else:
 			print("No chaining - max reached or chance failed")
-			should_destroy = true
 	
 	# Verifica Piercing - apenas se não estiver fazendo ricochet
 	if piercing and not will_chain:
@@ -345,9 +329,9 @@ func process_on_hit(target: Node) -> void:
 		is_processing_ricochet = true
 		call_deferred("find_chain_target", target)
 		should_destroy = false  # Permite que a flecha continue
-		
 	# Destruição final
 	if should_destroy:
+		
 		# Desabilita física e visibilidade imediatamente
 		set_physics_process(false)
 		visible = false
@@ -363,17 +347,9 @@ func process_on_hit(target: Node) -> void:
 		set_deferred("collision_mask", 0)
 		velocity = Vector2.ZERO
 		
-		# IMPORTANT: Check if this is a disposable arrow (used for double shot)
-		if has_meta("disposable") and get_meta("disposable"):
-			# For disposable arrows, simply queue_free instead of pooling
-			queue_free()
-			return
-			
-		# Otherwise use the normal pooling logic
+		# Retorna ao pool com pequeno delay ou destrói
 		if is_pooled():
 			get_tree().create_timer(0.1).timeout.connect(func():
-				if not is_instance_valid(self):
-					return
 				return_to_pool()
 			)
 		else:
@@ -539,27 +515,21 @@ func process_explosion_effect(target: Node) -> void:
 			strategy.create_explosion(self, target)
 			
 func find_chain_target(original_target) -> void:
-	# Check if we've hit our chain limit
 	if current_chains >= max_chains:
 		will_chain = false
 		is_processing_ricochet = false
-		
-		# IMPORTANT: Ensure proper cleanup when chain is finished
-		call_deferred("_finalize_chain_arrow")
+		if is_pooled():
+			return_to_pool()
+		else:
+			queue_free()
 		return
-
 	# Wait a frame to ensure hit processing is complete
 	await get_tree().process_frame
-	
-	# IMPORTANT: Verify if we're still valid after the frame wait
-	if not is_instance_valid(self):
-		return
-	
-	# Initialize hit_targets if null
+	# IMPORTANTE: Verificar e inicializar a lista de hit_targets corretamente
 	if hit_targets == null:
 		hit_targets = []
 	
-	# Add the original target to list if not already there
+	# Adicione o alvo original à lista se ainda não estiver lá
 	if original_target and not original_target in hit_targets:
 		hit_targets.append(original_target)
 		
@@ -600,7 +570,6 @@ func find_chain_target(original_target) -> void:
 				"position": body.global_position,
 				"velocity": target_velocity
 			})
-			
 	# If we found at least one valid target
 	if target_info.size() > 0:
 		# Choose random target
@@ -612,36 +581,34 @@ func find_chain_target(original_target) -> void:
 		# IMPORTANT: Increment chain counter BEFORE continuing
 		current_chains += 1
 		set_meta("is_part_of_chain", true)
-		
-		# Check if this is the last chain
 		if current_chains >= max_chains:
 			will_chain = false
 			chain_calculated = true
-			
-		# Add the new target to hit_targets
+		# Adicione o novo alvo à lista de hit_targets
 		hit_targets.append(next_target)
-		
 		# Apply damage reduction
 		if has_node("DmgCalculatorComponent"):
 			var dmg_calc = get_node("DmgCalculatorComponent")
 			
 			# Reduce base damage
 			if "base_damage" in dmg_calc:
+				var original_base = dmg_calc.base_damage
 				dmg_calc.base_damage = int(dmg_calc.base_damage * (1.0 - chain_damage_decay))
 			
 			# Reduce damage multiplier
 			if "damage_multiplier" in dmg_calc:
+				var original_mult = dmg_calc.damage_multiplier
 				dmg_calc.damage_multiplier *= (1.0 - chain_damage_decay * 0.5)  # Half effect on multiplier
 			
 			# Reduce elemental damage
 			if "elemental_damage" in dmg_calc and not dmg_calc.elemental_damage.is_empty():
 				for element_type in dmg_calc.elemental_damage.keys():
+					var original_elem = dmg_calc.elemental_damage[element_type]
 					dmg_calc.elemental_damage[element_type] = int(dmg_calc.elemental_damage[element_type] * (1.0 - chain_damage_decay))
-		
 		# Reduce direct damage
+		var original_damage = damage
 		damage = int(damage * (1.0 - chain_damage_decay))
-		
-		# Re-enable physics processing
+		# Importante: Reabilitar a física antes de redefinir a trajetória
 		set_physics_process(true)
 		
 		# Disable collision during redirection
@@ -654,7 +621,7 @@ func find_chain_target(original_target) -> void:
 		var distance = global_position.distance_to(target_position)
 		var flight_time = distance / speed
 		
-		# Predict target position based on velocity and flight time
+		# Predict target position based on its velocity and flight time
 		var predicted_position = target_position + (target_velocity * flight_time)
 		
 		# Add a slight lead to ensure hitting even with irregular movement
@@ -665,9 +632,9 @@ func find_chain_target(original_target) -> void:
 		direction = (lead_position - global_position).normalized()
 		rotation = direction.angle()
 		
-		# IMPORTANT: Reset collision layers
-		set_deferred("collision_layer", 4)   # Projectile layer
-		set_deferred("collision_mask", 2)    # Enemy layer
+		# IMPORTANTE: Reativa as camadas de colisão
+		collision_layer = 4   # Camada de projétil
+		collision_mask = 2    # Camada de inimigo
 		
 		# Set metadata for homing behavior
 		set_meta("homing_target", next_target)
@@ -682,13 +649,6 @@ func find_chain_target(original_target) -> void:
 		# Enable homing behavior
 		set_meta("enable_homing", true)
 		
-		# IMPORTANT: Track chain shot with debug info
-		set_meta("chain_shot_debug", {
-			"chain_number": current_chains,
-			"timestamp": Time.get_ticks_msec(),
-			"target": next_target.get_path() if is_instance_valid(next_target) else "invalid_target"
-		})
-		
 		# Create a short timer to re-enable collision
 		get_tree().create_timer(0.1).timeout.connect(func():
 			if is_instance_valid(self):
@@ -698,53 +658,16 @@ func find_chain_target(original_target) -> void:
 					hurtbox.set_deferred("monitorable", true)
 		)
 		
-		# Reset the processing flag
+		# IMPORTANTE: Redefine a flag de processamento
 		is_processing_ricochet = false
+		
+		# Adicione um log para confirmar que o ricochete foi configurado corretamente
 	else:
 		# No valid targets found, clean up arrow
-		will_chain = false
-		is_processing_ricochet = false
-		call_deferred("_finalize_chain_arrow")
-
-# New helper method to ensure proper arrow cleanup after chain
-func _finalize_chain_arrow() -> void:
-	if not is_instance_valid(self):
-		return
-		
-	# Disable physics and collision completely
-	set_physics_process(false)
-	set_deferred("collision_layer", 0)
-	set_deferred("collision_mask", 0)
-	
-	if has_node("Hurtbox"):
-		var hurtbox = get_node("Hurtbox")
-		hurtbox.set_deferred("monitoring", false)
-		hurtbox.set_deferred("monitorable", false)
-	
-	# IMPORTANT: If the arrow is pooled, return it to the pool properly
-	if is_pooled():
-		# Ensure arrow is fully reset before returning to the pool
-		if has_method("reset_for_reuse"):
-			reset_for_reuse()
-			
-		# Small delay before returning to pool to ensure all processing is complete
-		get_tree().create_timer(0.05).timeout.connect(func():
-			if is_instance_valid(self):
-				# Clear any active arrow rain processors if present
-				for child in get_children():
-					if child.get_class() == "RainArrowProcessor" or (child.get_script() and "RainArrowProcessor" in child.get_script().get_path()):
-						child.queue_free()
-						
-				# Remove chain-specific metadata
-				if has_meta("is_part_of_chain"):
-					remove_meta("is_part_of_chain")
-				if has_meta("chain_shot_debug"):
-					remove_meta("chain_shot_debug")
-					
-				return_to_pool()
-		)
-	else:
-		queue_free()
+		if is_pooled():
+			return_to_pool()
+		else:
+			queue_free()
 
 func reset_for_reuse() -> void:
 	print("Resetting arrow for reuse: ", self, " child count: ", get_child_count())
@@ -811,41 +734,6 @@ func reset_for_reuse() -> void:
 		processor.set_physics_process(false)
 		# Remove conexões de sinais para evitar chamadas depois de destruído
 		processor.queue_free()
-
-	if has_meta("is_part_of_chain") or has_meta("chain_shot_debug"):
-			# Force chain shot cleanup
-			current_chains = 0
-			will_chain = false
-			chain_calculated = false
-			is_processing_ricochet = false
-			
-			# Clear hit targets array
-			if hit_targets:
-				hit_targets.clear()
-				
-			# Remove chain-specific metadata
-			if has_meta("is_part_of_chain"):
-				remove_meta("is_part_of_chain")
-			if has_meta("chain_shot_debug"):
-				remove_meta("chain_shot_debug")
-				
-			# Clear homing metadata
-			if has_meta("enable_homing"):
-				remove_meta("enable_homing")
-			if has_meta("homing_target"):
-				remove_meta("homing_target")
-			if has_meta("homing_strength"):
-				remove_meta("homing_strength")
-				
-			# Re-enable collisions
-			set_deferred("collision_layer", 4)  # Projectile layer
-			set_deferred("collision_mask", 2)   # Enemy layer
-			
-			# Re-enable Hurtbox if present
-			if has_node("Hurtbox"):
-				var hurtbox = get_node("Hurtbox")
-				hurtbox.set_deferred("monitoring", true)
-				hurtbox.set_deferred("monitorable", true)
 
 	# Limpa todos os metadados relacionados a Arrow Rain e processador
 	if has_meta("active_rain_processor_id"):
