@@ -271,6 +271,7 @@ func process_on_hit(target: Node) -> void:
 			health_component.take_complex_damage(damage_package)
 		# Basic signal emission
 		emit_signal("on_hit", target, self)
+		
 	# Verifica Chain Shot
 	if chain_shot_enabled and current_chains < max_chains:
 		# IMPORTANT: Add debug tracking
@@ -344,9 +345,9 @@ func process_on_hit(target: Node) -> void:
 		is_processing_ricochet = true
 		call_deferred("find_chain_target", target)
 		should_destroy = false  # Permite que a flecha continue
+		
 	# Destruição final
 	if should_destroy:
-		
 		# Desabilita física e visibilidade imediatamente
 		set_physics_process(false)
 		visible = false
@@ -362,9 +363,17 @@ func process_on_hit(target: Node) -> void:
 		set_deferred("collision_mask", 0)
 		velocity = Vector2.ZERO
 		
-		# Retorna ao pool com pequeno delay ou destrói
+		# IMPORTANT: Check if this is a disposable arrow (used for double shot)
+		if has_meta("disposable") and get_meta("disposable"):
+			# For disposable arrows, simply queue_free instead of pooling
+			queue_free()
+			return
+			
+		# Otherwise use the normal pooling logic
 		if is_pooled():
 			get_tree().create_timer(0.1).timeout.connect(func():
+				if not is_instance_valid(self):
+					return
 				return_to_pool()
 			)
 		else:
@@ -738,35 +747,242 @@ func _finalize_chain_arrow() -> void:
 		queue_free()
 
 func reset_for_reuse() -> void:
-	print("RESET FOR REUSE - Início")
-	print("RESET FOR REUSE - Tem pai: ", get_parent() != null)
-	print("RESET FOR REUSE - Objeto atual: ", self)
+	print("Resetting arrow for reuse: ", self, " child count: ", get_child_count())
+	# Salva o estado de crítico atual e metadados importantes antes da limpeza
+	var was_critical = is_crit
+	var crit_chance_current = crit_chance
+		# Save chain shot configuration if needed
+	var chain_config = {
+		"enabled": chain_shot_enabled,
+		"chance": chain_chance,
+		"range": chain_range,
+		"decay": chain_damage_decay,
+		"max": max_chains
+	}
+	# Salva metadados de sangramento antes da limpeza
+	var bleeding_meta = {
+		"has_bleeding_effect": get_meta("has_bleeding_effect") if has_meta("has_bleeding_effect") else null,
+		"bleeding_damage_percent": get_meta("bleeding_damage_percent") if has_meta("bleeding_damage_percent") else null,
+		"bleeding_duration": get_meta("bleeding_duration") if has_meta("bleeding_duration") else null,
+		"bleeding_interval": get_meta("bleeding_interval") if has_meta("bleeding_interval") else null
+	}
 	
-	# Em vez de desabilitar completamente, preserve o estado mínimo necessário
-	process_mode = Node.PROCESS_MODE_INHERIT
-	visible = true
-	set_physics_process(true)
+	# Salva metadados de Bloodseeker antes da limpeza
+	var bloodseeker_meta = {
+		"has_bloodseeker_effect": get_meta("has_bloodseeker_effect") if has_meta("has_bloodseeker_effect") else null,
+		"damage_increase_per_stack": get_meta("damage_increase_per_stack") if has_meta("damage_increase_per_stack") else null,
+		"max_stacks": get_meta("max_stacks") if has_meta("max_stacks") else null
+	}
 	
-	# Se tiver um Hurtbox, reative-o
+	# Salva metadados de Marked for Death antes da limpeza
+	var mark_meta = {
+		"has_mark_effect": get_meta("has_mark_effect") if has_meta("has_mark_effect") else null,
+		"mark_duration": get_meta("mark_duration") if has_meta("mark_duration") else null,
+		"mark_crit_bonus": get_meta("mark_crit_bonus") if has_meta("mark_crit_bonus") else null
+	}
+	
+	# Limpa todos os estados de chain e ricochete
+	current_chains = 0
+	chain_calculated = false
+	will_chain = false
+	is_processing_ricochet = false
+	hit_targets.clear()
+	# Reseta velocidade
+	velocity = Vector2.ZERO
+	
+	# Reset damage to base value
+	damage = 10  # Use your base arrow damage
+	arrow_rain_enabled = false
+	arrow_rain_counter = 0
+	arrow_rain_threshold = 10
+	arrow_rain_count = 5
+	arrow_rain_radius = 80.0
+	
+	# IMPROVED CLEANUP: Properly remove RainArrowProcessor
+	var rain_processors = []
+	for child in get_children():
+		if child.get_class() == "RainArrowProcessor" or child.get_script() and child.get_script().get_path().get_file() == "RainArrowProcessor.gd":
+			rain_processors.append(child)
+
+	# Remove each processor safely
+	for processor in rain_processors:
+		# Desabilita processamento para evitar erros
+		processor.set_process(false)
+		processor.set_physics_process(false)
+		# Remove conexões de sinais para evitar chamadas depois de destruído
+		processor.queue_free()
+
+	if has_meta("is_part_of_chain") or has_meta("chain_shot_debug"):
+			# Force chain shot cleanup
+			current_chains = 0
+			will_chain = false
+			chain_calculated = false
+			is_processing_ricochet = false
+			
+			# Clear hit targets array
+			if hit_targets:
+				hit_targets.clear()
+				
+			# Remove chain-specific metadata
+			if has_meta("is_part_of_chain"):
+				remove_meta("is_part_of_chain")
+			if has_meta("chain_shot_debug"):
+				remove_meta("chain_shot_debug")
+				
+			# Clear homing metadata
+			if has_meta("enable_homing"):
+				remove_meta("enable_homing")
+			if has_meta("homing_target"):
+				remove_meta("homing_target")
+			if has_meta("homing_strength"):
+				remove_meta("homing_strength")
+				
+			# Re-enable collisions
+			set_deferred("collision_layer", 4)  # Projectile layer
+			set_deferred("collision_mask", 2)   # Enemy layer
+			
+			# Re-enable Hurtbox if present
+			if has_node("Hurtbox"):
+				var hurtbox = get_node("Hurtbox")
+				hurtbox.set_deferred("monitoring", true)
+				hurtbox.set_deferred("monitorable", true)
+
+	# Limpa todos os metadados relacionados a Arrow Rain e processador
+	if has_meta("active_rain_processor_id"):
+		remove_meta("active_rain_processor_id")
+	if has_meta("is_rain_arrow"):
+		remove_meta("is_rain_arrow")
+	if has_meta("no_double_shot"):
+		remove_meta("no_double_shot")
+	if has_meta("no_chain_shot"):
+		remove_meta("no_chain_shot")
+	if has_meta("rain_start_pos"):
+		remove_meta("rain_start_pos")
+	if has_meta("rain_target_pos"):
+		remove_meta("rain_target_pos")
+	if has_meta("rain_time"):
+		remove_meta("rain_time")
+	if has_meta("rain_arc_height"):
+		remove_meta("rain_arc_height")
+	# Reset DmgCalculator
+	if has_node("DmgCalculatorComponent"):
+		var dmg_calc = get_node("DmgCalculatorComponent")
+		# Reset apenas os valores que NÃO vêm do atirador
+		dmg_calc.base_damage = 10  # Base damage padrão
+		dmg_calc.damage_multiplier = 1.0
+		dmg_calc.armor_penetration = 0.0
+		dmg_calc.elemental_damage = {}
+		dmg_calc.additional_effects = []
+		dmg_calc.dot_effects = []
+
+	# Reset collision properties safely
 	if has_node("Hurtbox"):
 		var hurtbox = get_node("Hurtbox")
 		hurtbox.set_deferred("monitoring", true)
 		hurtbox.set_deferred("monitorable", true)
+	# Reset das variáveis de controle do Bloodseeker
+	if has_meta("bloodseeker_hit_targets"):
+		remove_meta("bloodseeker_hit_targets")
+		
+	if has_meta("bloodseeker_hit_first"):
+		remove_meta("bloodseeker_hit_first")
+		
+	if has_meta("should_increment_bloodseeker"):
+		remove_meta("should_increment_bloodseeker")
+
+	if has_meta("no_double_shot"):
+		remove_meta("no_double_shot")
+	if has_meta("no_chain_shot"):
+		remove_meta("no_chain_shot")
+	# Reset collision layers
+	set_deferred("collision_layer", 4)  # Projectile layer
+	set_deferred("collision_mask", 2)   # Enemy layer
 	
-	# Limpe apenas metadados específicos relacionados a estados anteriores
-	var meta_to_remove = [
-		"is_rain_arrow", 
-		"active_rain_processor_id", 
-		"current_target",
-		"chain_shot_debug",
-		"hit_targets"
-	]
+	# Reset physics processing
+	set_physics_process(true)
+	# Mantém uma cópia das tags antes de limpar
+	var old_tags = tags.duplicate() if "tags" in self else []
 	
-	for prop in meta_to_remove:
-		if has_meta(prop):
+	# Clear all metadata EXCEPT certain keys
+	var meta_list = get_meta_list()
+	for prop in meta_list:
+		# Preserve certain important metadata
+		if prop != "pooled" and prop != "initialized":
 			remove_meta(prop)
+			
+	# Restaura metadados importantes
+	# 1. Primeiro os metadados de sangramento
+	for key in bleeding_meta:
+		if bleeding_meta[key] != null:
+			set_meta(key, bleeding_meta[key])
+	# Restore chain shot configuration if it was enabled
+	if chain_config["enabled"]:
+		chain_shot_enabled = true
+		chain_chance = chain_config["chance"]
+		chain_range = chain_config["range"] 
+		chain_damage_decay = chain_config["decay"]
+		max_chains = chain_config["max"]
+	else:
+		chain_shot_enabled = false
+	# 2. Restaura metadados do Bloodseeker
+	for key in bloodseeker_meta:
+		if bloodseeker_meta[key] != null:
+			set_meta(key, bloodseeker_meta[key])
+			
+	# 3. Restaura metadados de Marked for Death
+	for key in mark_meta:
+		if mark_meta[key] != null:
+			set_meta(key, mark_meta[key])
+		# Reset double shot metadata
+	if has_meta("is_second_arrow"):
+		remove_meta("is_second_arrow")
+	if has_meta("double_shot_enabled"):
+		remove_meta("double_shot_enabled")
+	if has_meta("double_shot_angle"):
+		remove_meta("double_shot_angle")
+		# Clear homing-specific metadata
+	if has_meta("enable_homing"):
+		remove_meta("enable_homing")
+	if has_meta("homing_target"):
+		remove_meta("homing_target")
+	if has_meta("homing_strength"):
+		remove_meta("homing_strength")
+		
+	var rain_related_meta = ["is_rain_arrow", "rain_start_pos", "rain_target_pos", 
+							"rain_arc_height", "rain_time"]
+	for meta_key in rain_related_meta:
+		if has_meta(meta_key):
+			remove_meta(meta_key)
+
+	# Limpa as tags para depois restaurá-las de forma seletiva
+	if "tags" in self:
+		tags.clear()
+		
+		# Restaura tags importantes
+		if "bleeding" in old_tags:
+			add_tag("bleeding")
+		
+		if "bloodseeker" in old_tags:
+			add_tag("bloodseeker")
+			
+		if "marked_for_death" in old_tags:
+			add_tag("marked_for_death")
+			
+		if "chain_shot" in old_tags:
+			add_tag("chain_shot")
 	
-	print("RESET FOR REUSE - Fim")
+	# Recalcula o acerto crítico usando o sistema unificado
+	if shooter and "crit_chance" in shooter:
+		crit_chance = shooter.crit_chance
+		is_crit = is_critical_hit(crit_chance)
+	else:
+		# Mantém o valor anterior se não for possível recalcular
+		crit_chance = crit_chance_current
+		is_crit = was_critical
+
+	# Reset physics processing
+	set_physics_process(true)
+
 # Helper method to check if arrow is from pool
 func is_pooled() -> bool:
 	return has_meta("pooled") and get_meta("pooled") == true
