@@ -178,7 +178,8 @@ func reset_projectile(projectile: Node) -> void:
 			for child in projectile.get_children():
 				if child is CollisionShape2D or child is CollisionPolygon2D:
 					child.call_deferred("set", "disabled", false)
-	
+	if projectile.get_parent():
+		projectile.get_parent().remove_child(projectile)
 	# Limpa metadados, exceto pooled e initialized
 	_clear_meta_properties(projectile)
 
@@ -240,10 +241,18 @@ func get_arrow_with_talents(pool_name: String, archer: Soldier_Base, talent_mana
 func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 	# Nome do pool para flechas do arqueiro
 	var pool_name = "arrow_" + str(archer.get_instance_id())
+	
+	print("GET ARROW - Pool name: ", pool_name)
+	print("GET ARROW - Pool existe: ", pool_name in pools)
+	
+	if pool_name in pools:
+		print("GET ARROW - Número de flechas disponíveis: ", pools[pool_name].available.size())
+	
 	# Verifica se o pool existe, caso contrário cria
 	if not pool_name in pools:
 		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
 		if not arrow_scene:
+			print("ERRO: Não foi possível carregar a cena da flecha")
 			return null
 			
 		create_pool(pool_name, arrow_scene, archer.get_parent())
@@ -251,12 +260,19 @@ func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 	# MUDANÇA: Obtenha TODAS as flechas disponíveis
 	var available_arrows = []
 	for arrow in pools[pool_name].available:
+		print("GET ARROW - Verificando flecha: ", arrow)
+		print("GET ARROW - Flecha tem meta is_rain_arrow: ", arrow.has_meta("is_rain_arrow"))
+		print("GET ARROW - Flecha tem meta active_rain_processor_id: ", arrow.has_meta("active_rain_processor_id"))
+		
 		# Verifica se a flecha está marcada como parte de Arrow Rain
 		if not arrow.has_meta("is_rain_arrow") and not arrow.has_meta("active_rain_processor_id"):
 			available_arrows.append(arrow)
 	
+	print("GET ARROW - Número de flechas disponíveis válidas: ", available_arrows.size())
+	
 	# Se não houver flechas disponíveis, expande o pool
 	if available_arrows.size() == 0:
+		print("GET ARROW - Expandindo pool")
 		_expand_pool(pool_name)
 		
 		# Tenta novamente após expandir
@@ -280,6 +296,15 @@ func get_arrow_for_archer(archer: Soldier_Base) -> Node:
 	
 	# Obtém a primeira flecha válida
 	var arrow = available_arrows[0]
+	
+	print("GET ARROW - Flecha selecionada: ", arrow)
+	print("GET ARROW - Flecha tem pai: ", arrow.get_parent() != null)
+	print("GET ARROW - Flecha é válida: ", is_instance_valid(arrow))
+	
+	# Reset completo antes de reutilizar
+	if arrow.has_method("reset_for_reuse"):
+		print("GET ARROW - Chamando reset_for_reuse()")
+		arrow.reset_for_reuse()
 	
 	# Remove do array de disponíveis
 	var index = pools[pool_name].available.find(arrow)
@@ -358,6 +383,75 @@ func get_arrow_for_rain(archer: Soldier_Base) -> Node:
 	
 	return arrow
 
+func get_arrow_for_double_shot(archer: Soldier_Base) -> Node:
+	# Pool name for the archer's second arrows
+	var pool_name = "second_arrow_" + str(archer.get_instance_id())
+	
+	# Create pool if it doesn't exist
+	if not pool_name in pools:
+		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+		if not arrow_scene:
+			return null
+			
+		create_pool(pool_name, arrow_scene, archer.get_parent(), 10)  # Start with smaller pool
+	
+	# Get arrow from pool
+	var arrow = get_projectile(pool_name)
+	
+	if arrow:
+	# CRITICAL: Print debug info
+		print("Arrow parent before removal: ", arrow.get_parent())
+		# IMPORTANT: Remove from current parent if any
+		if arrow.get_parent():
+			print("Removing arrow from parent: ", arrow.get_parent())
+			arrow.get_parent().remove_child(arrow)
+	# Double check parent is really gone
+
+		# Mark as secondary arrow
+		arrow.set_meta("is_second_arrow", true)
+		
+		# Make sure it won't trigger another double shot
+		arrow.set_meta("no_double_shot", true)
+		
+		# Reset it for clean state
+		if arrow.has_method("reset_for_reuse"):
+			arrow.reset_for_reuse()
+		
+		return arrow
+	
+	# Fallback to instantiation
+	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+	if arrow_scene:
+		if arrow.get_parent():
+			print("ERROR: Arrow still has parent after removal: ", arrow.get_parent())
+			# Create a completely new arrow as fallback
+			var new_arrow = arrow_scene.instantiate()
+			new_arrow.set_meta("pooled", true)
+			new_arrow.set_meta("is_second_arrow", true)
+			new_arrow.set_meta("no_double_shot", true)
+			return new_arrow
+		var new_arrow = arrow_scene.instantiate()
+		new_arrow.set_meta("pooled", true)
+		new_arrow.set_meta("is_second_arrow", true)
+		new_arrow.set_meta("no_double_shot", true)
+		
+		return new_arrow
+		
+	return null
+
+func return_second_arrow_to_pool(arrow: Node) -> void:
+	if not is_pooled(arrow) or not arrow.shooter:
+		return
+		
+	var archer = arrow.shooter
+	var pool_name = "second_arrow_" + str(archer.get_instance_id())
+	
+	# Check if pool exists
+	if not pool_name in pools:
+		return
+		
+	return_projectile(pool_name, arrow)
+
 # Retorna uma flecha ao seu pool de arqueiro
 func return_arrow_to_pool(arrow: Node) -> void:
 	if not is_pooled(arrow) or not arrow.shooter:
@@ -383,7 +477,10 @@ func return_arrow_to_pool(arrow: Node) -> void:
 		
 		for processor in processors:
 			processor.queue_free()
-		
+		if has_meta("is_second_arrow"):
+			ProjectilePool.instance.return_second_arrow_to_pool(self)
+		else:
+			ProjectilePool.instance.return_arrow_to_pool(self)
 		# Remove metadados de Arrow Rain
 		if arrow.has_meta("is_rain_arrow"):
 			arrow.remove_meta("is_rain_arrow")
@@ -397,7 +494,8 @@ func return_arrow_to_pool(arrow: Node) -> void:
 			arrow.remove_meta("rain_time")
 		if arrow.has_meta("rain_arc_height"):
 			arrow.remove_meta("rain_arc_height")
-	
+		var current_parent = arrow.get_parent()
+		current_parent.remove_child(arrow)
 	# Continua com o processo normal de retorno
 	return_projectile(pool_name, arrow)
 	

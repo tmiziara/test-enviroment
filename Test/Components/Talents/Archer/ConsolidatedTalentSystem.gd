@@ -526,28 +526,38 @@ func apply_compiled_effects(projectile: Node, effects: CompiledEffects) -> void:
 			projectile.set_meta("arrow_rain_radius", current_radius * effects.arrow_rain_area_multiplier)
 		
 func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
+	# Skip setup if this projectile shouldn't use chain shot
+	if projectile.has_meta("no_chain_shot") or projectile.has_meta("is_rain_arrow"):
+		return
+		
 	if projectile is NewArrow:
+		# Enable chain shot with proper settings
 		projectile.chain_shot_enabled = true
 		projectile.chain_chance = effects.chain_chance
 		projectile.chain_range = effects.chain_range
 		projectile.chain_damage_decay = effects.chain_damage_decay
-		projectile.max_chains = effects.max_chains  # Este é o valor importante
+		projectile.max_chains = effects.max_chains
 		projectile.current_chains = 0
-		projectile.hit_targets = []
-		projectile.add_tag("chain_shot")
 		
-		# IMPORTANT: Set will_chain to null to indicate it hasn't been determined yet
+		# Ensure hit_targets is initialized properly
+		if projectile.hit_targets == null:
+			projectile.hit_targets = []
+		else:
+			projectile.hit_targets.clear()
+		
+		# Initial state for chain shot
 		projectile.will_chain = false
-		projectile.hit_targets = []
+		projectile.chain_calculated = false
+		projectile.is_processing_ricochet = false
 		
-		# Add debugging info
-		projectile.set_meta("chain_shot_debug", {
-			"applied_from": "ConsolidatedTalentSystem",
-			"max_chains": effects.max_chains,
+		# Add detailed metadata for debugging
+		projectile.set_meta("chain_shot_setup", {
 			"timestamp": Time.get_ticks_msec(),
-			"chance_computed": false
+			"max_chains": effects.max_chains,
+			"chain_chance": effects.chain_chance
 		})
 		
+		# Add tag for identification
 		projectile.add_tag("chain_shot")
 	else:
 		# For non-Arrow projectiles, use metadata
@@ -560,15 +570,9 @@ func _setup_chain_shot(projectile, effects: CompiledEffects) -> void:
 		projectile.set_meta("will_chain", null)  # Not yet determined
 		projectile.set_meta("hit_targets", [])
 		
-		# Add debug info
-		projectile.set_meta("chain_shot_debug", {
-			"applied_from": "ConsolidatedTalentSystem",
-			"max_chains": effects.max_chains,
-			"timestamp": Time.get_ticks_msec(),
-			"chance_computed": false
-		})
-		
-		projectile.add_tag("chain_shot")
+		# Add tag for identification
+		if projectile.has_method("add_tag"):
+			projectile.add_tag("chain_shot")
 		
 # Helper to ensure tags array exists
 func _ensure_tags_array(projectile: Node) -> void:
@@ -580,26 +584,31 @@ func _ensure_tags_array(projectile: Node) -> void:
 		projectile.add_tag = func(tag_name: String) -> void:
 			if not tag_name in projectile.tags:
 				projectile.tags.append(tag_name)
+				
 func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> void:
 	if not effects.double_shot_enabled:
 		return
 		
 	var shooter = original_projectile.shooter
 	if not shooter:
+		print("ERRO: Sem atirador para double shot")
 		return
 		
 	# Get references
 	var direction = original_projectile.direction
 	var start_position = original_projectile.global_position
 	
-	# Get arrow from pool if possible
+	# Get arrow from specialized pool
 	var second_arrow = null
+	print("DEBUG Double Shot - Pool instance existe: ", ProjectilePool != null)
+	print("DEBUG Double Shot - Pool instance tem método get_arrow_for_archer: ", 
+		  ProjectilePool and ProjectilePool.instance and ProjectilePool.instance.has_method("get_arrow_for_archer"))
 	if ProjectilePool and ProjectilePool.instance:
-		# Try to get arrow from pool
-		second_arrow = ProjectilePool.instance.get_arrow_for_archer(shooter)
-	else:
-		print("ProjectilePool not available")
-	
+		second_arrow = ProjectilePool.instance.get_arrow_for_double_shot(shooter)
+		print("DEBUG Double Shot - Segunda flecha obtida do pool: ", second_arrow)
+		print("DEBUG Double Shot - Segunda flecha tem pai: ", second_arrow.get_parent() != null)
+		print("DEBUG Double Shot - Segunda flecha é válida: ", is_instance_valid(second_arrow))
+	print("Second arrow parent: ", second_arrow.get_parent())
 	# Fallback to instantiation if pooling failed
 	if not second_arrow:
 		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
@@ -607,7 +616,7 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 			return
 		second_arrow = arrow_scene.instantiate()
 	
-	# Check if it's already in the scene
+	# IMPORTANT: Check if it's already in the scene and remove it
 	if second_arrow.get_parent():
 		# Remove it from current parent
 		var current_parent = second_arrow.get_parent()
@@ -625,6 +634,7 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 	
 	# Mark as second arrow to avoid recursion
 	second_arrow.set_meta("is_second_arrow", true)
+	second_arrow.set_meta("no_double_shot", true)  # Prevent cascading double shots
 	
 	# IMPORTANT: Reset the initial position for pooled arrows
 	second_arrow.initial_position = start_position
@@ -672,17 +682,17 @@ func spawn_double_shot(original_projectile: Node, effects: CompiledEffects) -> v
 	# Ensure tags are copied
 	if "tags" in original_projectile and "tags" in second_arrow:
 		second_arrow.tags = original_projectile.tags.duplicate()
-
+	if second_arrow.get_parent():
+		# Remove it from current parent
+		second_arrow.get_parent().remove_child(second_arrow)
 	# Ensure the arrow is visible and active
 	second_arrow.visible = true
 	second_arrow.set_physics_process(true)
-	
-	# Add to scene first
+	print("Second arrow parent: ", second_arrow.get_parent())
+	# Add to scene using call_deferred to avoid parent issues
 	if shooter and shooter.get_parent():
 		shooter.get_parent().call_deferred("add_child", second_arrow)
-		
-		# IMPORTANT: Defer the timer reset until after arrow is in the scene tree
-		call_deferred("_reset_secondary_arrow_timer", second_arrow)
+		print("Second arrow parent: ", second_arrow.get_parent())
 	else:
 		print("ERROR: Could not add second arrow to scene - invalid shooter parent")
 		

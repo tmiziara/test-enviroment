@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://b16odll4w6fmg"]
+[gd_scene load_steps=7 format=3 uid="uid://b16odll4w6fmg"]
 
 [ext_resource type="Script" uid="uid://dodd1imdme2jh" path="res://Test/world_test.gd" id="1_e78mo"]
 [ext_resource type="PackedScene" uid="uid://bcavxefldragy" path="res://Test/archer_test.tscn" id="1_ffwo5"]
@@ -6,7 +6,6 @@
 [ext_resource type="PackedScene" uid="uid://dr52dwcmya0ut" path="res://Test/enemy_test.tscn" id="2_uahnj"]
 [ext_resource type="PackedScene" uid="uid://cdrhayu8ooy1v" path="res://Test/TrashMaybe/skilltree_button_show.tscn" id="3_qqvft"]
 [ext_resource type="PackedScene" uid="uid://dknruy0w6okvd" path="res://Test/Debug/archer_debug_panel.tscn" id="3_ug3j4"]
-[ext_resource type="Script" uid="uid://3y6booc4ee88" path="res://Test/Projectiles/baseProjectileStrategy.gd" id="7_wg51c"]
 
 [node name="WorldTest" type="Node2D"]
 script = ExtResource("1_e78mo")
@@ -74,28 +73,5 @@ position = Vector2(597, 429)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
 position = Vector2(561, 581)
-cost_coin = 10
-cost_food = 10
-attack_upgrades = Array[ExtResource("7_wg51c")]([])
-attack_range = 300.0
-sp = 0.0
-main_stat = 10
-main_stat_type = "dexterity"
-meele = 0.0
-magic = 0.0
-type = ""
-classType = ""
-move_speed = 100.0
-hp = 100.0
-idle_time = 5.0
-soldier_name = ""
-crit_multi = 0.0
-equipment_slots = {
-"Amulet": null,
-"Armor": null,
-"Ring": null,
-"Weapons": null
-}
-movement_radius = 50.0
 
 [connection signal="pressed" from="CanvasLayer/TalentButton" to="." method="_on_talent_button_pressed"]
