@@ -6,13 +6,17 @@ class_name ProjectilePoolSystem
 @export var expand_pool_size: int = 5
 @export var max_pool_size: int = 100
 
-# Dicionário de pools de projéteis por tipo
-var pools: Dictionary = {}
+# Organização de pools por categoria
+var pool_categories = {
+	"regular": {},     # Flechas regulares
+	"double_shot": {}, # Flechas específicas para Double Shot
+	"arrow_rain": {}   # Flechas específicas para Arrow Rain
+}
 
 # Sinais para monitoramento de desempenho
-signal projectile_created(pool_name)
-signal projectile_reused(pool_name)
-signal projectile_returned(pool_name)
+signal projectile_created(category, pool_name)
+signal projectile_reused(category, pool_name)
+signal projectile_returned(category, pool_name)
 
 # Estrutura para um pool específico
 class Pool:
@@ -45,26 +49,46 @@ func _ready():
 	if performance_monitor:
 		performance_monitor.connect_to_pool_system(self)
 	else:
-		print("ERRO: Monitor de desempenho NÃO ENCONTRADO")
+		print("Monitor de desempenho NÃO ENCONTRADO")
 
-# Cria um novo pool
-func create_pool(name: String, scene: PackedScene, parent: Node = self, initial_count: int = 0) -> void:
-	if name in pools:
+# Cria um novo pool em uma categoria específica
+func create_category_pool(category: String, name: String, scene: PackedScene, parent: Node = self, initial_count: int = 0) -> void:
+	# Validar a categoria
+	if not category in pool_categories:
+		print("Categoria de pool desconhecida: ", category)
+		return
+		
+	# Verificar se já existe
+	if name in pool_categories[category]:
+		print("Pool já existe em ", category, ": ", name)
 		return
 		
 	var count = initial_count if initial_count > 0 else pre_instantiate_count
-	pools[name] = Pool.new(scene, parent, count)
+	pool_categories[category][name] = Pool.new(scene, parent, count)
+	print("Pool criado em ", category, ": ", name, " com ", count, " objetos")
 
-func get_projectile(pool_name: String) -> Node:
-	# Verifica se o pool existe
-	if not pool_name in pools:
+# Adicione este método ao seu ProjectilePoolSystem.gd para compatibilidade
+func create_pool(name: String, scene: PackedScene, parent: Node = self, initial_count: int = 0) -> void:
+	# Compatibilidade com o sistema antigo - redireciona para o pool "regular"
+	create_category_pool("regular", name, scene, parent, initial_count)
+
+# Obtém um projétil de uma categoria e pool específicos
+func get_projectile_from_category(category: String, name: String) -> Node:
+	# Validar a categoria
+	if not category in pool_categories:
+		print("Categoria de pool desconhecida: ", category)
 		return null
 		
-	var pool = pools[pool_name]
+	# Verificar se o pool existe
+	if not name in pool_categories[category]:
+		print("Pool não encontrado em ", category, ": ", name)
+		return null
+		
+	var pool = pool_categories[category][name]
 	
 	# Se não houver objetos disponíveis, expande o pool
 	if pool.available.size() == 0:
-		_expand_pool(pool_name)
+		_expand_category_pool(category, name)
 	
 	# Retorna um objeto do pool
 	if pool.available.size() > 0:
@@ -72,24 +96,64 @@ func get_projectile(pool_name: String) -> Node:
 		pool.active.append(projectile)
 		
 		projectile.set_meta("pooled", true)
+		projectile.set_meta("pool_category", category)
+		projectile.set_meta("pool_name", name)
 		
 		projectile.process_mode = Node.PROCESS_MODE_INHERIT
 		projectile.visible = true
 		
 		# Emite sinal para monitoramento
-		emit_signal("projectile_reused", pool_name)
+		emit_signal("projectile_reused", category, name)
 		
 		return projectile
 	
 	return null
 
-# Devolve um projétil ao pool
-func return_projectile(pool_name: String, projectile: Node) -> void:
-	# Verifica se o pool existe
-	if not pool_name in pools:
+# Expande um pool específico de uma categoria
+func _expand_category_pool(category: String, name: String) -> void:
+	if not category in pool_categories or not name in pool_categories[category]:
 		return
 		
-	var pool = pools[pool_name]
+	var pool = pool_categories[category][name]
+	
+	# Verifica limite
+	var total_size = pool.available.size() + pool.active.size()
+	if total_size >= max_pool_size:
+		print("Limite máximo de pool atingido para ", category, ": ", name)
+		return
+	
+	# Determina quantos objetos criar
+	var create_count = min(expand_pool_size, max_pool_size - total_size)
+	
+	# Cria novas instâncias
+	for i in range(create_count):
+		var instance = pool.scene.instantiate()
+		instance.process_mode = Node.PROCESS_MODE_DISABLED
+		instance.visible = false
+		instance.set_meta("pooled", true)
+		instance.set_meta("pool_category", category)
+		instance.set_meta("pool_name", name)
+		pool.parent_node.call_deferred("add_child", instance)
+		pool.available.append(instance)
+		
+		# Emite sinal para monitoramento
+		emit_signal("projectile_created", category, name)
+
+# Devolve um projétil ao seu pool de origem
+func return_projectile_to_category(projectile: Node) -> void:
+	if not projectile.has_meta("pooled") or not projectile.has_meta("pool_category") or not projectile.has_meta("pool_name"):
+		print("AVISO: Projétil não contém metadados de pool completos")
+		return
+		
+	var category = projectile.get_meta("pool_category")
+	var name = projectile.get_meta("pool_name")
+	
+	# Verifica se a categoria e o pool existem
+	if not category in pool_categories or not name in pool_categories[category]:
+		print("AVISO: Pool não encontrado para ", category, ": ", name)
+		return
+	
+	var pool = pool_categories[category][name]
 	
 	# Remove do array de ativos
 	var index = pool.active.find(projectile)
@@ -110,26 +174,14 @@ func return_projectile(pool_name: String, projectile: Node) -> void:
 		projectile.call_deferred("set", "collision_layer", 0)
 		projectile.call_deferred("set", "collision_mask", 0)
 	
+	# Reset the projectile before returning to pool
+	reset_projectile(projectile)
+	
 	# Adiciona ao array de disponíveis
 	pool.available.append(projectile)
 	
 	# Emite sinal para monitoramento
-	emit_signal("projectile_returned", pool_name)
-
-# Devolve todos os projéteis ativos ao pool
-func return_all_projectiles(pool_name: String) -> void:
-	# Verifica se o pool existe
-	if not pool_name in pools:
-		return
-		
-	var pool = pools[pool_name]
-	
-	# Copia o array para não modificar enquanto itera
-	var active_copy = pool.active.duplicate()
-	
-	# Devolve cada projétil ao pool
-	for projectile in active_copy:
-		return_projectile(pool_name, projectile)
+	emit_signal("projectile_returned", category, name)
 
 # Reseta um projétil para estado inicial
 func reset_projectile(projectile: Node) -> void:
@@ -179,244 +231,112 @@ func reset_projectile(projectile: Node) -> void:
 				if child is CollisionShape2D or child is CollisionPolygon2D:
 					child.call_deferred("set", "disabled", false)
 	
-	# Limpa metadados, exceto pooled e initialized
+	# Limpa metadados, exceto pooled, pool_category e pool_name
 	_clear_meta_properties(projectile)
 
-# Expande o pool criando mais instâncias
-func _expand_pool(pool_name: String) -> void:
-	var pool = pools[pool_name]
-	
-	# Verifica limite
-	var total_size = pool.available.size() + pool.active.size()
-	if total_size >= max_pool_size:
-		return
-	
-	# Determina quantos objetos criar
-	var create_count = min(expand_pool_size, max_pool_size - total_size)
-	
-	# Cria novas instâncias
-	for i in range(create_count):
-		var instance = pool.scene.instantiate()
-		instance.process_mode = Node.PROCESS_MODE_DISABLED
-		instance.visible = false
-		instance.set_meta("pooled", true)
-		pool.parent_node.call_deferred("add_child", instance)
-		pool.available.append(instance)
-		
-		# Emite sinal para monitoramento
-		emit_signal("projectile_created", pool_name)
-		
-
-# Limpa todas as propriedades de metadados
+# Limpa todas as propriedades de metadados, preservando as relacionadas ao pool
 func _clear_meta_properties(node: Node) -> void:
 	var meta_properties = node.get_meta_list()
 	for prop in meta_properties:
 		# Preserva certas metadados importantes
-		if prop != "pooled" and prop != "initialized":
+		if prop != "pooled" and prop != "initialized" and prop != "pool_category" and prop != "pool_name":
 			node.remove_meta(prop)
 
 # Método utilitário para verificar se um projétil é do pool
 func is_pooled(projectile: Node) -> bool:
-	return projectile.has_meta("pooled") and projectile.get_meta("pooled")
+	return projectile.has_meta("pooled") and projectile.get_meta("pooled") == true
 
-# Método integrado com o ArcherTalentManager para obter e configurar uma flecha
-func get_arrow_with_talents(pool_name: String, archer: Soldier_Base, talent_manager: ArcherTalentManager) -> Node:
-	# Obtém o projétil do pool
-	var projectile = get_projectile(pool_name)
-	if not projectile:
-		return null
+# Obtém estatísticas de uma categoria de pool
+func get_category_stats(category: String) -> Dictionary:
+	if not category in pool_categories:
+		return {}
 		
-	# Reset completo do projétil
-	reset_projectile(projectile)
+	var available = 0
+	var active = 0
 	
-	# Configura o atirador
-	projectile.shooter = archer
+	for pool_name in pool_categories[category]:
+		var pool = pool_categories[category][pool_name]
+		available += pool.available.size()
+		active += pool.active.size()
 	
-	# Aplica talentos via TalentManager
-	talent_manager.apply_talents_to_projectile(projectile)
-	
-	return projectile
+	return {
+		"available": available,
+		"active": active,
+		"total": available + active,
+		"pools": pool_categories[category].size()
+	}
 
-func get_arrow_for_archer(archer: Soldier_Base) -> Node:
-	# Nome do pool para flechas do arqueiro
-	var pool_name = "arrow_" + str(archer.get_instance_id())
-	# Verifica se o pool existe, caso contrário cria
-	if not pool_name in pools:
-		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-		if not arrow_scene:
-			return null
-			
-		create_pool(pool_name, arrow_scene, archer.get_parent())
-	
-	# MUDANÇA: Obtenha TODAS as flechas disponíveis
-	var available_arrows = []
-	for arrow in pools[pool_name].available:
-		# Verifica se a flecha está marcada como parte de Arrow Rain
-		if not arrow.has_meta("is_rain_arrow") and not arrow.has_meta("active_rain_processor_id"):
-			available_arrows.append(arrow)
-	
-	# Se não houver flechas disponíveis, expande o pool
-	if available_arrows.size() == 0:
-		_expand_pool(pool_name)
-		
-		# Tenta novamente após expandir
-		for arrow in pools[pool_name].available:
-			if not arrow.has_meta("is_rain_arrow") and not arrow.has_meta("active_rain_processor_id"):
-				available_arrows.append(arrow)
-	
-	# Se ainda não houver flechas disponíveis, cria uma nova
-	if available_arrows.size() == 0:
-		print("AVISO: Nenhuma flecha disponível mesmo após expandir o pool. Criando uma nova...")
-		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-		if not arrow_scene:
-			return null
-			
-		var new_arrow = arrow_scene.instantiate()
-		new_arrow.set_meta("pooled", true)
-		
-		# Adiciona à cena, mas não ao pool (flecha temporária)
-		archer.get_parent().call_deferred("add_child", new_arrow)
-		return new_arrow
-	
-	# Obtém a primeira flecha válida
-	var arrow = available_arrows[0]
-	
-	# Remove do array de disponíveis
-	var index = pools[pool_name].available.find(arrow)
-	if index >= 0:
-		pools[pool_name].available.remove_at(index)
-	
-	# Adiciona ao array de ativos
-	pools[pool_name].active.append(arrow)
-	
-	# Prepara a flecha
-	arrow.process_mode = Node.PROCESS_MODE_INHERIT
-	arrow.visible = true
-	
-	# Emite sinal para monitoramento
-	emit_signal("projectile_reused", pool_name)
-	
-	# Marca como pooled
-	arrow.set_meta("pooled", true)
-	
-	print("Obtendo flecha do pool: ", arrow, " para uso normal")
-	
-	return arrow
+#===== Métodos específicos para o arqueiro =====
 
-# Função especial para obter flechas especificamente para Arrow Rain
-func get_arrow_for_rain(archer: Soldier_Base) -> Node:
-	# Nome do pool para flechas do arqueiro
-	var pool_name = "arrow_" + str(archer.get_instance_id())
-	# Verifica se o pool existe, caso contrário cria
-	if not pool_name in pools:
-		var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-		if not arrow_scene:
-			return null
-			
-		create_pool(pool_name, arrow_scene, archer.get_parent())
+# Inicializa os pools do arqueiro
+func initialize_archer_pools(archer: Soldier_Base) -> void:
+	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
+	if not arrow_scene:
+		print("ERRO: Não foi possível carregar a cena da flecha")
+		return
+		
+	var archer_id = str(archer.get_instance_id())
 	
-	# Tenta encontrar uma flecha sem uso no pool
-	var arrow = null
+	# Cria um pool para flechas regulares
+	create_category_pool("regular", archer_id, arrow_scene, archer.get_parent(), 20)
 	
-	# Primeiro, verifica no array de disponíveis
-	if pools[pool_name].available.size() > 0:
-		arrow = pools[pool_name].available[0]
-		pools[pool_name].available.remove_at(0)
-		pools[pool_name].active.append(arrow)
+	# Cria um pool para Double Shot
+	create_category_pool("double_shot", archer_id, arrow_scene, archer.get_parent(), 10)
+	
+	# Cria um pool para Arrow Rain
+	create_category_pool("arrow_rain", archer_id, arrow_scene, archer.get_parent(), 30)
+	
+	print("Pools do arqueiro ", archer_id, " inicializados")
+
+# Obtém uma flecha regular para o arqueiro
+func get_regular_arrow(archer: Soldier_Base) -> Node:
+	var archer_id = str(archer.get_instance_id())
+	return get_projectile_from_category("regular", archer_id)
+
+# Obtém uma flecha para Double Shot
+func get_double_shot_arrow(archer: Soldier_Base) -> Node:
+	var archer_id = str(archer.get_instance_id())
+	return get_projectile_from_category("double_shot", archer_id)
+
+# Obtém uma flecha para Arrow Rain
+func get_arrow_rain_arrow(archer: Soldier_Base) -> Node:
+	var archer_id = str(archer.get_instance_id())
+	return get_projectile_from_category("arrow_rain", archer_id)
+
+# Devolve uma flecha ao pool correto
+func return_arrow(arrow: Node) -> void:
+	if is_pooled(arrow):
+		return_projectile_to_category(arrow)
 	else:
-		# Se não houver disponíveis, expande o pool
-		_expand_pool(pool_name)
-		
-		# Tenta novamente
-		if pools[pool_name].available.size() > 0:
-			arrow = pools[pool_name].available[0]
-			pools[pool_name].available.remove_at(0)
-			pools[pool_name].active.append(arrow)
-		else:
-			# Ainda sem flechas disponíveis, cria uma nova
-			var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-			if not arrow_scene:
-				return null
-				
-			arrow = arrow_scene.instantiate()
-			arrow.set_meta("pooled", true)
-			
-			# A nova flecha vai direto para o array de ativos
-			pools[pool_name].active.append(arrow)
-	
-	# Configura a flecha para uso
-	arrow.process_mode = Node.PROCESS_MODE_INHERIT
-	arrow.visible = true
-	
-	# IMPORTANTE: Marca a flecha como sendo usada para Arrow Rain
-	arrow.set_meta("is_rain_arrow", true)
-	
-	# Emite sinal para monitoramento
-	emit_signal("projectile_reused", pool_name)
-	
-	print("Obtendo flecha do pool: ", arrow, " para Arrow Rain")
-	
-	return arrow
+		arrow.queue_free()
 
-# Retorna uma flecha ao seu pool de arqueiro
-func return_arrow_to_pool(arrow: Node) -> void:
-	if not is_pooled(arrow) or not arrow.shooter:
-		print("AVISO: Tentativa de retornar flecha não-pooled ou sem atirador")
-		return
-		
-	var archer = arrow.shooter
-	var pool_name = "arrow_" + str(archer.get_instance_id())
-	# Verifica se o pool existe
-	if not pool_name in pools:
-		print("AVISO: Pool não encontrado para: ", pool_name)
-		return
+# Método para limpar todos os pools de um arqueiro
+func clear_archer_pools(archer: Soldier_Base) -> void:
+	var archer_id = str(archer.get_instance_id())
 	
-	# LIMPEZA ESPECIAL para Arrow Rain
-	if arrow.has_meta("is_rain_arrow") or arrow.has_meta("active_rain_processor_id"):
-		print("Limpando flecha de Arrow Rain: ", arrow)
-		
-		# Remove os processadores
-		var processors = []
-		for child in arrow.get_children():
-			if child.get_class() == "RainArrowProcessor" or (child.get_script() and "RainArrowProcessor" in child.get_script().get_path()):
-				processors.append(child)
-		
-		for processor in processors:
-			processor.queue_free()
-		
-		# Remove metadados de Arrow Rain
-		if arrow.has_meta("is_rain_arrow"):
-			arrow.remove_meta("is_rain_arrow")
-		if arrow.has_meta("active_rain_processor_id"):
-			arrow.remove_meta("active_rain_processor_id")
-		if arrow.has_meta("rain_start_pos"):
-			arrow.remove_meta("rain_start_pos")
-		if arrow.has_meta("rain_target_pos"):
-			arrow.remove_meta("rain_target_pos")
-		if arrow.has_meta("rain_time"):
-			arrow.remove_meta("rain_time")
-		if arrow.has_meta("rain_arc_height"):
-			arrow.remove_meta("rain_arc_height")
+	# Lista de categorias para limpar
+	var categories = ["regular", "double_shot", "arrow_rain"]
 	
-	# Continua com o processo normal de retorno
-	return_projectile(pool_name, arrow)
-	
-# Method to run before returning to pool
-func prepare_for_pool() -> void:
-	# Remove any processors that could affect behavior when reused
-	for child in get_children():
-		if child is RainArrowProcessor or child.name == "RainArrowProcessor":
-			child.queue_free()
-	
-	# Reset physics processing
-	set_physics_process(false)
-	
-	# Only set velocity if the property exists
-	if "velocity" in self:
-		self.velocity = Vector2.ZERO
-	
-	# Clear all metadata except pooled flag
-	var meta_list = get_meta_list()
-	for prop in meta_list:
-		if prop != "pooled":
-			remove_meta(prop)
+	for category in categories:
+		if archer_id in pool_categories[category]:
+			var pool = pool_categories[category][archer_id]
+			
+			# Retorna todas as flechas ativas para inativas
+			var active_copy = pool.active.duplicate()
+			for arrow in active_copy:
+				if is_instance_valid(arrow):
+					# Reseta e desativa a flecha
+					arrow.set_physics_process(false)
+					arrow.visible = false
+					arrow.collision_layer = 0
+					arrow.collision_mask = 0
+					
+					# Move da lista de ativos para disponíveis
+					var index = pool.active.find(arrow)
+					if index >= 0:
+						pool.active.remove_at(index)
+						pool.available.append(arrow)
+					
+					emit_signal("projectile_returned", category, archer_id)
+			
+			print("Pool ", category, " do arqueiro ", archer_id, " limpo: ", active_copy.size(), " flechas retornadas")

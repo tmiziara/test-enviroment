@@ -106,7 +106,8 @@ func return_to_pool() -> void:
 		return
 	# Return to appropriate pool
 	if ProjectilePool and ProjectilePool.instance:
-		ProjectilePool.instance.return_arrow_to_pool(self)
+		# Uso do novo método return_arrow em vez de return_arrow_to_pool
+		ProjectilePool.instance.return_arrow(self)
 	else:
 		queue_free()
 
@@ -231,7 +232,8 @@ func process_on_hit(target: Node) -> void:
 	if not piercing:
 		# Check if using pooling
 		if ProjectilePool and ProjectilePool.instance and is_pooled():
-			ProjectilePool.instance.return_arrow_to_pool(self)
+			# Uso do novo método return_arrow em vez de return_arrow_to_pool
+			ProjectilePool.instance.return_arrow(self)
 		else:
 			queue_free()
 			

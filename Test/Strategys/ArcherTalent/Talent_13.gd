@@ -28,5 +28,3 @@ func apply_upgrade(projectile: Node) -> void:
 	# For NewArrow class, directly set properties if available
 	if projectile is NewArrow and "arrow_rain_enabled" in projectile:
 		projectile.arrow_rain_enabled = true
-		
-	print("ArrowRain: Configuration added with count:", arrow_count, ", damage:", damage_per_arrow, ", radius:", radius)

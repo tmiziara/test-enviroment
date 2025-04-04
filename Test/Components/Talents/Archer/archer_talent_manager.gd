@@ -63,6 +63,17 @@ func refresh_talents():
 	if current_effects and "range_multiplier" in current_effects:
 		if current_effects.range_multiplier != 1.0:
 			archer.attack_range *= current_effects.range_multiplier
+	
+	# Check for Double Shot and update archer accordingly
+	if current_effects and "double_shot_enabled" in current_effects and current_effects.double_shot_enabled:
+		archer.set_meta("has_double_shot", true)
+		archer.set_meta("double_shot_active", true)
+		archer.set_meta("double_shot_angle", current_effects.double_shot_angle)
+		archer.set_meta("double_shot_damage_modifier", current_effects.second_arrow_damage_modifier)
+	else:
+		# Ensure Double Shot is disabled if not available
+		if archer.has_meta("double_shot_active"):
+			archer.set_meta("double_shot_active", false)
 
 func apply_talents_to_projectile(projectile: Node) -> Node:
 	# Check for valid archer
@@ -76,32 +87,32 @@ func apply_talents_to_projectile(projectile: Node) -> Node:
 	# IMPORTANT: Always recompile effects to ensure they're current
 	current_effects = talent_system.compile_effects()
 	
+	# Apply the compiled effects using the talent system
 	if current_effects:
 		talent_system.apply_compiled_effects(projectile, current_effects)
 		
-		# Check for special abilities
+		# Check for arrow rain counter
 		if "arrow_rain_enabled" in current_effects and current_effects.arrow_rain_enabled:
-			# Only increment counter for normal arrows, not for Arrow Rain arrows themselves
-			if not projectile.has_meta("is_rain_arrow"):
-				# Track attack counter
-				if not archer.has_meta("arrow_rain_counter"):
-					archer.set_meta("arrow_rain_counter", 0)
+			# Skip for double shot arrows
+			if projectile.has_meta("is_double_shot"):
+				return projectile
 				
-				var counter = archer.get_meta("arrow_rain_counter")
-				counter += 1
-				archer.set_meta("arrow_rain_counter", counter)
-				# If we've reached the threshold, trigger Arrow Rain and reset counter
-				if counter >= current_effects.arrow_rain_interval:
-					archer.set_meta("arrow_rain_counter", 0)
-					talent_system.spawn_arrow_rain(projectile, current_effects)
-		
-		if projectile.has_meta("double_shot_enabled") and not projectile.has_meta("is_second_arrow"):
-			# Let the ConsolidatedTalentSystem handle the spawning to ensure proper effect application
-			if talent_system and current_effects:
-				talent_system.spawn_double_shot(projectile, current_effects)
-			else:
-				print("ERROR: Cannot spawn second arrow - talent_system or current_effects is null")
+			# Skip for rain arrows
+			if projectile.has_meta("is_rain_arrow"):
+				return projectile
 				
+			# Track attack counter for standard arrows
+			if not archer.has_meta("arrow_rain_counter"):
+				archer.set_meta("arrow_rain_counter", 0)
+			
+			var counter = archer.get_meta("arrow_rain_counter")
+			counter += 1
+			archer.set_meta("arrow_rain_counter", counter)
+			
+			# Check threshold
+			if counter >= current_effects.arrow_rain_interval:
+				archer.set_meta("arrow_rain_counter", 0)
+				call_deferred("spawn_arrow_rain", projectile)
 	else:
 		print("ERROR: current_effects is null, talents not applied")
 	
@@ -235,7 +246,71 @@ func reset_bloodseeker_stacks():
 	# Remove visual
 	remove_stack_visual(archer)
 
-
 # Connected to the target_change signal of the archer
 func _on_target_change(new_target: Node):
 	reset_bloodseeker_stacks()
+
+# Método simplificado para Arrow Rain
+func spawn_arrow_rain(original_projectile: Node) -> void:
+	if not archer or not is_instance_valid(archer) or not current_effects:
+		return
+	
+	# Determine target position
+	var target_position = Vector2.ZERO
+	if archer.current_target and is_instance_valid(archer.current_target):
+		target_position = archer.current_target.global_position
+	else:
+		var direction = original_projectile.direction if original_projectile else Vector2.RIGHT
+		target_position = archer.global_position + direction * 300
+	
+	# Get archer position and arrow rain count
+	var spawn_pos = archer.global_position
+	var arrow_count = current_effects.arrow_rain_count if "arrow_rain_count" in current_effects else 5
+	
+	# Get radius
+	var radius = current_effects.arrow_rain_radius if "arrow_rain_radius" in current_effects else 80.0
+	
+	# Batch spawn arrows
+	for i in range(arrow_count):
+		# Create random position around target
+		var angle = randf() * TAU
+		var distance = randf() * radius
+		var pos_offset = Vector2(cos(angle), sin(angle)) * distance
+		var target_pos = target_position + pos_offset
+		
+		# Create new arrow
+		var arrow_scene = preload("res://Test/Projectiles/Archer/Arrow.tscn")
+		var arrow = arrow_scene.instantiate()
+		
+		# Set initial position above the target
+		arrow.global_position = spawn_pos + Vector2(0, -200)
+		
+		# Set properties
+		arrow.shooter = archer
+		arrow.set_meta("is_rain_arrow", true)
+		
+		if "damage" in original_projectile:
+			var rain_damage_percent = current_effects.arrow_rain_damage_percent if "arrow_rain_damage_percent" in current_effects else 0.5
+			arrow.damage = int(original_projectile.damage * rain_damage_percent)
+		
+		# Add to scene
+		archer.get_parent().add_child(arrow)
+		
+		# Create processor
+		var processor = load("res://Test/Processors/RainArrowProcessor.gd").new()
+		arrow.add_child(processor)
+		
+		# Set trajectory
+		processor.start_position = arrow.global_position
+		processor.target_position = target_pos
+		processor.arc_height = randf_range(200, 300)
+		processor.total_time = 1.0 + (i * 0.05)  # Slight variation
+		
+		# Configure processor for pressure wave if available
+		if "pressure_wave_enabled" in current_effects and current_effects.pressure_wave_enabled:
+			arrow.set_meta("pressure_wave_enabled", true)
+			arrow.set_meta("knockback_force", current_effects.knockback_force if "knockback_force" in current_effects else 150.0)
+			arrow.set_meta("slow_percent", current_effects.slow_percent if "slow_percent" in current_effects else 0.3)
+			arrow.set_meta("slow_duration", current_effects.slow_duration if "slow_duration" in current_effects else 0.5)
+			arrow.set_meta("arrow_rain_radius", radius)
+			arrow.set_meta("ground_duration", current_effects.ground_duration if "ground_duration" in current_effects else 3.0)

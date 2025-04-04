@@ -670,7 +670,6 @@ func find_chain_target(original_target) -> void:
 			queue_free()
 
 func reset_for_reuse() -> void:
-	print("Resetting arrow for reuse: ", self, " child count: ", get_child_count())
 	# Salva o estado de crítico atual e metadados importantes antes da limpeza
 	var was_critical = is_crit
 	var crit_chance_current = crit_chance
