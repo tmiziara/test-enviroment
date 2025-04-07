@@ -2,7 +2,7 @@ extends Control
 class_name ArcherDebugPanel
 
 # Referência ao arqueiro que será monitorado
-var archer: Soldier_Base = null
+var archer: SoldierBase = null
 
 var attack_target_color = Color(1.0, 0.2, 0.2, 0.7)  # Vermelho
 
@@ -67,7 +67,7 @@ func _update_stats():
 	stats_text += "[color=#AAFFAA]Attack Range:[/color] " + str(archer.attack_range) + "\n"
 	stats_text += "[color=#AAFFAA]Attack Cooldown:[/color] " + str(archer.attack_cooldown) + "s\n"
 	stats_text += "[color=#AAFFAA]Move Speed:[/color] " + str(archer.move_speed) + "\n"
-	stats_text += "[color=#AAFFAA]HP:[/color] " + str(archer.hp) + "\n"
+	stats_text += "[color=#AAFFAA]HP:[/color] " + str(archer.max_health) + "\n"
 	
 	# Talentos
 	stats_text += "\n[center][color=#00AAFF][b]TALENTOS[/b][/color][/center]\n"

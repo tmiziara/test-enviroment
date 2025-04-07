@@ -1,495 +1,454 @@
 extends ProjectileBase
 class_name Arrow
 
-# Signals
-signal on_hit1(target, projectile)
+# ======== PROPRIEDADES ESPECÍFICAS DE FLECHA ========
 
-# Arrow Storm properties
-var arrow_storm_enabled: bool = false
-var arrow_storm_trigger_chance: float = 0.1
-var arrow_storm_additional_arrows: int = 2
-var arrow_storm_spread_angle: float = 30.0
-
-# Method to configure Arrow Storm
-func configure_arrow_storm(is_enabled: bool, trigger_chance: float, additional_arrows: int, spread_angle: float) -> void:
-	arrow_storm_enabled = is_enabled
-	arrow_storm_trigger_chance = trigger_chance
-	arrow_storm_additional_arrows = additional_arrows
-	arrow_storm_spread_angle = spread_angle
-	
-# Focused Shot properties (directly in the class instead of using meta)
-var focused_shot_enabled: bool = false
-var focused_shot_bonus: float = 0.0
-var focused_shot_threshold: float = 0.75  # Padrão de 75%
-
-# Método para configurar o Focused Shot diretamente
-func configure_focused_shot(is_enabled: bool, bonus: float, threshold: float = 0.75) -> void:
-	focused_shot_enabled = is_enabled
-	focused_shot_bonus = bonus
-	focused_shot_threshold = threshold
-
-# Chain Shot properties (restante do código original)
+# Propriedades de Chain Shot
 var chain_shot_enabled: bool = false
-var chain_chance: float = 0.3        # 30% chance to ricochet
-var chain_range: float = 150.0       # Maximum range for finding targets
-var chain_damage_decay: float = 0.2  # 20% damage reduction for the chained hit
-var max_chains: int = 1              # Maximum number of ricochets (1 = one ricochet after initial hit)
-var current_chains: int = 0          # Current number of ricochet jumps performed
-var hit_targets = []                 # Array to track which targets we've hit (to avoid hitting the same target)
-var is_processing_ricochet: bool = false  # Flag to prevent multiple hits during ricochet processing
-var will_chain: bool = false         # Flag to store if this arrow will chain (calculated only once)
-var chain_calculated: bool = false   # Flag to track if the chain chance has been calculated
+var chain_chance: float = 0.3
+var chain_range: float = 150.0
+var chain_damage_decay: float = 0.2
+var max_chains: int = 1
+var current_chains: int = 0
+var hit_targets: Array = []
+var will_chain: bool = false
+var is_processing_chain: bool = false
+
+# Propriedades de direcionamento
+var homing_enabled: bool = false
+var homing_strength: float = 5.0
+var homing_target = null
+
+# Propriedades visuais
+@export var trail_enabled: bool = true
+@onready var trail_particles = $TrailEffect if has_node("TrailEffect") else null
 
 func _ready():
 	super._ready()
 	
-	# Initialize hit_targets array if not already done
-	if not hit_targets:
-		hit_targets = []
+	# Configurações específicas para flechas
+	if trail_enabled and trail_particles:
+		trail_particles.emitting = true
+	
+	# Verifica se tem processador de ArrowRain
+	if has_meta("is_rain_arrow") and not has_node("RainArrowProcessor"):
+		_add_rain_arrow_processor()
 
-# Modifica o método get_damage_package() para melhorar o Focused Shot
-func get_damage_package() -> Dictionary:
-	# Call the parent's method to create the base damage package
-	var damage_package = super.get_damage_package()
+func _physics_process(delta):
+	# Lógica de Homing (direcionamento)
+	if homing_enabled and homing_target and is_instance_valid(homing_target):
+		_apply_homing(delta)
 	
-	# Try to find the current target (will be used by both Focused Shot and Marked for Death)
-	var current_target = null
-	if has_meta("current_target"):
-		current_target = get_meta("current_target")
-	elif shooter and shooter.has_method("get_current_target"):
-		current_target = shooter.get_current_target()
-	
-	# Check if Focused Shot is enabled
-	if focused_shot_enabled:
-		# If there's a valid target
-		if current_target and current_target.has_node("HealthComponent"):
-			var health_component = current_target.get_node("HealthComponent")
-			
-			# Check if the health component has the necessary methods
-			if "current_health" in health_component and "max_health" in health_component:
-				# Calculate health percentage
-				var health_percent = float(health_component.current_health) / float(health_component.max_health)
-				# If health is above threshold, apply bonus
-				if health_percent >= focused_shot_threshold:
-					
-					# Increase physical damage
-					if "physical_damage" in damage_package:
-						var bonus_physical_damage = int(damage_package["physical_damage"] * focused_shot_bonus)
-						damage_package["physical_damage"] += bonus_physical_damage
-					# Increase elemental damage
-					if "elemental_damage" in damage_package:
-						for element in damage_package["elemental_damage"]:
-							var bonus_elem_damage = int(damage_package["elemental_damage"][element] * focused_shot_bonus)
-							damage_package["elemental_damage"][element] += bonus_elem_damage
-					# Add Focused Shot tag
-					if "tags" not in damage_package:
-						damage_package["tags"] = []
-					if "focused_shot" not in damage_package["tags"]:
-						damage_package["tags"].append("focused_shot")
-				else:
-					print("FOCUSED SHOT NOT ACTIVATED - Health below threshold")
-			else:
-				print("ERROR: Health component missing required properties")
-		else:
-			print("ERROR: Invalid target or no HealthComponent")
-	
-	# Check for Marked for Death effect on target - Only apply if this is a critical hit
-	if current_target and is_instance_valid(current_target) and damage_package.get("is_critical", false):
-		# Explicitly check if this specific target has the mark debuff
-		var has_mark = false
-		if current_target.has_node("DebuffComponent"):
-			var debuff_component = current_target.get_node("DebuffComponent")
-			has_mark = debuff_component.has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
-		
-		# Only apply bonus if target actually has the mark
-		if has_mark:
-			var mark_bonus = current_target.get_meta("mark_crit_bonus", 1.0)
-			print("Target is marked! Applying extra critical damage: +", mark_bonus * 100, "%")
-			
-			# Get the current damage (already includes any Focused Shot bonus)
-			var base_crit_damage = damage_package["physical_damage"]
-			
-			# Apply the mark bonus to physical damage
-			var bonus_damage = int(base_crit_damage * mark_bonus)
-			damage_package["physical_damage"] += bonus_damage
-			
-			print("Physical Damage:")
-			print("  - Current: ", base_crit_damage)
-			print("  - Bonus from Mark: ", bonus_damage)
-			print("  - New Total: ", damage_package["physical_damage"])
-			
-			# Also apply to elemental damage if present
-			if "elemental_damage" in damage_package:
-				for element in damage_package["elemental_damage"]:
-					var base_elem_crit = damage_package["elemental_damage"][element]
-					var bonus_elem = int(base_elem_crit * mark_bonus)
-					damage_package["elemental_damage"][element] += bonus_elem
-					
-					print("Elemental Damage (", element, "):")
-					print("  - Current: ", base_elem_crit)
-					print("  - Bonus from Mark: ", bonus_elem)
-					print("  - New Total: ", damage_package["elemental_damage"][element])
-			
-			# Set damage type to marked_for_death
-			damage_package["damage_type"] = "marked_for_death"
-	
-	return damage_package
+	# Chama o comportamento padrão de movimento
+	super._physics_process(delta)
 
-# Method called by Hurtbox when the arrow hits a target
+# ======== MÉTODOS DE HOMING E DIRECIONAMENTO ========
+func _apply_homing(delta: float) -> void:
+	# Calcula distância ao alvo
+	var target_position = homing_target.global_position
+	var distance = global_position.distance_to(target_position)
+	
+	# Aumenta força de homing conforme se aproxima para garantir o acerto
+	var adaptive_strength = homing_strength * (1.0 + (500.0 / max(distance, 50.0)))
+	
+	# Calcula direção ideal para o alvo
+	var ideal_direction = (target_position - global_position).normalized()
+	
+	# Suaviza transição da direção atual para a ideal
+	direction = direction.lerp(ideal_direction, delta * adaptive_strength).normalized()
+	
+	# Atualiza rotação e velocidade
+	rotation = direction.angle()
+	
+	# Opcional: aumenta ligeiramente a velocidade para alcançar alvos em movimento
+	speed += delta * 50.0
+
+# ======== MÉTODOS DE PROCESSAMENTO DE HIT ========
 func process_on_hit(target: Node) -> void:
-	# Set current target for damage calculations
-	set_meta("current_target", target)
-	print("Arrow.process_on_hit called - is_processing_ricochet: ", is_processing_ricochet)
-	
-	# If we're already processing a ricochet, ignore this hit
-	if is_processing_ricochet:
-		print("Ignoring hit during ricochet processing")
+	# Verifica se target é válido
+	if not target or not is_instance_valid(target):
 		return
 	
-	# Track this target to avoid hitting it again with ricochets
+	# Adiciona alvo à lista de alvos atingidos
 	if not target in hit_targets:
 		hit_targets.append(target)
 	
-	# Check if target has mark debuff (for damage type display)
-	var is_marked = false
-	if target.has_node("DebuffComponent"):
-		is_marked = target.get_node("DebuffComponent").has_debuff(GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH)
+	# Define alvo atual para cálculos de dano
+	set_meta("current_target", target)
 	
-	# APPLY DAMAGE! Calculate and apply damage to the target
-	if target.has_node("HealthComponent"):
-		var health_component = target.get_node("HealthComponent")
-		
-		# Recalculate damage package for THIS specific target
-		# This ensures mark bonus is only applied to marked targets
-		var damage_package = get_damage_package()
-		
-		# NOVA LÓGICA: Verificar se devemos aplicar DoT com base na chance
-		if has_node("DmgCalculatorComponent"):
-			var dmg_calc = get_node("DmgCalculatorComponent")
-			
-			# Verifica se temos dados de DoT configurados
-			if dmg_calc.has_meta("fire_dot_data"):
-				var dot_data = dmg_calc.get_meta("fire_dot_data")
-				var dot_chance = dot_data.get("chance", 0.0)
-				
-				# Rola dado para chance de DoT
-				var roll = randf()
-				if roll <= dot_chance:
-					print("DoT ativado! (rolou ", roll, " <= ", dot_chance, ")")
-					
-					# Se a verificação de chance for bem-sucedida, adiciona o DoT ao pacote de dano
-					if "dot_effects" not in damage_package:
-						damage_package["dot_effects"] = []
-					
-					# Adiciona o efeito DoT ao pacote de dano
-					damage_package["dot_effects"].append({
-						"damage": dot_data.get("damage_per_tick", 1),
-						"duration": dot_data.get("duration", 3.0),
-						"interval": dot_data.get("interval", 0.5),
-						"type": dot_data.get("type", "fire")
-					})
-					
-					print("DoT de fogo adicionado ao pacote de dano")
-				else:
-					print("DoT não ativado (rolou ", roll, " > ", dot_chance, ")")
-					# Se a verificação falhar, não adiciona DoT
-		
-		# Apply damage with the complete package (including DoTs if activated)
-		if health_component.has_method("take_complex_damage"):
-			health_component.take_complex_damage(damage_package)
-		else:
-			# Fallback to old method if necessary
-			var damage_type = "marked_for_death" if is_crit and is_marked else ""
-			health_component.take_damage(damage_package.get("physical_damage", damage), 
-									  damage_package.get("is_critical", is_crit),
-									  damage_type)
-	
-	# Check if Focused Shot is enabled on this arrow
-	if focused_shot_enabled:
-		apply_focused_shot(target)
-	
-	# Emit signal that can be used by other systems
-	emit_signal("on_hit", target, self)
-	
-	# Get the current pierce count if this is a piercing projectile
-	var current_pierce_count = 0
-	if piercing and has_meta("current_pierce_count"):
-		current_pierce_count = get_meta("current_pierce_count")
-	
-	# Get the maximum number of piercings
-	var max_pierce = 1
-	if has_meta("piercing_count"):
-		max_pierce = get_meta("piercing_count")
-	
-	# Update piercing count if this is a piercing projectile
-	if piercing:
-		current_pierce_count += 1
-		set_meta("current_pierce_count", current_pierce_count)
-	
-	# Check if this arrow should ricochet (Chain Shot)
-	if chain_shot_enabled and current_chains < max_chains:
-		# Calculate chain chance only once on the first hit
-		if not chain_calculated:
-			var roll = randf()
-			will_chain = (roll <= chain_chance)
-			chain_calculated = true
-		
-		# If the arrow will chain (determined on first hit)
-		if will_chain:
-			# Set the processing flag to prevent multiple hits during ricochet calculation
-			is_processing_ricochet = true
-			
-			# Try to find a new target to chain to
-			call_deferred("find_chain_target", target)
-			# Ricochet takes priority over piercing
-			return
-		else:
-			print("Arrow will not chain (determined on first hit)")
-			
-			# If it has piercing, check if it should continue
-			if piercing:
-				# Check if piercing limit is reached
-				if current_pierce_count > max_pierce:
-					queue_free()
-				else:
-					print("Continuing with piercing")
-					# Don't destroy the arrow, let it continue
-			else:
-				# No piercing, destroy the arrow
-				queue_free()
-	else:
-		# No chain shot capability or max chains reached, check if it has piercing
-		if not chain_shot_enabled:
-			print("No chain shot capability")
-		elif current_chains >= max_chains:
-			print("Max chains reached")
-			
-		if piercing:
-			# Check if piercing limit is reached
-			if current_pierce_count > max_pierce:
-				queue_free()
-			else:
-				print("Continuing with piercing")
-				# Don't destroy the arrow, let it continue
-		else:
-			# No chain shot or piercing, destroy the arrow
-			queue_free()
-
-# Function that implements Focused Shot logic
-func apply_focused_shot(target: Node) -> void:
-	# Verifica se o Focused Shot está habilitado
-	if not focused_shot_enabled:
+	# Já está processando chain? Evita loops
+	if is_processing_chain:
 		return
 	
-	# Store original damage values to restore later
-	var original_damage = damage
-	var original_base_damage = 0
-	var original_elemental_damage = {}
-	
-	if has_node("DmgCalculatorComponent"):
-		var dmg_calc = get_node("DmgCalculatorComponent")
-		if "base_damage" in dmg_calc:
-			original_base_damage = dmg_calc.base_damage
-		if "elemental_damage" in dmg_calc:
-			original_elemental_damage = dmg_calc.elemental_damage.duplicate()
-	
-	# Check if target has a health component
-	if target.has_node("HealthComponent"):
-		var health_component = target.get_node("HealthComponent")
+	# Processa Chain Shot
+	if chain_shot_enabled and current_chains < max_chains:
+		# Determina se esta flecha vai encadear apenas na primeira vez
+		if current_chains == 0:
+			will_chain = randf() <= chain_chance
 		
-		# Check health percentage
-		var health_percent = 0.0
-		if "current_health" in health_component and "max_health" in health_component:
-			health_percent = float(health_component.current_health) / health_component.max_health
-		else:
-			print("ERROR: HealthComponent doesn't have current_health or max_health")
+		if will_chain:
+			is_processing_chain = true
+			call_deferred("find_chain_target", target)
 			return
-		
-		# If health is above threshold, apply bonus
-		if health_percent >= focused_shot_threshold:
-			# Apply temporary bonus to projectile damage
-			damage = int(original_damage * (1.0 + focused_shot_bonus))
-			print("Focused Shot activated! Damage increased from ", original_damage, " to ", damage, 
-				  " (target with ", health_percent * 100, "% health)")
-			
-			# Apply bonus to DmgCalculator if available
-			if has_node("DmgCalculatorComponent"):
-				var dmg_calc = get_node("DmgCalculatorComponent")
-				
-				# Apply bonus to base damage
-				if "base_damage" in dmg_calc:
-					dmg_calc.base_damage = int(original_base_damage * (1.0 + focused_shot_bonus))
-				# Also apply bonus to all elemental damages
-				if "elemental_damage" in dmg_calc:
-					for element_type in original_elemental_damage.keys():
-						if element_type in dmg_calc.elemental_damage:
-							var orig_elem_dmg = original_elemental_damage[element_type]
-							dmg_calc.elemental_damage[element_type] = int(orig_elem_dmg * (1.0 + focused_shot_bonus))
-		
-	# Schedule restoration of original values after hit processing
-	call_deferred("reset_focused_shot_bonuses", original_damage, original_base_damage, original_elemental_damage)
-
-# Method to restore original values after applying Focused Shot bonus
-func reset_focused_shot_bonuses(orig_damage: int, orig_base_damage: int, orig_elemental_damage: Dictionary) -> void:
-	# Restore original projectile damage
-	damage = orig_damage
 	
-	# Restore original values in DmgCalculator
-	if has_node("DmgCalculatorComponent"):
-		var dmg_calc = get_node("DmgCalculatorComponent")
+	# Processa efeitos especiais
+	_process_special_effects(target)
+	
+	# Para flechas perfurantes, prepara para próximo hit
+	if piercing:
+		var max_pierce = 1
 		
-		if "base_damage" in dmg_calc:
-			dmg_calc.base_damage = orig_base_damage
+		if has_meta("piercing_count"):
+			max_pierce = get_meta("piercing_count")
 		
-		if "elemental_damage" in dmg_calc:
-			for element_type in orig_elemental_damage.keys():
-				if element_type in dmg_calc.elemental_damage:
-					dmg_calc.elemental_damage[element_type] = orig_elemental_damage[element_type]
+		var current_pierce_count = hit_targets.size() - 1  # -1 porque o primeiro hit não conta como pierce
+		
+		if current_pierce_count < max_pierce:
+			# Prepara para próximo hit
+			if hitbox:
+				hitbox.set_deferred("monitoring", true)
+				hitbox.set_deferred("monitorable", true)
+			
+			# Move a flecha ligeiramente para evitar ficar presa
+			global_position += direction * 10
+			return
 
-# Finds a new target to chain to after hitting an enemy
+# Processa efeitos especiais de talentos
+func _process_special_effects(target: Node) -> void:
+	# Verifica Bloodseeker
+	if has_meta("has_bloodseeker_effect") and shooter and is_instance_valid(shooter):
+		var should_increment = true
+		
+		# Casos especiais onde não incrementamos stacks
+		if has_meta("is_second_arrow") or current_chains > 0 or has_meta("is_rain_arrow"):
+			should_increment = false
+		
+		if should_increment and shooter.has_method("apply_bloodseeker_hit"):
+			shooter.apply_bloodseeker_hit(target)
+	
+	# Verifica Mark for Death para acertos críticos
+	if has_meta("has_mark_effect") and is_crit:
+		_apply_mark_effect(target)
+	
+	# Verifica Bleeding
+	if has_meta("has_bleeding_effect") and is_crit:
+		_apply_bleeding_effect(target)
+	
+	# Verifica Explosion
+	if has_meta("has_explosion_effect"):
+		_create_explosion_effect(target)
+
+# ======== MÉTODOS DE CHAIN SHOT ========
 func find_chain_target(original_target) -> void:
-	# Wait a frame to make sure hit processing is complete
+	if current_chains >= max_chains:
+		will_chain = false
+		is_processing_chain = false
+		_prepare_for_destruction()
+		return
+	
+	# Aguarda um frame para garantir que o processamento de hit foi concluído
 	await get_tree().process_frame
 	
-	# Find nearby enemies that we haven't hit yet
-	var potential_targets = []
+	# Inicializa a lista de hit_targets se estiver nula
+	if hit_targets == null:
+		hit_targets = []
+	
+	# Adiciona o alvo original à lista se ainda não estiver lá
+	if original_target and not original_target in hit_targets:
+		hit_targets.append(original_target)
+		
+	# Busca inimigos próximos que ainda não atingimos
 	var space_state = get_world_2d().direct_space_state
 	
-	# Create a circle shape query to find potential targets
+	# Cria query de círculo
 	var query = PhysicsShapeQueryParameters2D.new()
 	var circle_shape = CircleShape2D.new()
 	circle_shape.radius = chain_range
 	query.shape = circle_shape
 	query.transform = Transform2D(0, global_position)
-	query.collision_mask = 2  # Mask for enemies - adjust if needed
+	query.collision_mask = 2  # Layer de inimigo
 	
-	# Execute the shape query
+	# Executa query
 	var results = space_state.intersect_shape(query)
 	
-	# Filter to find valid targets
+	# Filtra e coleta informações de alvos com velocidade
+	var target_info = []
 	for result in results:
 		var body = result.collider
 		
-		# Skip the original target and any already hit targets
-		if body == original_target or body in hit_targets:
+		# Pula alvo original e alvos já atingidos
+		if body in hit_targets:
 			continue
 			
-		# Check if it's an enemy with a health component
+		# Verifica se é um inimigo com saúde
 		if (body.is_in_group("enemies") or body.get_collision_layer_value(2)) and body.has_node("HealthComponent"):
-			potential_targets.append(body)
+			# Calcula velocidade do alvo se for um CharacterBody2D
+			var target_velocity = Vector2.ZERO
+			if body is CharacterBody2D:
+				target_velocity = body.velocity
+			
+			# Armazena alvo com velocidade e posição
+			target_info.append({
+				"body": body,
+				"position": body.global_position,
+				"velocity": target_velocity
+			})
 	
-	# If we found at least one valid target
-	if potential_targets.size() > 0:
-		# Choose a random target from the valid ones
-		var next_target = potential_targets[randi() % potential_targets.size()]
-		# Apply damage reduction for chained shots if we have DmgCalculatorComponent
-		if has_node("DmgCalculatorComponent"):
-			var dmg_calc = get_node("DmgCalculatorComponent")
-			if "base_damage" in dmg_calc:
-				dmg_calc.base_damage = int(dmg_calc.base_damage * (1.0 - chain_damage_decay))
-				
-			if "elemental_damage" in dmg_calc:
-				for element_type in dmg_calc.elemental_damage.keys():
-					dmg_calc.elemental_damage[element_type] = int(dmg_calc.elemental_damage[element_type] * (1.0 - chain_damage_decay))
+	# Se encontrou pelo menos um alvo válido
+	if target_info.size() > 0:
+		# Escolhe alvo aleatório
+		var target_data = target_info[randi() % target_info.size()]
+		var next_target = target_data.body
+		var target_position = target_data.position
+		var target_velocity = target_data.velocity
 		
-		# Also reduce the direct damage
+		# IMPORTANTE: Incrementa contador de chain ANTES de continuar
+		current_chains += 1
+		set_meta("is_part_of_chain", true)
+		
+		# Verifica se atingiu o limite de chains
+		if current_chains >= max_chains:
+			will_chain = false
+		
+		# Adiciona o novo alvo à lista
+		hit_targets.append(next_target)
+		
+		# Aplica redução de dano
+		if dmg_calculator:
+			# Reduz dano base
+			if "base_damage" in dmg_calculator:
+				dmg_calculator.base_damage = int(dmg_calculator.base_damage * (1.0 - chain_damage_decay))
+			
+			# Reduz multiplicador de dano
+			if "damage_multiplier" in dmg_calculator:
+				dmg_calculator.damage_multiplier *= (1.0 - chain_damage_decay * 0.5)  # Metade do efeito no multiplicador
+			
+			# Reduz dano elemental
+			if "elemental_damage" in dmg_calculator and not dmg_calculator.elemental_damage.is_empty():
+				for element_type in dmg_calculator.elemental_damage.keys():
+					dmg_calculator.elemental_damage[element_type] = int(dmg_calculator.elemental_damage[element_type] * (1.0 - chain_damage_decay))
+		
+		# Reduz dano direto
 		damage = int(damage * (1.0 - chain_damage_decay))
 		
-		# Get the new trajectory vector
-		var new_direction = (next_target.global_position - global_position).normalized()
+		# Reabilita física antes de redefinir trajetória
+		set_physics_process(true)
 		
-		# Update direction to the new target
-		direction = new_direction
+		# Desativa colisão durante redirecionamento
+		if hitbox:
+			hitbox.set_deferred("monitoring", false)
+			hitbox.set_deferred("monitorable", false)
+		
+		# Calcula tempo para flecha alcançar o alvo
+		var distance = global_position.distance_to(target_position)
+		var flight_time = distance / speed
+		
+		# Prediz posição do alvo com base em velocidade e tempo de voo
+		var predicted_position = target_position + (target_velocity * flight_time)
+		
+		# Adiciona um pequeno desvio para garantir acerto mesmo com movimento irregular
+		var lead_factor = 1.2  # Ajuste conforme necessário
+		var lead_position = target_position + (target_velocity * flight_time * lead_factor)
+		
+		# Atualiza direção para posição predita
+		direction = (lead_position - global_position).normalized()
 		rotation = direction.angle()
 		
-		# Reset any collision flags/state that might be causing the arrow to pass through
-		if has_node("Hurtbox"):
-			var hurtbox = get_node("Hurtbox")
-			# Re-enable the hurtbox monitoring and monitorable properties
-			hurtbox.set_deferred("monitoring", true)
-			hurtbox.set_deferred("monitorable", true)
+		# Ativa camadas de colisão
+		collision_layer = 4   # Camada de projétil
+		collision_mask = 2    # Camada de inimigo
 		
-		# Make sure our collision is enabled
-		collision_layer = 4  # Make sure this matches your projectile layer
-		collision_mask = 2   # Make sure this matches your enemy layer
+		# Configura direcionamento para o novo alvo
+		homing_enabled = true
+		homing_target = next_target
+		homing_strength = 5.0
 		
-		# Enable any collision shapes that might have been disabled
-		for child in get_children():
-			if child is CollisionShape2D or child is CollisionPolygon2D:
-				child.set_deferred("disabled", false)
+		# Move um pouco para evitar colisões
+		global_position += direction * 20
 		
-		# Reposition arrow slightly away from the hit point to avoid immediate collision
-		global_position += direction * 10
-		
-		# Increment the chain counter
-		current_chains += 1
-		
-		# Reset velocity for proper movement
+		# Reseta velocidade para movimento correto
 		velocity = direction * speed
 		
-		# Allow hits to be processed again
-		is_processing_ricochet = false
+		# Cria um timer curto para reativar colisão
+		get_tree().create_timer(0.1).timeout.connect(func():
+			if is_instance_valid(self):
+				if hitbox:
+					hitbox.set_deferred("monitoring", true)
+					hitbox.set_deferred("monitorable", true)
+		)
+		
+		# Reseta flag de processamento
+		is_processing_chain = false
 	else:
-		# If the arrow also has piercing, let it continue its path
-		if piercing:
-			var current_pierce_count = 0
-			if has_meta("current_pierce_count"):
-				current_pierce_count = get_meta("current_pierce_count")
-			
-			var max_pierce = 1
-			if has_meta("piercing_count"):
-				max_pierce = get_meta("piercing_count")
-			
-			if current_pierce_count <= max_pierce:
-				is_processing_ricochet = false
-				return
-		
-		# Otherwise destroy the arrow
-		queue_free()
-		
-# Método opcional para tentar spawnar flechas adicionais
-func try_spawn_additional_arrows(target) -> Array:
-	# Verifica se o Arrow Storm está habilitado
-	if not arrow_storm_enabled or randf() > arrow_storm_trigger_chance:
-		return [self]
-	
-	var additional_projectiles = []
-	
-	# Calcula direções para as flechas adicionais
-	var base_direction = direction
-	var half_spread = arrow_storm_spread_angle / 2.0
-	
-	# Cria flechas adicionais
-	for i in range(arrow_storm_additional_arrows):
-		# Calcula ângulo de deslocamento (de -half_spread a +half_spread)
-		var angle_offset = lerp(-half_spread, half_spread, float(i) / (arrow_storm_additional_arrows - 1))
-		
-		# Rotaciona a direção base
-		var rotated_direction = base_direction.rotated(deg_to_rad(angle_offset))
-		
-		# Clona o projétil original
-		var new_projectile = duplicate()
-		
-		# Configura nova direção
-		new_projectile.direction = rotated_direction
-		new_projectile.rotation = rotated_direction.angle()
-		
-		# Reseta velocidade com nova direção
-		new_projectile.velocity = rotated_direction * speed
-		
-		# Adiciona tag de identificação
-		if has_method("add_tag"):
-			new_projectile.add_tag("arrow_storm")
-		elif "tags" in new_projectile:
-			if not "arrow_storm" in new_projectile.tags:
-				new_projectile.tags.append("arrow_storm")
-		
-		# Adiciona à lista de projéteis
-		additional_projectiles.append(new_projectile)
-	
-	# Retorna lista com projétil original + projéteis adicionais
-	return [self] + additional_projectiles
+		# Sem alvos válidos encontrados, limpa flecha
+		_prepare_for_destruction()
 
-# Método auxiliar para conversão de graus para radianos
-func deg_to_rad(degrees: float) -> float:
-	return degrees * (PI / 180.0)
+# ======== MÉTODOS DE EFEITOS ESPECIAIS ========
+func _apply_mark_effect(target: Node) -> void:
+	# Verifica se o projétil tem efeito de marca configurado
+	if not target.has_node("DebuffComponent"):
+		return
+		
+	# Obtém parâmetros da marca dos metadados
+	var mark_duration = get_meta("mark_duration", 4.0)
+	var mark_crit_bonus = get_meta("mark_crit_bonus", 1.0)
+	
+	var debuff_component = target.get_node("DebuffComponent")
+	
+	# Dados da marca
+	var mark_data = {
+		"max_stacks": 1,  # Não acumula
+		"crit_bonus": mark_crit_bonus,
+		"source": shooter
+	}
+	
+	# Aplica o debuff de marca
+	debuff_component.add_debuff(
+		GlobalDebuffSystem.DebuffType.MARKED_FOR_DEATH,
+		mark_duration,
+		mark_data,
+		true  # Pode renovar duração
+	)
+	
+	# Armazena o bônus como metadado no alvo para acesso rápido
+	target.set_meta("mark_crit_bonus", mark_crit_bonus)
+
+func _apply_bleeding_effect(target: Node) -> void:
+	# Verifica se DoTManager está disponível
+	if not DoTManager.instance or not target.has_node("HealthComponent"):
+		return
+	
+	# Obtém dados de sangramento dos metadados
+	var bleed_damage_percent = get_meta("bleeding_damage_percent", 0.3)
+	var bleed_duration = get_meta("bleeding_duration", 4.0)
+	var bleed_interval = get_meta("bleeding_interval", 0.5)
+	
+	# Calcula dano total para referência
+	var damage_package = get_damage_package()
+	var total_damage = damage_package.get("physical_damage", damage)
+	
+	# Adiciona danos elementais
+	var elemental_damage = damage_package.get("elemental_damage", {})
+	for element_type in elemental_damage:
+		total_damage += elemental_damage[element_type]
+	
+	# Calcula dano de sangramento por tick
+	var bleed_damage_per_tick = int(total_damage * bleed_damage_percent)
+	bleed_damage_per_tick = max(1, bleed_damage_per_tick)
+	
+	# Aplica sangramento via DoTManager
+	var dot_id = DoTManager.instance.apply_dot(
+		target,
+		bleed_damage_per_tick,
+		bleed_duration,
+		bleed_interval,
+		"bleeding",
+		self  # Source é esta flecha
+	)
+
+func _create_explosion_effect(target: Node) -> void:
+	# Obtém dados de explosão
+	var explosion_damage_percent = get_meta("explosion_damage_percent", 0.5)
+	var explosion_radius = get_meta("explosion_radius", 30.0)
+	
+	# Calcula dano
+	var damage_package = get_damage_package()
+	var base_damage = damage_package.get("physical_damage", damage)
+	var explosion_damage = int(base_damage * explosion_damage_percent)
+	
+	# Aplica dano em área
+	var space_state = get_world_2d().direct_space_state
+	
+	var query = PhysicsShapeQueryParameters2D.new()
+	var circle_shape = CircleShape2D.new()
+	circle_shape.radius = explosion_radius
+	query.shape = circle_shape
+	query.transform = Transform2D(0, global_position)
+	query.collision_mask = 2  # Layer de inimigo
+	
+	var results = space_state.intersect_shape(query)
+	
+	# Aplica dano a cada inimigo
+	for result in results:
+		var body = result.collider
+		if body != target and body.is_in_group("enemies") and body.has_node("HealthComponent"):
+			var health = body.get_node("HealthComponent")
+			
+			# Cria versão reduzida do pacote de dano
+			var explosion_package = {
+				"physical_damage": explosion_damage,
+				"is_critical": false,
+				"tags": ["explosion"]
+			}
+			
+			# Adiciona proporção do dano elemental
+			if "elemental_damage" in damage_package:
+				explosion_package["elemental_damage"] = {}
+				for element in damage_package["elemental_damage"]:
+					explosion_package["elemental_damage"][element] = int(damage_package["elemental_damage"][element] * explosion_damage_percent)
+			
+			# Aplica dano
+			health.take_complex_damage(explosion_package)
+	
+	# Efeito visual
+	_create_explosion_visual_effect(global_position, explosion_radius)
+
+func _create_explosion_visual_effect(position: Vector2, radius: float) -> void:
+	# Cria nó para efeito
+	var explosion = Node2D.new()
+	explosion.name = "ExplosionEffect"
+	explosion.position = position
+	get_parent().add_child(explosion)
+	
+	# Criação de sprite ou partículas para explosão
+	var particles = CPUParticles2D.new()
+	particles.emitting = true
+	particles.one_shot = true
+	particles.explosiveness = 0.8
+	particles.amount = 30
+	particles.lifetime = 0.5
+	particles.direction = Vector2.UP
+	particles.spread = 180.0
+	particles.gravity = Vector2(0, 98)
+	particles.initial_velocity_min = 40.0
+	particles.initial_velocity_max = 80.0
+	particles.scale_amount_min = 2.0
+	particles.scale_amount_max = 4.0
+	particles.color = Color(1.0, 0.5, 0.1, 1.0)
+	explosion.add_child(particles)
+	
+	# Timer para auto-destruição
+	var timer = Timer.new()
+	timer.wait_time = 1.0
+	timer.one_shot = true
+	timer.autostart = true
+	timer.timeout.connect(func(): explosion.queue_free())
+	explosion.add_child(timer)
+
+# ======== MÉTODOS DE ARROW RAIN ========
+func _add_rain_arrow_processor() -> void:
+	# Verifica metadados necessários
+	if not has_meta("rain_target_pos") or not has_meta("rain_start_pos"):
+		return
+	
+	# Cria o processador
+	var processor_script = load("res://Test/Processors/RainArrowProcessor.gd")
+	if processor_script:
+		var processor = processor_script.new()
+		processor.name = "RainArrowProcessor"
+		add_child(processor)
+		
+		# Configura trajetória
+		processor.start_position = get_meta("rain_start_pos")
+		processor.target_position = get_meta("rain_target_pos")
+		processor.arc_height = get_meta("rain_arc_height", 250.0)
+		processor.total_time = get_meta("rain_time", 1.0)
+		
+		# Verifica se deve criar onda de pressão
+		if has_meta("pressure_wave_enabled") and get_meta("pressure_wave_enabled"):
+			processor.create_pressure_wave = true
+			processor.knockback_force = get_meta("knockback_force", 150.0)
+			processor.slow_percent = get_meta("slow_percent", 0.3)
+			processor.slow_duration = get_meta("slow_duration", 0.5)
+			processor.wave_visual_enabled = get_meta("wave_visual_enabled", true)
+			processor.ground_effect_duration = get_meta("ground_duration", 3.0)

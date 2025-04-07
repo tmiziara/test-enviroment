@@ -1,8 +1,0 @@
-[gd_resource type="Resource" script_class="FireDamageBoostStrategy" load_steps=2 format=3 uid="uid://bm72odcu57eb"]
-
-[ext_resource type="Script" uid="uid://b5dl70lf6sl8i" path="res://Test/Strategys/FireDamageBoostStrategy.gd" id="1_r25ys"]
-
-[resource]
-script = ExtResource("1_r25ys")
-fire_damage_multiplier = 1.5
-dot_damage_multiplier = 1.5

@@ -26,5 +26,5 @@ func apply_upgrade(projectile: Node) -> void:
 	projectile.set_meta("arrow_rain_threshold", attacks_threshold)
 	
 	# For NewArrow class, directly set properties if available
-	if projectile is NewArrow and "arrow_rain_enabled" in projectile:
+	if projectile is Arrow and "arrow_rain_enabled" in projectile:
 		projectile.arrow_rain_enabled = true

@@ -1,7 +1,8 @@
-[gd_scene load_steps=24 format=3 uid="uid://dr52dwcmya0ut"]
+[gd_scene load_steps=25 format=3 uid="uid://dr52dwcmya0ut"]
 
 [ext_resource type="Script" uid="uid://cw53008iqosin" path="res://Test/enemy_test.gd" id="1_d25wl"]
 [ext_resource type="Texture2D" uid="uid://d1grx4h6lygtt" path="res://Test/Assets/enemys/slime/D_Death2.png" id="2_aqd0t"]
+[ext_resource type="Script" uid="uid://cb12gi6ev6lr" path="res://Test/Components/hurtbox_component.gd" id="2_qt1ay"]
 [ext_resource type="Texture2D" uid="uid://jfmyy54uivrr" path="res://Test/Assets/enemys/slime/D_Walk2.png" id="3_xvbhr"]
 [ext_resource type="PackedScene" uid="uid://cvhrkbsgs68ee" path="res://Test/Components/healthbar.tscn" id="4_1ckdd"]
 [ext_resource type="PackedScene" uid="uid://c676llufstx63" path="res://Test/Components/health_component.tscn" id="5_5luq3"]
@@ -117,12 +118,13 @@ collision_layer = 3
 collision_mask = 3
 script = ExtResource("1_d25wl")
 
-[node name="Enemy" type="Area2D" parent="."]
+[node name="HurtboxComponent" type="Area2D" parent="."]
 position = Vector2(0, 4)
 collision_layer = 2
 collision_mask = 2
+script = ExtResource("2_qt1ay")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtboxComponent"]
 shape = SubResource("CircleShape2D_fypkk")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]

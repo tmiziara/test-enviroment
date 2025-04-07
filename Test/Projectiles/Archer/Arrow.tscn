@@ -1,17 +1,17 @@
 [gd_scene load_steps=7 format=3 uid="uid://bj4ghgw42pijb"]
 
-[ext_resource type="Script" uid="uid://j4fu1ftnexmi" path="res://Test/Projectiles/Archer/new_arrow.gd" id="1_oaxex"]
+[ext_resource type="Script" uid="uid://bmof4kuuw8b6y" path="res://Test/Projectiles/Archer/arrow.gd" id="1_oaxex"]
 [ext_resource type="Texture2D" uid="uid://csqj8xsp17113" path="res://Test/Assets/Projectile/arrow.png" id="2_i7ukj"]
-[ext_resource type="PackedScene" uid="uid://toc74pvxy413" path="res://Test/Components/hurtbox.tscn" id="3_i77cq"]
+[ext_resource type="Script" uid="uid://duyn4qhdbk7u3" path="res://Test/Components/hitbox_component.gd" id="3_ebxfj"]
 [ext_resource type="PackedScene" uid="uid://bt3drmokrdmlo" path="res://Test/Components/DmgCalculatorComponent.tscn" id="4_7j8t5"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_v7u1k"]
 radius = 1.0
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_rstgk"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_oaxex"]
 radius = 3.0
 
-[node name="Sprite2D" type="CharacterBody2D"]
+[node name="Arrow" type="CharacterBody2D"]
 collision_layer = 4
 collision_mask = 2
 script = ExtResource("1_oaxex")
@@ -27,12 +27,11 @@ shape = SubResource("CircleShape2D_v7u1k")
 [node name="Tip" type="Marker2D" parent="."]
 position = Vector2(7, 0)
 
-[node name="Hurtbox" parent="." instance=ExtResource("3_i77cq")]
-collision_layer = 2
-collision_mask = 2
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
-position = Vector2(5, 0)
-shape = SubResource("CircleShape2D_rstgk")
-
 [node name="DmgCalculatorComponent" parent="." instance=ExtResource("4_7j8t5")]
+
+[node name="HitboxComponent" type="Area2D" parent="."]
+script = ExtResource("3_ebxfj")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxComponent"]
+position = Vector2(5, 0)
+shape = SubResource("CircleShape2D_oaxex")

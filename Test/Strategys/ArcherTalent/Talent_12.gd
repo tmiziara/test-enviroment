@@ -19,7 +19,7 @@ func apply_upgrade(projectile: Node) -> void:
 		projectile.add_tag("chain_shot")
 	
 	# Check if projectile is an Arrow class
-	if projectile is NewArrow:
+	if projectile is Arrow:
 		# Enable chain shot in properties
 		projectile.chain_shot_enabled = true
 		projectile.chain_chance = chain_chance

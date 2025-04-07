@@ -1,188 +1,214 @@
 extends Node
 class_name RainArrowProcessor
 
-# Arrow that this processor controls
-var arrow: Node = null
-
-# Flight parameters
-var start_position: Vector2 = Vector2.ZERO
-var target_position: Vector2 = Vector2.ZERO
-var time_elapsed: float = 0.0
+# ======== PROPRIEDADES DE TRAJETÓRIA ========
+var start_position: Vector2
+var target_position: Vector2
+var arc_height: float = 250.0
 var total_time: float = 1.0
-var arc_height: float = 200.0
-var has_landed: bool = false
+
+# ======== PROPRIEDADES DE ONDA DE PRESSÃO ========
+var create_pressure_wave: bool = false
+var knockback_force: float = 150.0
+var slow_percent: float = 0.3
+var slow_duration: float = 0.5
+var wave_visual_enabled: bool = true
+var ground_effect_duration: float = 3.0
+
+# ======== VARIÁVEIS DE CONTROLE ========
+var elapsed_time: float = 0.0
+var arrow_landed: bool = false
+var arrow: Arrow
 
 func _ready():
-	# Get parent arrow
-	arrow = get_parent()
-	if not arrow:
-		queue_free()
-		return
+	# Obtém referência à flecha pai
+	arrow = get_parent() as Arrow
 	
-	# If metadata exists, get values from it
-	if arrow.has_meta("rain_start_pos"):
-		start_position = arrow.get_meta("rain_start_pos")
-	
-	if arrow.has_meta("rain_target_pos"):
-		target_position = arrow.get_meta("rain_target_pos")
-		
-	if arrow.has_meta("rain_time"):
-		total_time = arrow.get_meta("rain_time")
-	
-	if arrow.has_meta("rain_arc_height"):
-		arc_height = arrow.get_meta("rain_arc_height")
-	
-	# If start_position isn't set, use current position
-	if start_position == Vector2.ZERO:
-		start_position = arrow.global_position
-	
-	# If target_position isn't set, use position ahead
-	if target_position == Vector2.ZERO:
-		if "direction" in arrow:
-			target_position = start_position + arrow.direction * 300
-		else:
-			target_position = start_position + Vector2.DOWN * 300
-	
-	# Disable regular physics for the arrow
-	if arrow.has_method("set_physics_process"):
+	if arrow:
+		# Desabilita física e colisão inicialmente
 		arrow.set_physics_process(false)
-	
-	# Disable collision until landing
-	if arrow.has_node("Hurtbox"):
-		var hurtbox = arrow.get_node("Hurtbox")
-		hurtbox.set_deferred("monitoring", false)
-		hurtbox.set_deferred("monitorable", false)
-	
-	# Set orientation to point downward
-	arrow.rotation = Vector2.DOWN.angle()
+		
+		if arrow.hitbox:
+			arrow.hitbox.set_deferred("monitoring", false)
+			arrow.hitbox.set_deferred("monitorable", false)
+		
+		# Verifica se os dados necessários estão presentes
+		if start_position != Vector2.ZERO and target_position != Vector2.ZERO:
+			# Tudo bem, inicia a animação de queda
+			arrow.global_position = start_position
+		else:
+			# Tenta obter dados dos metadados
+			if arrow.has_meta("rain_start_pos") and arrow.has_meta("rain_target_pos"):
+				start_position = arrow.get_meta("rain_start_pos")
+				target_position = arrow.get_meta("rain_target_pos")
+				
+				if arrow.has_meta("rain_arc_height"):
+					arc_height = arrow.get_meta("rain_arc_height")
+				
+				if arrow.has_meta("rain_time"):
+					total_time = arrow.get_meta("rain_time")
+				
+				arrow.global_position = start_position
+			else:
+				# Sem dados suficientes, remover o processador
+				queue_free()
+				return
+		
+		# Configura a direção da flecha para apontar para baixo
+		arrow.direction = Vector2(0, 1).normalized()
+		arrow.rotation = arrow.direction.angle()
+		
+		# Adiciona timer de segurança
+		var safety_timer = Timer.new()
+		safety_timer.wait_time = total_time + 2.0  # Tempo extra de segurança
+		safety_timer.one_shot = true
+		safety_timer.timeout.connect(func(): _ensure_cleanup())
+		add_child(safety_timer)
+		safety_timer.start()
 
-func _physics_process(delta):
-	if not arrow or not is_instance_valid(arrow):
-		queue_free()
+func _process(delta):
+	if arrow_landed or not arrow or not is_instance_valid(arrow):
 		return
 	
-	if has_landed:
+	# Atualiza tempo decorrido
+	elapsed_time += delta
+	
+	# Calcula progresso normalizado (0 a 1)
+	var progress = min(elapsed_time / total_time, 1.0)
+	
+	if progress >= 1.0:
+		# Atingiu o alvo, processa impacto
+		_process_landing()
 		return
 	
-	# Update time
-	time_elapsed += delta
+	# Interpola posição em arco
+	var new_position = _calculate_arc_position(progress)
 	
-	# Calculate progress (0 to 1)
-	var progress = min(time_elapsed / total_time, 1.0)
+	# Atualiza a posição da flecha
+	arrow.global_position = new_position
 	
-	# Calculate arc position
-	var pos = calculate_arc_position(progress)
-	
-	# Update arrow position
-	arrow.global_position = pos
-	
-	# Update arrow rotation to point along trajectory
-	if progress < 0.9:  # Don't update rotation at the very end
-		var next_pos = calculate_arc_position(min(progress + 0.05, 1.0))
+	# Atualiza direção da flecha para acompanhar a trajetória
+	if progress < 0.9:  # Mantém apontado para baixo nos últimos 10%
+		var next_pos = _calculate_arc_position(min(progress + 0.05, 1.0))
 		var direction = (next_pos - arrow.global_position).normalized()
+		arrow.direction = direction
 		arrow.rotation = direction.angle()
 	else:
-		# At the end, point straight down
-		arrow.rotation = Vector2.DOWN.angle()
-	
-	# Check if arrow has landed
-	if progress >= 1.0:
-		handle_landing()
+		# Nos últimos 10%, aponta diretamente para baixo para um impacto mais dramático
+		arrow.direction = Vector2(0, 1).normalized()
+		arrow.rotation = arrow.direction.angle() + PI/2  # Ajuste para orientação visual da flecha
 
-# Calculate position along a parabolic arc
-func calculate_arc_position(progress: float) -> Vector2:
-	# Linear interpolation for horizontal movement
-	var pos_x = lerp(start_position.x, target_position.x, progress)
-	var pos_y = lerp(start_position.y, target_position.y, progress)
+# Calcula a posição em um arco baseado no progresso (0 a 1)
+func _calculate_arc_position(progress: float) -> Vector2:
+	# Interpolação linear para movimento horizontal
+	var horizontal_pos = start_position.lerp(target_position, progress)
 	
-	# Add arc height - parabolic curve peaking at the middle
-	var arc_offset = -arc_height * 4.0 * progress * (1.0 - progress)
+	# Cálculo de arco para movimento vertical
+	# Parábola invertida: 0 no início, -altura_arco no meio, 0 no fim
+	var arc_offset = -4.0 * arc_height * progress * (1.0 - progress)
 	
-	return Vector2(pos_x, pos_y + arc_offset)
+	# Altura inicial e final podem ser diferentes
+	var start_y = start_position.y
+	var end_y = target_position.y
+	
+	# Cálculo da altura atual com base no progresso
+	var vertical_pos = lerp(start_y, end_y, progress) + arc_offset
+	
+	return Vector2(horizontal_pos.x, vertical_pos)
 
-# Handle arrow landing
-func handle_landing():
-	has_landed = true
+# Processa o impacto da flecha no solo
+func _process_landing():
+	if arrow_landed:
+		return
+		
+	arrow_landed = true
 	
-	# Enable collision
-	if arrow.has_node("Hurtbox"):
-		var hurtbox = arrow.get_node("Hurtbox")
-		hurtbox.set_deferred("monitoring", true)
-		hurtbox.set_deferred("monitorable", true)
+	# Posiciona a flecha exatamente no alvo
+	arrow.global_position = target_position
 	
-	# Set arrow pointing down
-	arrow.rotation = Vector2.DOWN.angle()
+	# Ativa a física e colisão para permitir hits
+	if arrow.hitbox:
+		arrow.hitbox.set_deferred("monitoring", true)
+		arrow.hitbox.set_deferred("monitorable", true)
 	
-	# Create pressure wave effect if enabled
-	if arrow.has_meta("pressure_wave_enabled") and arrow.get_meta("pressure_wave_enabled"):
-		create_pressure_wave()
+	# Cria uma pequena explosão visual
+	_create_impact_effect()
 	
-	# Setup auto-destruction after a short time
-	var timer = Timer.new()
-	timer.wait_time = 0.5  # Half second to allow for collision detection
-	timer.one_shot = true
-	timer.autostart = true
-	arrow.add_child(timer)
-	timer.timeout.connect(func():
+	# Cria onda de pressão se configurado
+	if create_pressure_wave:
+		_create_pressure_wave()
+	
+	# Agenda limpeza
+	get_tree().create_timer(0.5).timeout.connect(func(): 
 		if arrow and is_instance_valid(arrow):
-			arrow.queue_free()
+			arrow._prepare_for_destruction()
 	)
-	
-	# Re-enable physics briefly to allow for collision detection
-	if arrow.has_method("set_physics_process"):
-		arrow.set_physics_process(true)
-	
-	# Set velocity downward for proper collision
-	if "velocity" in arrow:
-		arrow.velocity = Vector2.DOWN * (arrow.speed if "speed" in arrow else 400.0) * 0.5
 
-# Create pressure wave effect
-func create_pressure_wave():
-	# Load the PressureWave scene or script
-	var PressureWaveClass = load("res://Test/Processors/PersistentPressureWaveProcessor.gd")
-	if not PressureWaveClass:
-		print("Error: Could not load PressistentPressureWaveProcessor")
+# Cria efeito visual no impacto
+func _create_impact_effect():
+	if not arrow or not is_instance_valid(arrow):
 		return
+		
+	# Cria partículas de impacto
+	var impact = CPUParticles2D.new()
+	impact.emitting = true
+	impact.one_shot = true
+	impact.explosiveness = 1.0
+	impact.amount = 15
+	impact.lifetime = 0.5
+	impact.direction = Vector2.UP
+	impact.spread = 90.0
+	impact.gravity = Vector2(0, 98)
+	impact.initial_velocity_min = 20.0
+	impact.initial_velocity_max = 40.0
+	impact.scale_amount_min = 1.0
+	impact.scale_amount_max = 2.0
+	impact.color = Color(0.8, 0.8, 0.8, 0.8)
 	
-	# Get pressure wave parameters from arrow metadata
-	var knockback_force = arrow.get_meta("knockback_force", 150.0)
-	var slow_percent = arrow.get_meta("slow_percent", 0.3)
-	var slow_duration = arrow.get_meta("slow_duration", 0.5)
-	var radius = arrow.get_meta("arrow_rain_radius", 80.0)
-	var ground_duration = arrow.get_meta("ground_duration", 3.0)
-	
-	# Prepare settings
-	var settings = {
-		"duration": ground_duration,
-		"slow_percent": slow_percent,
-		"slow_duration": slow_duration,
-		"knockback_force": knockback_force,
-		"max_radius": radius,
-		"only_slow": false
-	}
-	
-	# Get parent scene
-	var parent = arrow.get_parent()
-	if not parent:
+	impact.position = Vector2.ZERO  # Relativo à seta
+	arrow.add_child(impact)
+
+# Cria onda de pressão para knockback/slow
+func _create_pressure_wave():
+	if not arrow or not is_instance_valid(arrow):
 		return
+		
+	# Carrega script da onda de pressão persistente
+	var wave_script = load("res://Test/Processors/PersistentPressureWaveProcessor.gd")
 	
-	# Use the static method if available
-	if PressureWaveClass.has_method("create_at_position"):
-		PressureWaveClass.create_at_position(
-			arrow.global_position,
-			parent,
-			arrow.shooter,
-			settings
-		)
+	if wave_script:
+		# Configura parâmetros da onda
+		var settings = {
+			"duration": ground_effect_duration,
+			"slow_percent": slow_percent,
+			"slow_duration": slow_duration,
+			"knockback_force": knockback_force,
+			"max_radius": 80.0,  # Raio padrão, pode ser ajustado
+			"only_slow": false   # Aplica knockback + slow
+		}
+		
+		# Pega a referência do atirador da flecha
+		var shooter = arrow.shooter
+		
+		# Cria a onda de pressão no pai da flecha (para que persista após a flecha)
+		if arrow.get_parent():
+			# Usa o método estático para criar no local certo
+			var wave = wave_script.call("create_at_position", 
+				arrow.global_position, 
+				arrow.get_parent(), 
+				shooter, 
+				settings
+			)
+			
+			# Confirma criação bem-sucedida
+			if wave:
+				# Se necessário, configura propriedades adicionais
+				pass
 	else:
-		# Create manually if static method isn't available
-		var wave = PressureWaveClass.new()
-		wave.position = arrow.global_position
-		wave.shooter = arrow.shooter
-		wave.radius = 5.0
-		wave.max_radius = radius
-		wave.ground_effect_duration = ground_duration
-		wave.slow_percent = slow_percent
-		wave.slow_duration = slow_duration
-		wave.knockback_force = knockback_force
-		parent.add_child(wave)
+		print("ERRO: Script de onda de pressão não encontrado")
+
+# Garante limpeza mesmo em caso de problemas
+func _ensure_cleanup():
+	if arrow and is_instance_valid(arrow):
+		arrow._prepare_for_destruction()
+	queue_free()
