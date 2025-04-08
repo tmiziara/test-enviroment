@@ -1,4 +1,4 @@
-[gd_scene load_steps=57 format=3 uid="uid://bcavxefldragy"]
+[gd_scene load_steps=60 format=3 uid="uid://bcavxefldragy"]
 
 [ext_resource type="Script" uid="uid://282afcjoe60f" path="res://Test/Entitys/Soldiers/Archer/archer.gd" id="1_3pymg"]
 [ext_resource type="Texture2D" uid="uid://7mrtyfyknm00" path="res://Test/Assets/Soldier_Assets/Archer/char_a_pBOW2_6tla_bo01_v01.png" id="2_oeqfw"]
@@ -12,6 +12,8 @@
 [ext_resource type="PackedScene" uid="uid://cvhrkbsgs68ee" path="res://Test/Components/healthbar.tscn" id="10_qjh7y"]
 [ext_resource type="PackedScene" uid="uid://p80ks5n188v" path="res://Test/Components/BuffDisplayContainer.tscn" id="11_3pymg"]
 [ext_resource type="PackedScene" uid="uid://dd5g5pd8esuhr" path="res://Test/Components/Talents/Archer/ArcherTalentManager.tscn" id="12_3oa4c"]
+[ext_resource type="PackedScene" uid="uid://c676llufstx63" path="res://Test/Components/health_component.tscn" id="13_ehecd"]
+[ext_resource type="Script" uid="uid://cb12gi6ev6lr" path="res://Test/Components/hurtbox_component.gd" id="14_ld0os"]
 
 [sub_resource type="Animation" id="Animation_ltase"]
 length = 0.001
@@ -4082,6 +4084,8 @@ size = Vector2(18.5, 6)
 [sub_resource type="CircleShape2D" id="CircleShape2D_uilrr"]
 radius = 272.09
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_x8srj"]
+
 [node name="CharacterBody2D" type="CharacterBody2D" groups=["player"]]
 y_sort_enabled = true
 position = Vector2(400, 183)
@@ -4096,7 +4100,7 @@ visible = false
 texture = ExtResource("2_oeqfw")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 25
 
 [node name="QuiverBehind" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("5_k2kna")
@@ -4107,13 +4111,13 @@ vframes = 8
 texture = ExtResource("3_pcsk4")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 25
 
 [node name="Pants" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("4_bf8xg")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 25
 
 [node name="BowFront" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("2_oeqfw")
@@ -4125,7 +4129,7 @@ visible = false
 texture = ExtResource("5_k2kna")
 hframes = 8
 vframes = 8
-frame = 27
+frame = 25
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -4156,7 +4160,7 @@ collision_mask = 2
 visible = false
 shape = SubResource("CircleShape2D_uilrr")
 
-[node name="ArrowSpawn" type="Marker2D" parent="." groups=["player"]]
+[node name="Aim" type="Marker2D" parent="." groups=["player"]]
 
 [node name="AttackTimer" type="Timer" parent="."]
 
@@ -4169,6 +4173,15 @@ offset_bottom = 18.0
 [node name="BuffDisplayContainer" parent="." instance=ExtResource("11_3pymg")]
 
 [node name="ArcherTalentManager" parent="." instance=ExtResource("12_3oa4c")]
+
+[node name="HealthComponent" parent="." instance=ExtResource("13_ehecd")]
+
+[node name="HurtboxComponent" type="Area2D" parent="."]
+script = ExtResource("14_ld0os")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtboxComponent"]
+position = Vector2(2, -2)
+shape = SubResource("CapsuleShape2D_x8srj")
 
 [connection signal="body_entered" from="AreaDetection" to="." method="_on_body_entered"]
 [connection signal="body_exited" from="AreaDetection" to="." method="_on_body_exited"]
