@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://dd5g5pd8esuhr"]
-
-[ext_resource type="Script" uid="uid://lxdvrfe0tiid" path="res://Test/Components/Talents/Archer/ArcherTalentSystem.gd" id="1_bpmnd"]
-
-[node name="ArcherTalentManager" type="Node"]
-script = ExtResource("1_bpmnd")
