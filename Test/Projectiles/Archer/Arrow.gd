@@ -30,7 +30,7 @@ func _ready():
 	# Configurações específicas para flechas
 	if trail_enabled and trail_particles:
 		trail_particles.emitting = true
-	
+	print("o dano da flecha é ", damage)
 	# Verifica se tem processador de ArrowRain
 	if has_meta("is_rain_arrow") and not has_node("RainArrowProcessor"):
 		_add_rain_arrow_processor()

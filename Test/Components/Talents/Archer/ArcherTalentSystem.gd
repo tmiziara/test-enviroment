@@ -284,16 +284,13 @@ func _apply_base_stats(projectile: Node, effects: ArcherEffects) -> void:
 	print("Damage antes: ", projectile.damage)
 	print("Multiplicador: ", effects.damage_multiplier)
 	
-	if "damage" in projectile:
-		projectile.damage = int(projectile.damage * effects.damage_multiplier)
-		print("Damage depois: ", projectile.damage)
 	
 	# Atualiza o DmgCalculatorComponent
 	if projectile.has_node("DmgCalculatorComponent"):
 		var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 		
 		if "base_damage" in dmg_calc:
-			dmg_calc.base_damage = int(dmg_calc.base_damage * effects.damage_multiplier)
+			dmg_calc.base_damage = projectile.damage
 		
 		if "damage_multiplier" in dmg_calc:
 			dmg_calc.damage_multiplier = effects.damage_multiplier

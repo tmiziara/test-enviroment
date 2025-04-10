@@ -147,16 +147,22 @@ func spawn_arrow():
 	arrow.rotation = arrow.direction.angle()
 	arrow.shooter = self
 	
-	# Calcular dano base
+	# Calcular dano base SEM o multiplicador
 	var base_damage = get_weapon_damage()  # Usa o método que já calcula dano base do arqueiro
 	
 	# Definir o dano da flecha com o valor já calculado
 	arrow.damage = base_damage
 	
-	# Compilar e aplicar efeitos do sistema de talentos
-	if talent_system:
-		var effects = talent_system.compile_archer_effects()
-		talent_system.apply_effects_to_projectile(arrow, effects)
+	if debug_mode:
+		print("Dano base da flecha (sem multiplicador): ", arrow.damage)
+	
+	# Aplica apenas talentos que afetam projéteis
+	for upgrade in attack_upgrades:
+		if upgrade:
+			if upgrade.target_type == BaseProjectileStrategy.TargetType.PROJECTILE or upgrade.target_type == BaseProjectileStrategy.TargetType.BOTH:
+				if debug_mode:
+					print("Aplicando talento a projétil: ", upgrade.get_strategy_name())
+				upgrade.apply_upgrade(arrow)
 	
 	# Adicionar à cena
 	get_parent().add_child(arrow)
@@ -265,7 +271,14 @@ func apply_talent_effects():
 			
 			# If talent has a strategy, apply it
 			if skill_node and skill_node.talent_strategy:
-				add_attack_upgrade(skill_node.talent_strategy)
+				var strategy = skill_node.talent_strategy
+				
+				# Aplica o talento diretamente ao arqueiro
+				# Isto respeitará o target_type da estratégia
+				strategy.apply_upgrade(self)
+				
+				# Ainda adiciona à lista para aplicar nos projéteis depois
+				add_attack_upgrade(strategy)
 	
 	# Refresh talents through the system
 	if talent_system:
