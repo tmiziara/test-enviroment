@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://bj4ghgw42pijb"]
 
-[ext_resource type="Script" uid="uid://bmof4kuuw8b6y" path="res://Test/Projectiles/Archer/arrow.gd" id="1_oaxex"]
+[ext_resource type="Script" uid="uid://bmof4kuuw8b6y" path="res://Test/Projectiles/Archer/Arrow.gd" id="1_oaxex"]
 [ext_resource type="Texture2D" uid="uid://csqj8xsp17113" path="res://Test/Assets/Projectile/arrow.png" id="2_i7ukj"]
 [ext_resource type="Script" uid="uid://duyn4qhdbk7u3" path="res://Test/Components/hitbox_component.gd" id="3_ebxfj"]
 [ext_resource type="PackedScene" uid="uid://bt3drmokrdmlo" path="res://Test/Components/DmgCalculatorComponent.tscn" id="4_7j8t5"]

@@ -90,17 +90,17 @@ func _ready():
 	
 	# Reset animations to idle state
 	reset_animation_state()
-	
-	# Connect signals for target detection
-	_connect_detection_signals()
-	
+	_setup_detection_signals()
 	# Call virtual method for child classes
 	_init_soldier()
 
 # Virtual method for child class initialization
 func _init_soldier() -> void:
 	pass
-
+	
+func _setup_detection_signals():
+	# Método vazio para ser sobrescrito se necessário
+	pass
 func _initialize_timers():
 	# Create idle timer
 	idle_timer = Timer.new()
@@ -130,14 +130,6 @@ func _initialize_components():
 		hurtbox_component.owner_entity = self
 		hurtbox_component.hit_received.connect(_on_hit_received)
 
-func _connect_detection_signals():
-	# Find detection area for enemies
-	var detection_area = get_node_or_null("DetectionArea")
-	if detection_area:
-		if not detection_area.body_entered.is_connected(_on_body_entered):
-			detection_area.body_entered.connect(_on_body_entered)
-		if not detection_area.body_exited.is_connected(_on_body_exited):
-			detection_area.body_exited.connect(_on_body_exited)
 
 # ======== MOVEMENT AND PHYSICS ========
 func _physics_process(delta):
@@ -193,55 +185,71 @@ func get_random_point_within_radius() -> Vector2:
 	return global_position + Vector2(cos(angle), sin(angle)) * distance
 
 # ======== TARGET MANAGEMENT ========
-func _on_body_entered(body):
+func _on_detection_body_entered(body):
+	# Verifica se o corpo é um inimigo
 	if body.is_in_group("enemies"):
-		mobs_in_range.append(body)
+		# Adiciona à lista de inimigos em alcance
+		if not body in mobs_in_range:
+			mobs_in_range.append(body)
+		
+		# Se não tiver alvo atual, seleciona
 		if current_target == null:
 			select_closest_target()
 
-func _on_body_exited(body):
+func _on_detection_body_exited(body):
+	# Remove da lista de inimigos em alcance
 	if body in mobs_in_range:
 		mobs_in_range.erase(body)
+		
+		# Se o alvo que saiu for o alvo atual, seleciona outro
 		if current_target == body:
 			select_closest_target()
 
 func select_closest_target():
-	# Store previous target for comparison
-	var previous_target = current_target
+	# Adicione prints de debug
+	print("Selecting closest target...")
+	print("Mobs in range: ", mobs_in_range)
 	
-	# Filter valid targets
-	mobs_in_range = mobs_in_range.filter(func(mob): return is_instance_valid(mob))
+	# Filtra alvos válidos
+	mobs_in_range = mobs_in_range.filter(func(mob): 
+		var is_valid = is_instance_valid(mob)
+		print("Checking mob validity: ", mob, " is valid: ", is_valid)
+		return is_valid
+	)
 	
 	if mobs_in_range.is_empty():
+		print("No valid targets found!")
 		current_target = null
 		attack_timer.stop()
 		reset_animation_state()
-		reset_attack()
 		target_position = get_random_point_within_radius()
 		
-		# Emit signal if target changed
-		if previous_target != null:
-			emit_signal("target_change", null)
-		
+		emit_signal("target_change", null)
 		return null
 	
-	# Find closest target within range
+	# Encontra o alvo mais próximo dentro do alcance
 	var closest_target = null
 	var closest_distance = INF
 	
 	for mob in mobs_in_range:
 		var distance = global_position.distance_to(mob.global_position)
-		if distance < closest_distance and is_target_in_range(mob):
+		var in_range = is_target_in_range(mob)
+		
+		print("Mob: ", mob, " Distance: ", distance, " In Range: ", in_range)
+		
+		if distance < closest_distance and in_range:
 			closest_distance = distance
 			closest_target = mob
 	
+	# Adicione um print detalhado
+	print("Selected target: ", closest_target)
+	
 	current_target = closest_target
 	
-	# Emit signal if target changed
-	if current_target != previous_target:
-		emit_signal("target_change", current_target)
+	# Emite sinal de mudança de alvo
+	emit_signal("target_change", current_target)
 	
-	# Start attack timer if we have a target
+	# Inicia o timer de ataque se tiver um alvo
 	if current_target and not is_attacking:
 		attack_timer.start()
 	
@@ -249,10 +257,17 @@ func select_closest_target():
 
 func is_target_in_range(target) -> bool:
 	if not is_instance_valid(target):
+		print("Target is not valid!")
 		return false
 	
 	var distance = global_position.distance_to(target.global_position)
-	return distance <= attack_range * range_multiplier
+	var in_range = distance <= attack_range * range_multiplier
+	
+	print("Checking target range - Distance: ", distance, 
+		  " Attack Range: ", attack_range * range_multiplier, 
+		  " In Range: ", in_range)
+	
+	return in_range
 
 func get_current_target():
 	if current_target and is_instance_valid(current_target):

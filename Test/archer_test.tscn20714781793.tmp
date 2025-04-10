@@ -4089,8 +4089,29 @@ radius = 272.09
 y_sort_enabled = true
 collision_mask = 3
 script = ExtResource("1_3pymg")
+cost_coin = null
+cost_food = null
+attack_upgrades = null
+attack_range = null
+move_speed = null
 attack_cooldown = 0.5
+max_health = null
+base_damage = null
+main_stat = null
 main_stat_type = "Dex"
+armor = null
+damage_reduction = null
+crit_chance = null
+crit_multi = null
+armor_penetration = null
+fire_damage_modifier = null
+ice_damage_modifier = null
+poison_damage_modifier = null
+movement_radius = null
+idle_time = null
+soldier_name = null
+type = null
+classType = null
 
 [node name="SpriteLayer" type="Node2D" parent="."]
 
@@ -4099,7 +4120,7 @@ visible = false
 texture = ExtResource("2_oeqfw")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 25
 
 [node name="QuiverBehind" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("5_k2kna")
@@ -4110,13 +4131,13 @@ vframes = 8
 texture = ExtResource("3_pcsk4")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 25
 
 [node name="Pants" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("4_bf8xg")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 25
 
 [node name="BowFront" type="Sprite2D" parent="SpriteLayer"]
 texture = ExtResource("2_oeqfw")
@@ -4128,7 +4149,7 @@ visible = false
 texture = ExtResource("5_k2kna")
 hframes = 8
 vframes = 8
-frame = 24
+frame = 25
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -4152,10 +4173,10 @@ visible = false
 position = Vector2(-0.75, 8)
 shape = SubResource("RectangleShape2D_5v3ge")
 
-[node name="DetectionComponent" type="Area2D" parent="."]
+[node name="AreaDetection" type="Area2D" parent="."]
 collision_mask = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionComponent"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AreaDetection"]
 visible = false
 shape = SubResource("CircleShape2D_uilrr")
 
@@ -4180,5 +4201,5 @@ script = ExtResource("14_ld0os")
 position = Vector2(2, -2)
 shape = SubResource("CapsuleShape2D_x8srj")
 
-[connection signal="body_entered" from="DetectionComponent" to="." method="_on_body_entered"]
-[connection signal="body_exited" from="DetectionComponent" to="." method="_on_body_exited"]
+[connection signal="body_entered" from="AreaDetection" to="." method="_on_body_entered"]
+[connection signal="body_exited" from="AreaDetection" to="." method="_on_body_exited"]

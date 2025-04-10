@@ -1,45 +1,6 @@
 extends GenericTalentSystem
 class_name ArcherTalentSystem
 
-# Mapeamento de alvos para cada tipo de estratégia
-var _strategy_targets = {
-	"PreciseAim": "archer",           # Afeta apenas o arqueiro (dano)
-	"EnhancedRange": "archer",        # Afeta apenas o arqueiro (alcance)
-	"SharpArrows": "projectile",      # Afeta apenas o projétil
-	"PiercingShot": "projectile",     # Afeta apenas o projétil
-	"FlamingArrows": "projectile",    # Afeta apenas o projétil
-	"DoubleShot": "both",             # Afeta ambos
-	"ChainShot": "projectile",        # Afeta apenas o projétil
-	"ArrowRain": "both",              # Afeta ambos
-	"PressureWave": "both",           # Afeta ambos
-	"FocusedShot": "projectile",      # Afeta apenas o projétil
-	"MarkedForDeath": "projectile",   # Afeta apenas o projétil
-	"Bloodseeker": "both",            # Afeta ambos
-	"SerratedArrows": "projectile",   # Afeta apenas o projétil
-	"ExplosiveArrows": "projectile",  # Afeta apenas o projétil
-}
-
-# Mapeamento por IDs para compatibilidade
-var _talent_id_targets = {
-	"Talent_1": "archer",     # PreciseAim
-	"Talent_2": "archer",     # EnhancedRange
-	"Talent_3": "projectile", # SharpArrows
-	"Talent_4": "projectile", # PiercingShot
-	"Talent_5": "projectile", # FocusedShot
-	"Talent_6": "projectile", # FlamingArrows
-	"Talent_11": "both",      # DoubleShot
-	"Talent_12": "projectile", # ChainShot
-	"Talent_13": "both",      # ArrowRain
-	"Talent_14": "both",      # PressureWave
-	"Talent_15": "projectile", # ArrowExplosion
-	"Talent_16": "projectile", # SerratedArrows
-	"Talent_17": "projectile", # MarkedForDeath
-	"Talent_18": "projectile"  # Bloodseeker
-}
-
-# Flag de debug
-var debug_mode: bool = false
-
 # Classe compilada específica para efeitos de arqueiro
 class ArcherEffects extends CompiledEffects:
 	# Efeitos básicos
@@ -183,7 +144,13 @@ func _init(archer: SoldierBase):
 
 # Função para compilar efeitos específicos de arqueiro
 func compile_archer_effects() -> ArcherEffects:
-	return compile_effects(ArcherEffects) as ArcherEffects
+	var effects = compile_effects(ArcherEffects) as ArcherEffects
+	
+	# Debug de todos os multiplicadores
+	print("Efeitos compilados:")
+	print("Damage multiplier: ", effects.damage_multiplier)
+	
+	return effects
 
 # Registra processadores de estratégia para arqueiro
 func _register_archer_processors():
@@ -196,58 +163,43 @@ func _register_archer_processors():
 	register_strategy_processor("DoubleShot", _process_double_shot)
 	register_strategy_processor("ChainShot", _process_chain_shot)
 	register_strategy_processor("ArrowRain", _process_arrow_rain)
-	register_strategy_processor("FocusedShot", _process_focused_shot)
-	register_strategy_processor("MarkedForDeath", _process_marked_for_death)
-	register_strategy_processor("Bloodseeker", _process_bloodseeker)
 	
 	# Registra processadores por números de talento
 	register_strategy_processor("Talent_1", _process_precise_aim)
 	register_strategy_processor("Talent_2", _process_enhanced_range)
 	register_strategy_processor("Talent_3", _process_sharp_arrows)
 	register_strategy_processor("Talent_4", _process_piercing_shot)
-	register_strategy_processor("Talent_5", _process_focused_shot)
 	register_strategy_processor("Talent_6", _process_flaming_arrows)
 	register_strategy_processor("Talent_11", _process_double_shot)
 	register_strategy_processor("Talent_12", _process_chain_shot)
 	register_strategy_processor("Talent_13", _process_arrow_rain)
-	register_strategy_processor("Talent_14", _process_pressure_wave)
-	register_strategy_processor("Talent_15", _process_explosion)
-	register_strategy_processor("Talent_16", _process_serrated_arrows)
-	register_strategy_processor("Talent_17", _process_marked_for_death)
-	register_strategy_processor("Talent_18", _process_bloodseeker)
+	# ... outros processadores
 
 # Processadores específicos para cada tipo de estratégia
 func _process_precise_aim(strategy, effects: ArcherEffects):
+	print("Processando Precise Aim")
 	var damage_bonus = strategy.get("damage_increase_percent")
+	print("Damage bonus: ", damage_bonus)
 	if damage_bonus != null:
-		effects.damage_multiplier += damage_bonus / 100.0
-		
-		if debug_mode:
-			print("Precise Aim: Added damage bonus ", damage_bonus, "%")
+		print("Multiplicador antes: ", effects.damage_multiplier)
+		# Redefine o multiplicador em vez de incrementar
+		effects.damage_multiplier = 1.0 * (1 + damage_bonus)
+		print("Multiplicador depois: ", effects.damage_multiplier)
 
 func _process_enhanced_range(strategy, effects: ArcherEffects):
 	var range_bonus = strategy.get("range_increase_percentage")
 	if range_bonus != null:
 		effects.range_multiplier += range_bonus / 100.0
-		
-		if debug_mode:
-			print("Enhanced Range: Added range bonus ", range_bonus, "%")
 
 func _process_sharp_arrows(strategy, effects: ArcherEffects):
 	var armor_pen = strategy.get("armor_penetration")
 	if armor_pen != null:
 		effects.armor_penetration += armor_pen
-		
-		if debug_mode:
-			print("Sharp Arrows: Added armor penetration ", armor_pen)
 
 func _process_piercing_shot(strategy, effects: ArcherEffects):
 	var pierce_count = strategy.get("piercing_count")
 	if pierce_count != null:
 		effects.piercing_count += pierce_count
-		
-		if debug_mode:
-			print("Piercing Shot: Added pierce count ", pierce_count)
 
 func _process_flaming_arrows(strategy, effects: ArcherEffects):
 	var fire_damage_percent = strategy.get("fire_damage_percent")
@@ -266,11 +218,6 @@ func _process_flaming_arrows(strategy, effects: ArcherEffects):
 		effects.fire_dot_interval = dot_interval
 	if dot_chance != null:
 		effects.fire_dot_chance = max(effects.fire_dot_chance, dot_chance)
-		
-	if debug_mode:
-		print("Flaming Arrows: Fire damage ", fire_damage_percent, 
-			  ", DoT damage ", dot_percent_per_tick, 
-			  ", duration ", dot_duration)
 
 func _process_double_shot(strategy, effects: ArcherEffects):
 	var angle_spread = strategy.get("angle_spread")
@@ -282,9 +229,6 @@ func _process_double_shot(strategy, effects: ArcherEffects):
 		effects.double_shot_angle = angle_spread
 	if damage_mod != null:
 		effects.second_arrow_damage_modifier = damage_mod
-		
-	if debug_mode:
-		print("Double Shot: Angle ", angle_spread, ", damage mod ", damage_mod)
 
 func _process_chain_shot(strategy, effects: ArcherEffects):
 	var chain_chance = strategy.get("chain_chance")
@@ -302,10 +246,6 @@ func _process_chain_shot(strategy, effects: ArcherEffects):
 		effects.chain_damage_decay = chain_decay
 	if max_chains != null:
 		effects.max_chains = max_chains
-		
-	if debug_mode:
-		print("Chain Shot: Chance ", chain_chance, ", range ", chain_range,
-			  ", max chains ", max_chains)
 
 func _process_arrow_rain(strategy, effects: ArcherEffects):
 	var arrow_count = strategy.get("arrow_count")
@@ -323,293 +263,88 @@ func _process_arrow_rain(strategy, effects: ArcherEffects):
 		effects.arrow_rain_radius = radius
 	if attacks_threshold != null:
 		effects.arrow_rain_interval = attacks_threshold
-		
-	if debug_mode:
-		print("Arrow Rain: Count ", arrow_count, ", damage ", damage_per_arrow,
-			  ", radius ", radius, ", interval ", attacks_threshold)
-
-func _process_focused_shot(strategy, effects: ArcherEffects):
-	var bonus = strategy.get("damage_bonus")
-	var threshold = strategy.get("health_threshold")
-	
-	effects.focused_shot_enabled = true
-	
-	if bonus != null:
-		effects.focused_shot_bonus = bonus
-	if threshold != null:
-		effects.focused_shot_threshold = threshold
-		
-	if debug_mode:
-		print("Focused Shot: Bonus ", bonus, ", threshold ", threshold)
-
-func _process_marked_for_death(strategy, effects: ArcherEffects):
-	var duration = strategy.get("mark_duration")
-	var crit_bonus = strategy.get("crit_damage_bonus")
-	
-	effects.mark_enabled = true
-	
-	if duration != null:
-		effects.mark_duration = duration
-	if crit_bonus != null:
-		effects.mark_crit_bonus = crit_bonus
-		
-	if debug_mode:
-		print("Mark for Death: Duration ", duration, ", crit bonus ", crit_bonus)
-
-func _process_bloodseeker(strategy, effects: ArcherEffects):
-	var bonus_per_stack = strategy.get("damage_per_stack")
-	var max_stacks = strategy.get("max_stacks")
-	
-	effects.bloodseeker_enabled = true
-	
-	if bonus_per_stack != null:
-		effects.bloodseeker_bonus_per_stack = bonus_per_stack
-	if max_stacks != null:
-		effects.bloodseeker_max_stacks = max_stacks
-		
-	if debug_mode:
-		print("Bloodseeker: Bonus per stack ", bonus_per_stack, ", max stacks ", max_stacks)
-
-func _process_pressure_wave(strategy, effects: ArcherEffects):
-	var knockback = strategy.get("knockback_force")
-	var slow = strategy.get("slow_percent")
-	var slow_duration = strategy.get("slow_duration")
-	var ground_duration = strategy.get("ground_duration")
-	
-	effects.pressure_wave_enabled = true
-	
-	if knockback != null:
-		effects.knockback_force = knockback
-	if slow != null:
-		effects.slow_percent = slow
-	if slow_duration != null:
-		effects.slow_duration = slow_duration
-	if ground_duration != null:
-		effects.ground_duration = ground_duration
-		
-	if debug_mode:
-		print("Pressure Wave: Knockback ", knockback, ", slow ", slow,
-			  ", slow duration ", slow_duration)
-
-func _process_explosion(strategy, effects: ArcherEffects):
-	var damage_percent = strategy.get("damage_percent")
-	var radius = strategy.get("radius")
-	
-	effects.explosion_enabled = true
-	
-	if damage_percent != null:
-		effects.explosion_damage_percent = damage_percent
-	if radius != null:
-		effects.explosion_radius = radius
-		
-	if debug_mode:
-		print("Explosion: Damage ", damage_percent, ", radius ", radius)
-
-func _process_serrated_arrows(strategy, effects: ArcherEffects):
-	var bleed_chance = strategy.get("bleed_chance")
-	var bleed_percent = strategy.get("bleed_damage_percent")
-	var bleed_duration = strategy.get("bleed_duration")
-	var bleed_interval = strategy.get("bleed_interval")
-	
-	effects.bleed_on_crit = true
-	
-	if bleed_percent != null:
-		effects.bleed_damage_percent = bleed_percent
-	if bleed_duration != null:
-		effects.bleed_duration = bleed_duration
-	if bleed_interval != null:
-		effects.bleed_interval = bleed_interval
-		
-	if debug_mode:
-		print("Serrated Arrows: Bleed damage ", bleed_percent, 
-			  ", duration ", bleed_duration)
-
-# Determina se um talent deve ser aplicado ao arqueiro, projétil ou ambos
-func should_apply_to_target(strategy, target_type: String) -> bool:
-	var strategy_name = _get_strategy_type(strategy)
-	
-	# Primeiro verifica no dicionário de estratégias
-	if strategy_name in _strategy_targets:
-		var strategy_target = _strategy_targets[strategy_name]
-		return strategy_target == target_type or strategy_target == "both"
-	
-	# Depois verifica no dicionário de IDs (para compatibilidade)
-	if strategy_name in _talent_id_targets:
-		var talent_target = _talent_id_targets[strategy_name]
-		return talent_target == target_type or talent_target == "both"
-	
-	# Se não encontrar, assume que é para ambos (comportamento conservador)
-	return true
 
 # Método para aplicar efeitos compilados a um projétil
 func apply_effects_to_projectile(projectile: Node, effects: ArcherEffects) -> void:
-	if not projectile:
-		push_error("ArcherTalentSystem: Cannot apply effects to null projectile")
-		return
-	
-	# Log start of talent application
-	if debug_mode:
-		print("Applying effects to projectile: ", projectile.name)
-	
-	# Apply base stats
+	# Aplica efeitos básicos
 	_apply_base_stats(projectile, effects)
 	
-	# Apply elemental effects
+	# Aplica efeitos elementais
 	_apply_elemental_effects(projectile, effects)
 	
-	# Apply movement effects (piercing, etc)
+	# Aplica efeitos de movimento
 	_apply_movement_effects(projectile, effects)
 	
-	# Apply special abilities (Chain Shot, etc)
+	# Aplica habilidades especiais
 	_apply_special_abilities(projectile, effects)
-	
-	# Mark as processed by talent system
-	projectile.set_meta("processed_by_talent_system", true)
 
-# Improved base stats application
+# Aplicação de efeitos específicos
 func _apply_base_stats(projectile: Node, effects: ArcherEffects) -> void:
-	# Apply damage multiplier directly to projectile
-	if "damage" in projectile:
-		var original_damage = projectile.damage
-		projectile.damage = int(original_damage * effects.damage_multiplier)
-		
-		if debug_mode:
-			print("Applied damage multiplier: ", effects.damage_multiplier, 
-				  " Original: ", original_damage, " New: ", projectile.damage)
+	print("Aplicando efeitos base")
+	print("Damage antes: ", projectile.damage)
+	print("Multiplicador: ", effects.damage_multiplier)
 	
-	# Apply critical hit chance bonus
-	if "crit_chance" in projectile and effects.crit_chance_bonus > 0:
-		projectile.crit_chance = min(projectile.crit_chance + effects.crit_chance_bonus, 1.0)
 	
-	# Update DmgCalculatorComponent
+	# Atualiza o DmgCalculatorComponent
 	if projectile.has_node("DmgCalculatorComponent"):
 		var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 		
-		# Set base damage (if not already derived from projectile)
 		if "base_damage" in dmg_calc:
-			dmg_calc.base_damage = int(dmg_calc.base_damage * effects.damage_multiplier)
+			dmg_calc.base_damage = projectile.damage
 		
-		# Set damage multiplier
 		if "damage_multiplier" in dmg_calc:
 			dmg_calc.damage_multiplier = effects.damage_multiplier
-		
-		# Set armor penetration
-		if effects.armor_penetration > 0:
-			dmg_calc.armor_penetration = effects.armor_penetration
-			_ensure_tag(projectile, "armor_piercing")
-			
-			if debug_mode:
-				print("Applied armor penetration: ", effects.armor_penetration)
-func _ensure_tag(projectile: Node, tag_name: String) -> void:
-	# If projectile doesn't have a 'tags' property, create one
-	if not "tags" in projectile:
-		projectile.tags = []
-	
-	# If projectile doesn't have an add_tag method, create a simple one
-	if not projectile.has_method("add_tag"):
-		projectile.add_tag = func(tag: String) -> void:
-			if not tag in projectile.tags:
-				projectile.tags.append(tag)
-	
-	# Add the tag using the add_tag method
-	projectile.add_tag(tag_name)
-	
-# Improved elemental effects application
+
 func _apply_elemental_effects(projectile: Node, effects: ArcherEffects) -> void:
-	# Apply fire damage
+	# Aplica efeitos de fogo
 	if effects.fire_damage_percent > 0:
 		_ensure_tag(projectile, "fire")
 		
 		if projectile.has_node("DmgCalculatorComponent"):
 			var dmg_calc = projectile.get_node("DmgCalculatorComponent")
+			var total_damage = dmg_calc.calculate_damage()
 			
-			# Get total base damage
-			var base_damage = dmg_calc.base_damage
-			
-			# Calculate fire damage
-			var fire_damage = int(base_damage * effects.fire_damage_percent)
-			
-			# Add to elemental damage
+			# Adiciona dano elemental de fogo
+			var fire_damage = int(total_damage["physical_damage"] * effects.fire_damage_percent)
 			if "elemental_damage" in dmg_calc:
 				if "fire" in dmg_calc.elemental_damage:
 					dmg_calc.elemental_damage["fire"] += fire_damage
 				else:
 					dmg_calc.elemental_damage["fire"] = fire_damage
-				
-				if debug_mode:
-					print("Applied fire damage: ", fire_damage)
 			
-			# Set up fire DoT if applicable
+			# Configura dados de DoT
 			if effects.fire_dot_damage_percent > 0:
 				var dot_data = {
-					"damage_per_tick": int(base_damage * effects.fire_dot_damage_percent),
+					"damage_per_tick": int(total_damage["physical_damage"] * effects.fire_dot_damage_percent),
 					"duration": effects.fire_dot_duration,
 					"interval": effects.fire_dot_interval,
 					"chance": effects.fire_dot_chance,
 					"type": "fire"
 				}
 				dmg_calc.set_meta("fire_dot_data", dot_data)
-				
-				if debug_mode:
-					print("Applied fire DoT: ", dot_data["damage_per_tick"], " per ", 
-						  effects.fire_dot_interval, "s for ", effects.fire_dot_duration, "s")
 
-# Improved movement effects application
 func _apply_movement_effects(projectile: Node, effects: ArcherEffects) -> void:
-	# Apply piercing
+	# Aplica piercing
 	if effects.piercing_count > 0:
 		projectile.piercing = true
 		projectile.set_meta("piercing_count", effects.piercing_count)
 		_ensure_tag(projectile, "piercing")
 		
-		# For projectiles that use physics, disable collision with enemies
+		# Para projéteis físicos, desabilita colisão com inimigos
 		if projectile is CharacterBody2D:
 			projectile.set_collision_mask_value(2, false)
-			
-		if debug_mode:
-			print("Applied piercing: ", effects.piercing_count, " targets")
 
-# Improved special abilities application
 func _apply_special_abilities(projectile: Node, effects: ArcherEffects) -> void:
-	# Double Shot - mostly handled at archer level
+	# Double Shot
 	if effects.double_shot_enabled:
 		projectile.set_meta("double_shot_enabled", true)
 		projectile.set_meta("double_shot_angle", effects.double_shot_angle)
 		projectile.set_meta("second_arrow_damage_modifier", effects.second_arrow_damage_modifier)
 		_ensure_tag(projectile, "double_shot")
-		
-		if debug_mode:
-			print("Applied Double Shot: angle=", effects.double_shot_angle)
 	
 	# Chain Shot
 	if effects.can_chain:
-		# Direct settings for Arrow class
-		if "chain_shot_enabled" in projectile:
-			projectile.chain_shot_enabled = true
-			projectile.chain_chance = effects.chain_chance
-			projectile.chain_range = effects.chain_range
-			projectile.chain_damage_decay = effects.chain_damage_decay
-			projectile.max_chains = effects.max_chains
-			projectile.current_chains = 0
-			projectile.will_chain = false
-			
-			if "hit_targets" in projectile and projectile.hit_targets == null:
-				projectile.hit_targets = []
-		
-		# Metadata for any projectile type
-		projectile.set_meta("chain_shot_enabled", true)
-		projectile.set_meta("chain_chance", effects.chain_chance)
-		projectile.set_meta("chain_range", effects.chain_range)
-		projectile.set_meta("chain_damage_decay", effects.chain_damage_decay)
-		projectile.set_meta("max_chains", effects.max_chains)
-		projectile.set_meta("current_chains", 0)
-		projectile.set_meta("will_chain", null)
-		
-		_ensure_tag(projectile, "chain_shot")
-		
-		if debug_mode:
-			print("Applied Chain Shot: chance=", effects.chain_chance, 
-				  " range=", effects.chain_range, " max=", effects.max_chains)
+		_setup_chain_shot(projectile, effects)
 	
 	# Arrow Rain
 	if effects.arrow_rain_enabled and not projectile.has_meta("is_rain_arrow"):
@@ -619,10 +354,6 @@ func _apply_special_abilities(projectile: Node, effects: ArcherEffects) -> void:
 		projectile.set_meta("arrow_rain_radius", effects.arrow_rain_radius)
 		projectile.set_meta("arrow_rain_interval", effects.arrow_rain_interval)
 		_ensure_tag(projectile, "arrow_rain")
-		
-		if debug_mode:
-			print("Applied Arrow Rain: count=", effects.arrow_rain_count, 
-				  " radius=", effects.arrow_rain_radius)
 	
 	# Focused Shot
 	if effects.focused_shot_enabled:
@@ -654,30 +385,208 @@ func _apply_special_abilities(projectile: Node, effects: ArcherEffects) -> void:
 		projectile.set_meta("wave_visual_enabled", true)
 		projectile.set_meta("ground_duration", effects.ground_duration)
 		_ensure_tag(projectile, "pressure_wave")
-		
-		if debug_mode:
-			print("Applied Pressure Wave: knockback=", effects.knockback_force,
-				  " slow=", effects.slow_percent)
+
+# Utilitário para configurar Chain Shot
+func _setup_chain_shot(projectile, effects: ArcherEffects) -> void:
+	# Configuração específica para flechas reais
+	if "chain_shot_enabled" in projectile:
+		projectile.chain_shot_enabled = true
+		projectile.chain_chance = effects.chain_chance
+		projectile.chain_range = effects.chain_range
+		projectile.chain_damage_decay = effects.chain_damage_decay
+		projectile.max_chains = effects.max_chains
+		projectile.current_chains = 0
+		projectile.will_chain = false
+	else:
+		# Para outros tipos de projéteis, usa metadados
+		projectile.set_meta("chain_shot_enabled", true)
+		projectile.set_meta("chain_chance", effects.chain_chance)
+		projectile.set_meta("chain_range", effects.chain_range)
+		projectile.set_meta("chain_damage_decay", effects.chain_damage_decay)
+		projectile.set_meta("max_chains", effects.max_chains)
+		projectile.set_meta("current_chains", 0)
+		projectile.set_meta("will_chain", null)
+		projectile.set_meta("hit_targets", [])
 	
-	# Explosion effect
-	if effects.explosion_enabled:
-		projectile.set_meta("has_explosion_effect", true)
-		projectile.set_meta("explosion_damage_percent", effects.explosion_damage_percent)
-		projectile.set_meta("explosion_radius", effects.explosion_radius)
-		_ensure_tag(projectile, "explosion")
-		
-		if debug_mode:
-			print("Applied Explosion: damage=", effects.explosion_damage_percent,
-				  " radius=", effects.explosion_radius)
+	# Adiciona tag
+	_ensure_tag(projectile, "chain_shot")
+
+# Utilitário para garantir que uma tag existe
+func _ensure_tag(projectile: Node, tag_name: String) -> void:
+	if not "tags" in projectile:
+		projectile.tags = []
 	
-	# Bleeding/Serrated Arrows
-	if effects.bleed_on_crit:
-		projectile.set_meta("has_bleeding_effect", true)
-		projectile.set_meta("bleeding_damage_percent", effects.bleed_damage_percent)
-		projectile.set_meta("bleeding_duration", effects.bleed_duration)
-		projectile.set_meta("bleeding_interval", effects.bleed_interval)
-		_ensure_tag(projectile, "bleeding")
+	# Garante que projectile tenha o método add_tag
+	if not projectile.has_method("add_tag"):
+		projectile.add_tag = func(tag: String) -> void:
+			if not tag in projectile.tags:
+				projectile.tags.append(tag)
+	
+	projectile.add_tag(tag_name)
+
+# Método para aplicar efeitos compilados a um soldado arqueiro
+func apply_effects_to_soldier(archer: ArcherBase, effects: ArcherEffects) -> void:
+	# Aplica modificadores de estatísticas
+	archer.damage_multiplier = effects.damage_multiplier
+	archer.range_multiplier = effects.range_multiplier
+	archer.cooldown_multiplier = 1.0 / max(0.01, effects.attack_speed_multiplier)  # Inverte pois cooldown é o inverso da velocidade
+	
+	# Aplica modificadores elementais
+	archer.fire_damage_modifier = effects.fire_damage_percent
+	
+	# Define penetração de armadura
+	archer.armor_penetration = effects.armor_penetration
+	
+	# Configura Double Shot
+	if effects.double_shot_enabled:
+		archer.set_meta("double_shot_active", true)
+		archer.set_meta("double_shot_angle", effects.double_shot_angle)
+		archer.set_meta("double_shot_damage_modifier", effects.second_arrow_damage_modifier)
+	else:
+		# Limpa metadados se Double Shot não estiver ativo
+		if archer.has_meta("double_shot_active"):
+			archer.remove_meta("double_shot_active")
+	
+	# Armazena compiled_effects para uso futuro
+	archer.set_meta("compiled_effects", effects)# Método para lidar com mudanças de alvo
+func _on_target_change(new_target: Node) -> void:
+	# Se não houver alvo novo ou não for válido, ignora
+	if not new_target or not is_instance_valid(new_target):
+		return
 		
-		if debug_mode:
-			print("Applied Bleeding: damage=", effects.bleed_damage_percent,
-				  " duration=", effects.bleed_duration)
+	# Reseta stacks do Bloodseeker quando alvo muda
+	_reset_bloodseeker_stacks()
+
+# Método para resetar stacks do Bloodseeker
+func _reset_bloodseeker_stacks() -> void:
+	if not soldier:
+		return
+		
+	# Se o soldier tem dados de Bloodseeker, reseta
+	if soldier.has_meta("bloodseeker_data"):
+		var data = soldier.get_meta("bloodseeker_data")
+		data["target"] = null
+		data["target_instance_id"] = -1
+		data["stacks"] = 0
+		soldier.set_meta("bloodseeker_data", data)
+		
+		# Remove visualização
+		_remove_bloodseeker_stack_visual()
+
+# Remove a visualização de stacks do Bloodseeker
+func _remove_bloodseeker_stack_visual() -> void:
+	if not soldier or not is_instance_valid(soldier):
+		return
+		
+	if soldier.has_meta("bloodseeker_visual"):
+		var visual = soldier.get_meta("bloodseeker_visual")
+		if visual and is_instance_valid(visual):
+			visual.queue_free()
+		soldier.remove_meta("bloodseeker_visual")
+
+# Aplica hit do Bloodseeker
+func apply_bloodseeker_hit(target: Node) -> void:
+	# Verificações básicas
+	if not soldier or not target or not is_instance_valid(target):
+		return
+	
+	# Compila efeitos para obter configuração do Bloodseeker
+	var effects = compile_archer_effects()
+	
+	# Verifica se Bloodseeker está ativo
+	if not "bloodseeker_enabled" in effects or not effects.bloodseeker_enabled:
+		return
+	
+	# Inicializa estrutura de dados se necessário
+	if not soldier.has_meta("bloodseeker_data"):
+		soldier.set_meta("bloodseeker_data", {
+			"target": null,
+			"stacks": 0,
+			"last_hit_time": 0,
+			"target_instance_id": -1
+		})
+	
+	var data = soldier.get_meta("bloodseeker_data")
+	var current_target = data["target"]
+	var current_target_id = data["target_instance_id"]
+	var target_id = target.get_instance_id()
+	
+	# Atualiza timestamp
+	data["last_hit_time"] = Time.get_ticks_msec()
+	
+	# Verifica se é um novo alvo comparando IDs de instância
+	if target_id != current_target_id:
+		# Novo alvo, reseta stacks para 1
+		data["target"] = target
+		data["target_instance_id"] = target_id
+		data["stacks"] = 1
+	else:
+		# Mesmo alvo, incrementa stacks até o máximo
+		var stacks = data["stacks"]
+		var max_stacks = effects.bloodseeker_max_stacks
+		stacks = min(stacks + 1, max_stacks)
+		data["stacks"] = stacks
+	
+	# Atualiza metadados
+	soldier.set_meta("bloodseeker_data", data)
+	
+	# Cria indicador visual
+	_create_bloodseeker_stack_visual(data["stacks"], effects.bloodseeker_max_stacks)
+
+# Cria visual do Bloodseeker
+func _create_bloodseeker_stack_visual(stacks: int, max_stacks: int) -> void:
+	if not soldier or not is_instance_valid(soldier):
+		return
+		
+	# Primeiro remove qualquer indicador existente
+	_remove_bloodseeker_stack_visual()
+	
+	# Não mostra nada para 0 stacks
+	if stacks <= 0:
+		return
+	
+	# Cria container
+	var container = Control.new()
+	container.name = "BloodseekerStackDisplay"
+	container.position = Vector2(-40, -40)
+	container.z_index = 100
+	
+	# Largura para o indicador
+	var total_width = 16 * min(stacks, max_stacks)
+	container.custom_minimum_size = Vector2(total_width, 16)
+	
+	# Cria indicador com texto
+	var label = Label.new()
+	label.text = str(stacks) + "x"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_FILL
+	label.size_flags_vertical = Control.SIZE_FILL
+	
+	# Aplica cor
+	var font_color = Color(1.0, 0.2, 0.2)
+	label.add_theme_color_override("font_color", font_color)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0))
+	label.add_theme_constant_override("shadow_offset_x", 1)
+	label.add_theme_constant_override("shadow_offset_y", 1)
+	
+	# Adiciona label ao container
+	container.add_child(label)
+	
+	# Adiciona ao soldier
+	soldier.add_child(container)
+	
+	# Armazena referência ao container
+	soldier.set_meta("bloodseeker_visual", container)
+	
+	# Adiciona animação
+	var tween = container.create_tween()
+	tween.tween_property(container, "scale", Vector2(1.2, 1.2), 0.25)
+	tween.tween_property(container, "scale", Vector2(1.0, 1.0), 0.25)
+	
+	# Animação especial para stacks máximos
+	if stacks >= max_stacks:
+		var max_tween = container.create_tween()
+		max_tween.tween_property(container, "modulate", Color(1.0, 0.5, 0.0, 1.0), 0.3)
+		max_tween.tween_property(container, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.3)
+		max_tween.set_loops(2)

@@ -31,11 +31,10 @@ func _init_hurtbox() -> void:
 
 # Process when an area is entered
 func _on_area_entered(area: Area2D) -> void:
-	# Check if the area is a hitbox
+	# Verifique se está realmente processando hits
 	if area is HitboxComponent and is_active and not is_immune:
-		# Let the hitbox process the hit
-		# (This allows the hitbox to control the flow and filters)
-		# The hitbox will call receive_hit if appropriate
+		print("Hurtbox: Area entered - ", area)
+		# Se não chamar receive_hit aqui, o hit pode não ser processado
 		pass
 
 # Public method to receive a hit from a hitbox
