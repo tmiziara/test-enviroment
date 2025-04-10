@@ -37,26 +37,24 @@ func _init_soldier():
 	set_meta("original_attack_range", attack_range)
 	set_meta("original_attack_cooldown", attack_cooldown)
 	
-	# Initialize archer talent system
-	talent_system = ArcherTalentSystem.new(self)
-	talent_system.name = "ArcherTalentSystem"
-	add_child(talent_system)
+	# Iniciamos o talent_system como null
+	talent_system = null
+	
+	# Agendamos a inicialização para o próximo frame
 	call_deferred("_initialize_talent_system")
-	# Connect target change signal to talent system
-	connect("target_change", talent_system._on_target_change)
+	
+	# NÃO tente conectar sinais aqui ainda!
+	# Isso será feito em _initialize_talent_system()
 
 # Function to initialize talent system safely
 func _initialize_talent_system():
-	# Check if the system is already initialized
-	if talent_system != null:
-		return
-		
-	# Create the talent system with proper reference to self
+	# Criar o sistema de talentos com referência adequada
 	talent_system = ArcherTalentSystem.new(self)
 	talent_system.name = "ArcherTalentSystem"
 	add_child(talent_system)
 	
-	# Connect target change signal to talent system
+	# Conectar o sinal DEPOIS de criar o sistema
+	# Verifica se o sinal já não está conectado
 	if not is_connected("target_change", talent_system._on_target_change):
 		connect("target_change", talent_system._on_target_change)
 	

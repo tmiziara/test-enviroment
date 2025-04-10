@@ -49,15 +49,3 @@ func _on_talent_button_pressed():
 	
 	# Adiciona à cena
 	$CanvasLayer.add_child(talent_tree_instance)
-
-func _unhandled_input(event):
-	if event.is_action_pressed("toggle_performance_monitor"):
-		# Use o nome exato do singleton como está configurado
-		var performance_monitor = get_tree().root.get_node_or_null("PoolPerformanceMonitor2")
-		
-		if performance_monitor:
-			if performance_monitor.debug_label:
-				# Alterna a visibilidade
-				performance_monitor.debug_label.visible = !performance_monitor.debug_label.visible
-		else:
-			print("ERRO CRÍTICO: Monitor de desempenho NÃO ENCONTRADO")

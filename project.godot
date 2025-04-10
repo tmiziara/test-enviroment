@@ -19,8 +19,6 @@ config/icon="res://icon.svg"
 
 DamageNumbers="*res://Test/Singletons/damageNumbers.gd"
 GlobalDebuffSystem="*res://Test/Singletons/global_debuff_system.gd"
-ProjectilePool="*res://Test/Singletons/ProjectilePool.gd"
-PoolPerformanceMonitor2="*res://Test/Debug/PoolPerformanceMonitor.gd"
 DoTManagerSingleton="*res://Test/Singletons/DoTManagerSingleton.gd"
 
 [debug]
