@@ -48,21 +48,11 @@ func calculate_damage() -> Dictionary:
 		damage_package["is_critical"] = projectile.is_crit
 	elif get_parent() and "is_crit" in get_parent():
 		damage_package["is_critical"] = get_parent().is_crit
-	print("Debug - DmgCalculator calculation:")
-	print("Base damage: ", base_damage)
-	print("Main stat bonus: ", int(main_stat * main_stat_multiplier))
-	print("Total before multiplier: ", base_damage + int(main_stat * main_stat_multiplier))
-	print("Damage multiplier: ", damage_multiplier)
-	print("Final physical damage: ", total_damage)
 	return damage_package
 
 # Inicializa o calculador com base no atirador
 func initialize_from_shooter(shooter_ref):
 	self.shooter = shooter_ref
-	print("Debug - DmgCalculator initialization:")
-	print("Initial base_damage: ", base_damage)
-	print("Main stat: ", main_stat)
-	print("Main stat multiplier: ", main_stat_multiplier)
 	# Obtém o projétil (geralmente o nó pai)
 	projectile = get_parent()
 	
@@ -110,17 +100,22 @@ func add_dot_effect(damage: int, duration: float, interval: float, element_type:
 func debug_damage_calculation() -> String:
 	var debug_info = "==== DAMAGE CALCULATION DEBUG ====\n"
 	debug_info += "Base damage: " + str(base_damage) + "\n"
+	debug_info += "Main stat: " + str(main_stat) + "\n"
 	debug_info += "Main stat bonus: " + str(int(main_stat * main_stat_multiplier)) + "\n"
 	debug_info += "Damage multiplier: " + str(damage_multiplier) + "\n"
-	debug_info += "Calculated damage: " + str(calculate_damage().get("physical_damage")) + "\n"
 	
-	# Informação de crítico
-	if projectile and "is_crit" in projectile:
-		debug_info += "Is critical: " + str(projectile.is_crit) + "\n"
+	var damage_package = calculate_damage()
+	var physical_damage = damage_package.get("physical_damage")
+	debug_info += "Calculated physical damage: " + str(physical_damage) + "\n"
 	
-	# Dano elemental
-	if not elemental_damage.is_empty():
-		debug_info += "Elemental damage: " + str(elemental_damage) + "\n"
+	# Informações de armadura
+	var armor = 10 # Valor fixo para debug
+	var reduction = 1.0 - (1.0 / (1.0 + (armor * 0.01)))
+	var final_damage = int(physical_damage * (1.0 - reduction))
+	
+	debug_info += "Armor: " + str(armor) + "\n"
+	debug_info += "Armor reduction: " + str(reduction * 100) + "%\n"
+	debug_info += "Final damage after armor: " + str(final_damage) + "\n"
 	
 	debug_info += "================================"
 	

@@ -153,11 +153,11 @@ func spawn_arrow():
 	# Definir o dano da flecha com o valor já calculado
 	arrow.damage = base_damage
 	
-	# Aplicar melhorias de talentos
-	for upgrade in attack_upgrades:
-		if upgrade:
-			upgrade.apply_upgrade(arrow)
-
+	# Compilar e aplicar efeitos do sistema de talentos
+	if talent_system:
+		var effects = talent_system.compile_archer_effects()
+		talent_system.apply_effects_to_projectile(arrow, effects)
+	
 	# Adicionar à cena
 	get_parent().add_child(arrow)
 

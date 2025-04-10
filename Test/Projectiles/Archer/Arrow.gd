@@ -25,7 +25,8 @@ var homing_target = null
 
 func _ready():
 	super._ready()
-	
+	if dmg_calculator:
+		print(dmg_calculator.debug_damage_calculation())
 	# Configurações específicas para flechas
 	if trail_enabled and trail_particles:
 		trail_particles.emitting = true

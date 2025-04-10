@@ -144,7 +144,13 @@ func _init(archer: SoldierBase):
 
 # Função para compilar efeitos específicos de arqueiro
 func compile_archer_effects() -> ArcherEffects:
-	return compile_effects(ArcherEffects) as ArcherEffects
+	var effects = compile_effects(ArcherEffects) as ArcherEffects
+	
+	# Debug de todos os multiplicadores
+	print("Efeitos compilados:")
+	print("Damage multiplier: ", effects.damage_multiplier)
+	
+	return effects
 
 # Registra processadores de estratégia para arqueiro
 func _register_archer_processors():
@@ -171,9 +177,14 @@ func _register_archer_processors():
 
 # Processadores específicos para cada tipo de estratégia
 func _process_precise_aim(strategy, effects: ArcherEffects):
+	print("Processando Precise Aim")
 	var damage_bonus = strategy.get("damage_increase_percent")
+	print("Damage bonus: ", damage_bonus)
 	if damage_bonus != null:
-		effects.damage_multiplier += damage_bonus / 100.0
+		print("Multiplicador antes: ", effects.damage_multiplier)
+		# Redefine o multiplicador em vez de incrementar
+		effects.damage_multiplier = 1.0 * (1 + damage_bonus)
+		print("Multiplicador depois: ", effects.damage_multiplier)
 
 func _process_enhanced_range(strategy, effects: ArcherEffects):
 	var range_bonus = strategy.get("range_increase_percentage")
@@ -267,13 +278,15 @@ func apply_effects_to_projectile(projectile: Node, effects: ArcherEffects) -> vo
 	# Aplica habilidades especiais
 	_apply_special_abilities(projectile, effects)
 
-# Aplicação de efeitos específicos (dividido para clareza)
+# Aplicação de efeitos específicos
 func _apply_base_stats(projectile: Node, effects: ArcherEffects) -> void:
+	print("Aplicando efeitos base")
+	print("Damage antes: ", projectile.damage)
+	print("Multiplicador: ", effects.damage_multiplier)
+	
 	if "damage" in projectile:
 		projectile.damage = int(projectile.damage * effects.damage_multiplier)
-	
-	if "crit_chance" in projectile:
-		projectile.crit_chance = min(projectile.crit_chance + effects.crit_chance_bonus, 1.0)
+		print("Damage depois: ", projectile.damage)
 	
 	# Atualiza o DmgCalculatorComponent
 	if projectile.has_node("DmgCalculatorComponent"):
@@ -284,10 +297,6 @@ func _apply_base_stats(projectile: Node, effects: ArcherEffects) -> void:
 		
 		if "damage_multiplier" in dmg_calc:
 			dmg_calc.damage_multiplier = effects.damage_multiplier
-		
-		if effects.armor_penetration > 0:
-			dmg_calc.armor_penetration = effects.armor_penetration
-			_ensure_tag(projectile, "armor_piercing")
 
 func _apply_elemental_effects(projectile: Node, effects: ArcherEffects) -> void:
 	# Aplica efeitos de fogo
