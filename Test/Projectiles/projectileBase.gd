@@ -50,9 +50,11 @@ func _ready():
 	
 	# Inicializa calculador de dano
 	if dmg_calculator:
-		dmg_calculator.base_damage = damage
-		if shooter:
-			dmg_calculator.initialize_from_shooter(shooter)
+		if is_crit:
+			dmg_calculator.base_damage = apply_critical_multiplier(damage)
+		else:
+			dmg_calculator.base_damage = damage
+		
 
 func _physics_process(delta):
 	# Movimento básico
@@ -88,49 +90,6 @@ func apply_critical_multiplier(base_damage: int) -> int:
 	
 	# Calcula dano final
 	return int(base_damage * crit_multi)
-
-# ======== MÉTODOS DE DANO ========
-func get_damage_package() -> Dictionary:
-	# Garante aplicação correta do crítico
-	var is_critical = is_crit
-	
-	# Obtém dano base do calculador ou valor direto
-	var physical_damage = damage
-	var elemental_damages = {}
-	
-	if dmg_calculator:
-		var calc_package = dmg_calculator.calculate_damage()
-		physical_damage = calc_package.get("physical_damage", damage)
-		elemental_damages = calc_package.get("elemental_damage", {})
-	
-	# Aplica multiplicador crítico ao dano físico
-	if is_critical:
-		physical_damage = apply_critical_multiplier(physical_damage)
-		
-		# Também aplica aos danos elementais
-		for element in elemental_damages.keys():
-			elemental_damages[element] = apply_critical_multiplier(elemental_damages[element])
-	
-	# Cria pacote final
-	var damage_package = {
-		"physical_damage": physical_damage,
-		"is_critical": is_critical,
-		"tags": tags.duplicate()
-	}
-	
-	# Adiciona dano elemental se houver
-	if not elemental_damages.is_empty():
-		damage_package["elemental_damage"] = elemental_damages
-	
-	# Adiciona penetração de armadura se houver
-	if dmg_calculator and dmg_calculator.armor_penetration > 0:
-		damage_package["armor_penetration"] = dmg_calculator.armor_penetration
-	
-	# Adiciona efeitos DoT se houver
-	if dmg_calculator and not dmg_calculator.dot_effects.is_empty():
-		damage_package["dot_effects"] = dmg_calculator.dot_effects.duplicate(true)
-	
-	return damage_package
 
 # ======== MÉTODOS DE HIT E COLISÃO ========
 func _on_hit_occurred(target, hit_data):

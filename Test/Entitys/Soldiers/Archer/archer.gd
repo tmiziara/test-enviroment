@@ -137,53 +137,29 @@ func spawn_arrow():
 			print("No valid target for arrow")
 		return
 	
-	# Instantiate arrow directly
+	# Instanciar flecha
 	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
-	if not arrow_scene:
-		if debug_mode:
-			print("ERROR: Could not load arrow scene")
-		return
-	
 	var arrow = arrow_scene.instantiate()
-	if not arrow:
-		if debug_mode:
-			print("ERROR: Could not instantiate arrow")
-		return
 	
-	# Basic arrow configuration
+	# Configuração básica
 	arrow.global_position = arrow_spawn.global_position
 	arrow.direction = (current_target.global_position - arrow_spawn.global_position).normalized()
 	arrow.rotation = arrow.direction.angle()
-	
-	# IMPORTANT: Set the shooter BEFORE adding the arrow to the tree
 	arrow.shooter = self
 	
-	# Calculate critical hit
-	if "crit_chance" in arrow:
-		arrow.crit_chance = crit_chance
-	if arrow.has_method("_calculate_critical_hit"):
-		arrow.is_crit = arrow._calculate_critical_hit()
+	# Calcular dano base
+	var base_damage = get_weapon_damage()  # Usa o método que já calcula dano base do arqueiro
 	
-	# If it has a damage calculator, initialize it
-	if arrow.has_node("DmgCalculatorComponent"):
-		var dmg_calc = arrow.get_node("DmgCalculatorComponent")
-		dmg_calc.initialize_from_shooter(self)
+	# Definir o dano da flecha com o valor já calculado
+	arrow.damage = base_damage
 	
-	# Apply talent upgrades
+	# Aplicar melhorias de talentos
 	for upgrade in attack_upgrades:
 		if upgrade:
 			upgrade.apply_upgrade(arrow)
-	
-	# Use talent_system to apply compiled effects
-	if talent_system:
-		var effects = talent_system.compile_archer_effects()
-		talent_system.apply_effects_to_projectile(arrow, effects)
-	
-	# Add the arrow to the scene
+
+	# Adicionar à cena
 	get_parent().add_child(arrow)
-	
-	if debug_mode:
-		print("Arrow spawned successfully")
 
 func spawn_double_shot_arrows():
 	if not current_target or not is_instance_valid(current_target):

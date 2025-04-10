@@ -24,6 +24,7 @@ func reduce_damage(amount: int, damage_type: String = "") -> int:
 		"": # Dano físico
 			var reduction = calculate_armor_reduction(armor)
 			final_amount = int(amount * (1.0 - reduction))
+			print("Armor reduction: ", reduction, " Final amount: ", final_amount)
 		"fire":
 			final_amount = int(amount * (1.0 - resistance_fire))
 		"ice": 

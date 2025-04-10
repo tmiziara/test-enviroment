@@ -323,14 +323,17 @@ func _apply_bleeding_effect(target: Node) -> void:
 	var bleed_duration = get_meta("bleeding_duration", 4.0)
 	var bleed_interval = get_meta("bleeding_interval", 0.5)
 	
-	# Calcula dano total para referência
-	var damage_package = get_damage_package()
-	var total_damage = damage_package.get("physical_damage", damage)
+	# Agora usamos dmg_calculator diretamente para obter o dano
+	var total_damage = damage  # Valor base caso não tenha calculador
 	
-	# Adiciona danos elementais
-	var elemental_damage = damage_package.get("elemental_damage", {})
-	for element_type in elemental_damage:
-		total_damage += elemental_damage[element_type]
+	if dmg_calculator:
+		var damage_package = dmg_calculator.calculate_damage()
+		total_damage = damage_package.get("physical_damage", damage)
+		
+		# Adiciona danos elementais
+		var elemental_damage = damage_package.get("elemental_damage", {})
+		for element_type in elemental_damage:
+			total_damage += elemental_damage[element_type]
 	
 	# Calcula dano de sangramento por tick
 	var bleed_damage_per_tick = int(total_damage * bleed_damage_percent)
@@ -351,9 +354,13 @@ func _create_explosion_effect(target: Node) -> void:
 	var explosion_damage_percent = get_meta("explosion_damage_percent", 0.5)
 	var explosion_radius = get_meta("explosion_radius", 30.0)
 	
-	# Calcula dano
-	var damage_package = get_damage_package()
-	var base_damage = damage_package.get("physical_damage", damage)
+	# Agora usamos dmg_calculator diretamente para obter o dano
+	var base_damage = damage  # Valor base caso não tenha calculador
+	
+	if dmg_calculator:
+		var damage_package = dmg_calculator.calculate_damage()
+		base_damage = damage_package.get("physical_damage", damage)
+	
 	var explosion_damage = int(base_damage * explosion_damage_percent)
 	
 	# Aplica dano em área
@@ -381,11 +388,11 @@ func _create_explosion_effect(target: Node) -> void:
 				"tags": ["explosion"]
 			}
 			
-			# Adiciona proporção do dano elemental
-			if "elemental_damage" in damage_package:
+			# Adiciona proporção do dano elemental se disponível
+			if dmg_calculator and "elemental_damage" in dmg_calculator:
 				explosion_package["elemental_damage"] = {}
-				for element in damage_package["elemental_damage"]:
-					explosion_package["elemental_damage"][element] = int(damage_package["elemental_damage"][element] * explosion_damage_percent)
+				for element in dmg_calculator.elemental_damage:
+					explosion_package["elemental_damage"][element] = int(dmg_calculator.elemental_damage[element] * explosion_damage_percent)
 			
 			# Aplica dano
 			health.take_complex_damage(explosion_package)
