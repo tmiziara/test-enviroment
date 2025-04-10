@@ -25,15 +25,33 @@ var homing_target = null
 
 func _ready():
 	super._ready()
-	if dmg_calculator:
-		print(dmg_calculator.debug_damage_calculation())
-	# Configurações específicas para flechas
-	if trail_enabled and trail_particles:
-		trail_particles.emitting = true
-	print("o dano da flecha é ", damage)
-	# Verifica se tem processador de ArrowRain
+	
+	# Initialize chain shot from metadata if available
+	if has_meta("chain_shot_enabled"):
+		chain_shot_enabled = get_meta("chain_shot_enabled")
+		
+		if has_meta("chain_chance"):
+			chain_chance = get_meta("chain_chance")
+		if has_meta("chain_range"):
+			chain_range = get_meta("chain_range")
+		if has_meta("chain_damage_decay"):
+			chain_damage_decay = get_meta("chain_damage_decay")
+		if has_meta("max_chains"):
+			max_chains = get_meta("max_chains")
+	
+	# Initialize other talent properties from metadata
+	if has_meta("double_shot_enabled"):
+		# Double shot specific logic if needed
+		pass
+		
+	# Check for rain arrow processor
 	if has_meta("is_rain_arrow") and not has_node("RainArrowProcessor"):
 		_add_rain_arrow_processor()
+		
+	# Apply compiled effects if available
+	if shooter and shooter.has_meta("compiled_effects"):
+		var compiled_effects = shooter.get_meta("compiled_effects")
+		# Any additional arrow-specific application of effects could go here
 
 func _physics_process(delta):
 	# Lógica de Homing (direcionamento)

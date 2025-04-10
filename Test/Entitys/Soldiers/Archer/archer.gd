@@ -4,6 +4,7 @@ class_name ArcherBase
 # ======== REFERENCES AND COMPONENTS ========
 @onready var arrow_spawn: Marker2D = $Aim
 @onready var buff_display_container = get_node_or_null("BuffDisplayContainer")
+@onready var archer_talent_manager = get_node_or_null("ArcherTalentManager")
 
 # ======== ARCHER-SPECIFIC PROPERTIES ========
 @export var cost_coin: int = 10
@@ -40,9 +41,14 @@ func _initialize_talent_system():
 	talent_system.name = "ArcherTalentSystem"
 	add_child(talent_system)
 	
-	# Connect signal after creating the system
+	# Set debug mode if needed
+	# talent_system.debug_mode = true  # Uncomment for debugging
+	
+	# Connect signal for target changes
 	if not is_connected("target_change", talent_system._on_target_change):
 		connect("target_change", talent_system._on_target_change)
+	
+	print("ArcherTalentSystem initialized successfully")
 
 func _ready():
 	# Call parent _ready first
@@ -50,6 +56,12 @@ func _ready():
 	
 	# Set up icon
 	icon_texture = preload("res://Test/Assets/Icons/SoldierIcons/Bows000.png")
+	
+	# Check if ArcherTalentManager exists, create it if not
+	if not has_node("ArcherTalentManager"):
+		var talent_manager = ArcherTalentManager.new()
+		talent_manager.name = "ArcherTalentManager" 
+		add_child(talent_manager)
 	
 	# Start attack timer
 	attack_timer.wait_time = attack_cooldown
@@ -120,18 +132,27 @@ func spawn_arrow():
 	arrow.global_position = arrow_spawn.global_position
 	arrow.direction = (current_target.global_position - arrow_spawn.global_position).normalized()
 	arrow.rotation = arrow.direction.angle()
+	
+	# IMPORTANT: Set shooter BEFORE adding the arrow to the tree
 	arrow.shooter = self
 	
 	# Calculate base damage
 	var base_damage = get_weapon_damage()
-	
-	# Set arrow damage with the calculated value
 	arrow.damage = base_damage
 	
-	# Apply talent effects through talent system
+	# Apply talent effects ONLY through talent system
 	if talent_system:
 		var effects = talent_system.compile_archer_effects()
 		talent_system.apply_effects_to_projectile(arrow, effects)
+		
+		# For debugging
+		arrow.set_meta("talents_applied", true)
+	else:
+		push_error("ArcherBase: Talent system not available when spawning arrow!")
+	
+	# IMPORTANT: Force damage calculator initialization before adding to tree
+	if arrow.dmg_calculator:
+		arrow.dmg_calculator.initialize_from_shooter(self)
 	
 	# Add to scene
 	get_parent().add_child(arrow)
@@ -180,6 +201,16 @@ func spawn_double_shot_arrows():
 		var effects = talent_system.compile_archer_effects()
 		talent_system.apply_effects_to_projectile(arrow_left, effects)
 		talent_system.apply_effects_to_projectile(arrow_right, effects)
+		
+		# Damage calculations
+		var damage_modifier = get_meta("double_shot_damage_modifier", 1.0)
+		if arrow_left.dmg_calculator:
+			arrow_left.dmg_calculator.initialize_from_shooter(self)
+			arrow_left.dmg_calculator.damage_multiplier *= damage_modifier
+		
+		if arrow_right.dmg_calculator:
+			arrow_right.dmg_calculator.initialize_from_shooter(self)
+			arrow_right.dmg_calculator.damage_multiplier *= damage_modifier
 	
 	# Add to scene
 	get_parent().add_child(arrow_left)
@@ -212,9 +243,14 @@ func apply_talent_effects():
 	if talent_system:
 		var effects = talent_system.compile_archer_effects()
 		talent_system.apply_effects_to_soldier(self, effects)
-	
-	# Mark that talents have been updated
-	set_meta("talents_updated", true)
+		
+		# Store the effects for reference (may be useful for other systems)
+		set_meta("compiled_effects", effects)
+		set_meta("talents_updated", true)
+		
+		print("Talent effects applied - Range: ", range_multiplier, " Damage: ", damage_multiplier)
+	else:
+		push_error("ArcherBase: Talent system not available for talent application!")
 
 func reset_talent_effects():
 	# Clear existing upgrades
@@ -244,6 +280,26 @@ func find_talent_node(talent_id: int) -> Node:
 			return button
 	return null
 
+# ======== BLOODSEEKER TALENT INTEGRATION ========
+func apply_bloodseeker_hit(target: Node) -> void:
+	# Skip if target is invalid
+	if not target or not is_instance_valid(target):
+		return
+	
+	# Skip if talent system is not available
+	if not talent_system:
+		return
+	
+	# Forward to talent system's bloodseeker handler
+	talent_system.apply_bloodseeker_hit(target)
+
+# ======== UTILITY METHODS ========
 # Helper function to convert degrees to radians
 func deg_to_rad(degrees: float) -> float:
 	return degrees * (PI / 180.0)
+
+# Method to get current target
+func get_current_target() -> Node2D:
+	if current_target and is_instance_valid(current_target):
+		return current_target
+	return null

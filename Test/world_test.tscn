@@ -73,5 +73,26 @@ position = Vector2(597, 429)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("1_ffwo5")]
 position = Vector2(561, 581)
+cost_coin = null
+cost_food = null
+attack_upgrades = null
+attack_range = null
+move_speed = null
+max_health = null
+base_damage = null
+main_stat = null
+armor = null
+damage_reduction = null
+crit_chance = null
+crit_multi = null
+armor_penetration = null
+fire_damage_modifier = null
+ice_damage_modifier = null
+poison_damage_modifier = null
+movement_radius = null
+idle_time = null
+soldier_name = null
+type = null
+classType = null
 
 [connection signal="pressed" from="CanvasLayer/TalentButton" to="." method="_on_talent_button_pressed"]
