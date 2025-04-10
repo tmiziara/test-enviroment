@@ -1,6 +1,41 @@
 extends GenericTalentSystem
 class_name ArcherTalentSystem
 
+# Mapeamento de alvos para cada tipo de estratégia
+var _strategy_targets = {
+	"PreciseAim": "archer",           # Afeta apenas o arqueiro (dano)
+	"EnhancedRange": "archer",        # Afeta apenas o arqueiro (alcance)
+	"SharpArrows": "projectile",      # Afeta apenas o projétil
+	"PiercingShot": "projectile",     # Afeta apenas o projétil
+	"FlamingArrows": "projectile",    # Afeta apenas o projétil
+	"DoubleShot": "both",             # Afeta ambos
+	"ChainShot": "projectile",        # Afeta apenas o projétil
+	"ArrowRain": "both",              # Afeta ambos
+	# Outros talentos...
+}
+
+# Mapeamento por IDs para compatibilidade
+var _talent_id_targets = {
+	"Talent_1": "archer",     # PreciseAim
+	"Talent_2": "archer",     # EnhancedRange
+	"Talent_3": "projectile", # SharpArrows
+	"Talent_4": "projectile", # PiercingShot
+	"Talent_5": "projectile", # FocusedShot
+	"Talent_6": "projectile", # FlamingArrows
+	"Talent_11": "both",      # DoubleShot
+	"Talent_12": "projectile", # ChainShot
+	"Talent_13": "both",      # ArrowRain
+	"Talent_14": "both",      # PressureWave
+	"Talent_15": "projectile", # ArrowExplosion
+	"Talent_16": "projectile", # SerratedArrows
+	"Talent_17": "projectile", # MarkedForDeath
+	"Talent_18": "projectile"  # Bloodseeker
+	# Outros talentos...
+}
+
+# Flag de debug
+var debug_mode: bool = false
+
 # Classe compilada específica para efeitos de arqueiro
 class ArcherEffects extends CompiledEffects:
 	# Efeitos básicos
@@ -144,13 +179,7 @@ func _init(archer: SoldierBase):
 
 # Função para compilar efeitos específicos de arqueiro
 func compile_archer_effects() -> ArcherEffects:
-	var effects = compile_effects(ArcherEffects) as ArcherEffects
-	
-	# Debug de todos os multiplicadores
-	print("Efeitos compilados:")
-	print("Damage multiplier: ", effects.damage_multiplier)
-	
-	return effects
+	return compile_effects(ArcherEffects) as ArcherEffects
 
 # Registra processadores de estratégia para arqueiro
 func _register_archer_processors():
@@ -177,14 +206,9 @@ func _register_archer_processors():
 
 # Processadores específicos para cada tipo de estratégia
 func _process_precise_aim(strategy, effects: ArcherEffects):
-	print("Processando Precise Aim")
 	var damage_bonus = strategy.get("damage_increase_percent")
-	print("Damage bonus: ", damage_bonus)
 	if damage_bonus != null:
-		print("Multiplicador antes: ", effects.damage_multiplier)
-		# Redefine o multiplicador em vez de incrementar
-		effects.damage_multiplier = 1.0 * (1 + damage_bonus)
-		print("Multiplicador depois: ", effects.damage_multiplier)
+		effects.damage_multiplier += damage_bonus / 100.0
 
 func _process_enhanced_range(strategy, effects: ArcherEffects):
 	var range_bonus = strategy.get("range_increase_percentage")
@@ -264,36 +288,92 @@ func _process_arrow_rain(strategy, effects: ArcherEffects):
 	if attacks_threshold != null:
 		effects.arrow_rain_interval = attacks_threshold
 
+# Determina se um talent deve ser aplicado ao arqueiro, projétil ou ambos
+func should_apply_to_target(strategy, target_type: String) -> bool:
+	var strategy_name = _get_strategy_type(strategy)
+	
+	# Primeiro verifica no dicionário de estratégias
+	if strategy_name in _strategy_targets:
+		var strategy_target = _strategy_targets[strategy_name]
+		return strategy_target == target_type or strategy_target == "both"
+	
+	# Depois verifica no dicionário de IDs (para compatibilidade)
+	if strategy_name in _talent_id_targets:
+		var talent_target = _talent_id_targets[strategy_name]
+		return talent_target == target_type or talent_target == "both"
+	
+	# Se não encontrar, assume que é para ambos (comportamento conservador)
+	return true
+
 # Método para aplicar efeitos compilados a um projétil
 func apply_effects_to_projectile(projectile: Node, effects: ArcherEffects) -> void:
-	# Aplica efeitos básicos
-	_apply_base_stats(projectile, effects)
+	# Antes de aplicar, verifica se os efeitos compilados devem ser aplicados ao projétil
+	var applied_strategies = []
 	
-	# Aplica efeitos elementais
-	_apply_elemental_effects(projectile, effects)
+	# Se o projétil não tiver um shooter, não podemos verificar talentos
+	var shooter = projectile.shooter if "shooter" in projectile else null
+	if not shooter or not "attack_upgrades" in shooter:
+		# Fallback: aplicar efeitos padrão
+		_apply_base_effects_to_projectile(projectile, effects)
+		return
 	
-	# Aplica efeitos de movimento
-	_apply_movement_effects(projectile, effects)
+	# Filtrar efeitos com base no alvo
+	var filtered_effects = effects.copy()
 	
-	# Aplica habilidades especiais
-	_apply_special_abilities(projectile, effects)
+	# Zerar efeitos não aplicáveis a projéteis
+	if not has_applicable_talent(shooter, "projectile", "PreciseAim"):
+		filtered_effects.damage_multiplier = 1.0
+	
+	if not has_applicable_talent(shooter, "projectile", "EnhancedRange"):
+		filtered_effects.range_multiplier = 1.0
+	
+	# etc. para outros efeitos que não se aplicam a projéteis...
+	
+	# Aplicar os efeitos filtrados
+	_apply_base_stats(projectile, filtered_effects)
+	_apply_elemental_effects(projectile, filtered_effects)
+	_apply_movement_effects(projectile, filtered_effects)
+	_apply_special_abilities(projectile, filtered_effects)
+	
+	if debug_mode:
+		print("Applied talents to projectile: ", applied_strategies)
 
-# Aplicação de efeitos específicos
-func _apply_base_stats(projectile: Node, effects: ArcherEffects) -> void:
-	print("Aplicando efeitos base")
-	print("Damage antes: ", projectile.damage)
-	print("Multiplicador: ", effects.damage_multiplier)
+# Verifica se um talento específico deve ser aplicado
+func has_applicable_talent(archer, target_type: String, talent_name: String) -> bool:
+	if not "attack_upgrades" in archer:
+		return false
 	
+	for strategy in archer.attack_upgrades:
+		if not strategy:
+			continue
+			
+		var strategy_name = _get_strategy_type(strategy)
+		if strategy_name == talent_name:
+			return should_apply_to_target(strategy, target_type)
+	
+	return false
+
+# Aplicação de efeitos específicos ao projétil (dividido para clareza)
+func _apply_base_stats(projectile: Node, effects: ArcherEffects) -> void:
+	if "damage" in projectile:
+		projectile.damage = int(projectile.damage * effects.damage_multiplier)
+	
+	if "crit_chance" in projectile:
+		projectile.crit_chance = min(projectile.crit_chance + effects.crit_chance_bonus, 1.0)
 	
 	# Atualiza o DmgCalculatorComponent
 	if projectile.has_node("DmgCalculatorComponent"):
 		var dmg_calc = projectile.get_node("DmgCalculatorComponent")
 		
 		if "base_damage" in dmg_calc:
-			dmg_calc.base_damage = projectile.damage
+			dmg_calc.base_damage = int(dmg_calc.base_damage * effects.damage_multiplier)
 		
 		if "damage_multiplier" in dmg_calc:
 			dmg_calc.damage_multiplier = effects.damage_multiplier
+		
+		if effects.armor_penetration > 0:
+			dmg_calc.armor_penetration = effects.armor_penetration
+			_ensure_tag(projectile, "armor_piercing")
 
 func _apply_elemental_effects(projectile: Node, effects: ArcherEffects) -> void:
 	# Aplica efeitos de fogo
@@ -386,6 +466,15 @@ func _apply_special_abilities(projectile: Node, effects: ArcherEffects) -> void:
 		projectile.set_meta("ground_duration", effects.ground_duration)
 		_ensure_tag(projectile, "pressure_wave")
 
+# Aplica apenas os efeitos padrão sem verificar talentos (para fallback)
+func _apply_base_effects_to_projectile(projectile: Node, effects: ArcherEffects) -> void:
+	_apply_base_stats(projectile, effects)
+	_apply_elemental_effects(projectile, effects)
+	_apply_movement_effects(projectile, effects)
+	
+	if debug_mode:
+		print("Applied default effects to projectile (no shooter found)")
+
 # Utilitário para configurar Chain Shot
 func _setup_chain_shot(projectile, effects: ArcherEffects) -> void:
 	# Configuração específica para flechas reais
@@ -411,6 +500,51 @@ func _setup_chain_shot(projectile, effects: ArcherEffects) -> void:
 	# Adiciona tag
 	_ensure_tag(projectile, "chain_shot")
 
+# Método para aplicar efeitos compilados a um soldado arqueiro
+func apply_effects_to_soldier(archer: ArcherBase, effects: ArcherEffects) -> void:
+	# Filtra efeitos com base no alvo
+	var filtered_effects = effects.copy()
+	var applied_strategies = []
+	
+	# Para cada estratégia no arqueiro, verifica se deve ser aplicada ao arqueiro
+	for strategy in archer.attack_upgrades:
+		if not strategy:
+			continue
+			
+		var strategy_name = _get_strategy_type(strategy)
+		if should_apply_to_target(strategy, "archer"):
+			applied_strategies.append(strategy_name)
+	
+	# Zerar efeitos não aplicáveis ao arqueiro
+	# (Não é necessário pois o padrão já é aplicar ao arqueiro)
+	
+	# Aplica modificadores de estatísticas filtrados
+	archer.damage_multiplier = filtered_effects.damage_multiplier
+	archer.range_multiplier = filtered_effects.range_multiplier
+	archer.cooldown_multiplier = 1.0 / max(0.01, filtered_effects.attack_speed_multiplier)  # Inverte pois cooldown é o inverso da velocidade
+	
+	# Aplica modificadores elementais
+	archer.fire_damage_modifier = filtered_effects.fire_damage_percent
+	
+	# Define penetração de armadura
+	archer.armor_penetration = filtered_effects.armor_penetration
+	
+	# Configura Double Shot
+	if filtered_effects.double_shot_enabled:
+		archer.set_meta("double_shot_active", true)
+		archer.set_meta("double_shot_angle", filtered_effects.double_shot_angle)
+		archer.set_meta("double_shot_damage_modifier", filtered_effects.second_arrow_damage_modifier)
+	else:
+		# Limpa metadados se Double Shot não estiver ativo
+		if archer.has_meta("double_shot_active"):
+			archer.remove_meta("double_shot_active")
+	
+	# Armazena compiled_effects para uso futuro
+	archer.set_meta("compiled_effects", filtered_effects)
+	
+	if debug_mode:
+		print("Applied talents to archer: ", applied_strategies)
+
 # Utilitário para garantir que uma tag existe
 func _ensure_tag(projectile: Node, tag_name: String) -> void:
 	if not "tags" in projectile:
@@ -424,31 +558,7 @@ func _ensure_tag(projectile: Node, tag_name: String) -> void:
 	
 	projectile.add_tag(tag_name)
 
-# Método para aplicar efeitos compilados a um soldado arqueiro
-func apply_effects_to_soldier(archer: ArcherBase, effects: ArcherEffects) -> void:
-	# Aplica modificadores de estatísticas
-	archer.damage_multiplier = effects.damage_multiplier
-	archer.range_multiplier = effects.range_multiplier
-	archer.cooldown_multiplier = 1.0 / max(0.01, effects.attack_speed_multiplier)  # Inverte pois cooldown é o inverso da velocidade
-	
-	# Aplica modificadores elementais
-	archer.fire_damage_modifier = effects.fire_damage_percent
-	
-	# Define penetração de armadura
-	archer.armor_penetration = effects.armor_penetration
-	
-	# Configura Double Shot
-	if effects.double_shot_enabled:
-		archer.set_meta("double_shot_active", true)
-		archer.set_meta("double_shot_angle", effects.double_shot_angle)
-		archer.set_meta("double_shot_damage_modifier", effects.second_arrow_damage_modifier)
-	else:
-		# Limpa metadados se Double Shot não estiver ativo
-		if archer.has_meta("double_shot_active"):
-			archer.remove_meta("double_shot_active")
-	
-	# Armazena compiled_effects para uso futuro
-	archer.set_meta("compiled_effects", effects)# Método para lidar com mudanças de alvo
+# Método para lidar com mudanças de alvo
 func _on_target_change(new_target: Node) -> void:
 	# Se não houver alvo novo ou não for válido, ignora
 	if not new_target or not is_instance_valid(new_target):
@@ -511,7 +621,7 @@ func apply_bloodseeker_hit(target: Node) -> void:
 	var current_target_id = data["target_instance_id"]
 	var target_id = target.get_instance_id()
 	
-	# Atualiza timestamp
+# Atualiza timestamp
 	data["last_hit_time"] = Time.get_ticks_msec()
 	
 	# Verifica se é um novo alvo comparando IDs de instância

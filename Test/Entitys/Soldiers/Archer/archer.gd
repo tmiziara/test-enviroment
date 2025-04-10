@@ -5,9 +5,6 @@ class_name ArcherBase
 @onready var arrow_spawn: Marker2D = $Aim
 @onready var buff_display_container = get_node_or_null("BuffDisplayContainer")
 
-# For debug purposes
-@onready var debug_label = get_node_or_null("DebugLabel")
-
 # ======== ARCHER-SPECIFIC PROPERTIES ========
 @export var cost_coin: int = 10
 @export var cost_food: int = 10
@@ -17,10 +14,6 @@ class_name ArcherBase
 var unlocked_talents = {0: true}  # Basic talent (0) is already unlocked
 var talent_points = 10
 var talent_system = null  # Will be initialized in _ready
-
-# Debug properties
-var debug_mode = false  # Set to false in production
-var debug_monitor_timer: Timer
 
 # ======== INITIALIZATION ========
 func _init_soldier():
@@ -37,29 +30,19 @@ func _init_soldier():
 	set_meta("original_attack_range", attack_range)
 	set_meta("original_attack_cooldown", attack_cooldown)
 	
-	# Iniciamos o talent_system como null
-	talent_system = null
-	
-	# Agendamos a inicialização para o próximo frame
+	# Schedule talent system initialization
 	call_deferred("_initialize_talent_system")
-	
-	# NÃO tente conectar sinais aqui ainda!
-	# Isso será feito em _initialize_talent_system()
 
 # Function to initialize talent system safely
 func _initialize_talent_system():
-	# Criar o sistema de talentos com referência adequada
+	# Create talent system with proper reference
 	talent_system = ArcherTalentSystem.new(self)
 	talent_system.name = "ArcherTalentSystem"
 	add_child(talent_system)
 	
-	# Conectar o sinal DEPOIS de criar o sistema
-	# Verifica se o sinal já não está conectado
+	# Connect signal after creating the system
 	if not is_connected("target_change", talent_system._on_target_change):
 		connect("target_change", talent_system._on_target_change)
-	
-	if debug_mode:
-		print("Talent system initialized successfully")
 
 func _ready():
 	# Call parent _ready first
@@ -74,9 +57,6 @@ func _ready():
 	
 	# Apply talent effects
 	apply_talent_effects()
-	
-	if debug_mode:
-		print("ArcherBase initialization complete")
 
 # ======== ATTACK FUNCTIONS ========
 func _on_attack_timeout():
@@ -110,9 +90,6 @@ func play_shooting_animation():
 	animation_tree.set("parameters/StateMachine/conditions/idle", false)
 	animation_tree.set("parameters/StateMachine/conditions/shooting", true)
 	animation_tree.advance(0)  # Force animation tree to update immediately
-	
-	if debug_mode:
-		print("Shooting animation triggered")
 
 # Spawn an arrow after a delay synchronized with the animation
 func spawn_arrow_after_delay(delay: float):
@@ -133,44 +110,34 @@ func spawn_double_shot_after_delay(delay: float):
 # ======== PROJECTILE SPAWN METHODS ========
 func spawn_arrow():
 	if not current_target or not is_instance_valid(current_target):
-		if debug_mode:
-			print("No valid target for arrow")
 		return
 	
-	# Instanciar flecha
+	# Instantiate arrow
 	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
 	var arrow = arrow_scene.instantiate()
 	
-	# Configuração básica
+	# Basic configuration
 	arrow.global_position = arrow_spawn.global_position
 	arrow.direction = (current_target.global_position - arrow_spawn.global_position).normalized()
 	arrow.rotation = arrow.direction.angle()
 	arrow.shooter = self
 	
-	# Calcular dano base SEM o multiplicador
-	var base_damage = get_weapon_damage()  # Usa o método que já calcula dano base do arqueiro
+	# Calculate base damage
+	var base_damage = get_weapon_damage()
 	
-	# Definir o dano da flecha com o valor já calculado
+	# Set arrow damage with the calculated value
 	arrow.damage = base_damage
 	
-	if debug_mode:
-		print("Dano base da flecha (sem multiplicador): ", arrow.damage)
+	# Apply talent effects through talent system
+	if talent_system:
+		var effects = talent_system.compile_archer_effects()
+		talent_system.apply_effects_to_projectile(arrow, effects)
 	
-	# Aplica apenas talentos que afetam projéteis
-	for upgrade in attack_upgrades:
-		if upgrade:
-			if upgrade.target_type == BaseProjectileStrategy.TargetType.PROJECTILE or upgrade.target_type == BaseProjectileStrategy.TargetType.BOTH:
-				if debug_mode:
-					print("Aplicando talento a projétil: ", upgrade.get_strategy_name())
-				upgrade.apply_upgrade(arrow)
-	
-	# Adicionar à cena
+	# Add to scene
 	get_parent().add_child(arrow)
 
 func spawn_double_shot_arrows():
 	if not current_target or not is_instance_valid(current_target):
-		if debug_mode:
-			print("No valid target for double shot")
 		return
 	
 	# Get spread angle from metadata or use default
@@ -184,8 +151,6 @@ func spawn_double_shot_arrows():
 	# Load arrow scene
 	var arrow_scene = load("res://Test/Projectiles/Archer/Arrow.tscn")
 	if not arrow_scene:
-		if debug_mode:
-			print("ERROR: Could not load arrow scene for double shot")
 		return
 	
 	# Spawn left arrow
@@ -210,30 +175,7 @@ func spawn_double_shot_arrows():
 	arrow_right.set_meta("is_double_shot", true)
 	arrow_right.set_meta("is_right_arrow", true)
 	
-	# Initialize damage calculators
-	if arrow_left.has_node("DmgCalculatorComponent"):
-		arrow_left.get_node("DmgCalculatorComponent").initialize_from_shooter(self)
-	
-	if arrow_right.has_node("DmgCalculatorComponent"):
-		arrow_right.get_node("DmgCalculatorComponent").initialize_from_shooter(self)
-	
-	# Calculate critical hits independently
-	if "crit_chance" in self:
-		if arrow_left.has_method("_calculate_critical_hit"):
-			arrow_left.crit_chance = self.crit_chance
-			arrow_left.is_crit = arrow_left._calculate_critical_hit()
-		
-		if arrow_right.has_method("_calculate_critical_hit"):
-			arrow_right.crit_chance = self.crit_chance
-			arrow_right.is_crit = arrow_right._calculate_critical_hit()
-	
-	# Apply talent effects
-	for upgrade in attack_upgrades:
-		if upgrade and not upgrade is DoubleShot:  # Avoid infinite loop
-			upgrade.apply_upgrade(arrow_left)
-			upgrade.apply_upgrade(arrow_right)
-	
-	# Use talent_system to apply compiled effects
+	# Apply talent effects through talent system
 	if talent_system:
 		var effects = talent_system.compile_archer_effects()
 		talent_system.apply_effects_to_projectile(arrow_left, effects)
@@ -242,24 +184,17 @@ func spawn_double_shot_arrows():
 	# Add to scene
 	get_parent().add_child(arrow_left)
 	get_parent().add_child(arrow_right)
-	
-	if debug_mode:
-		print("Double shot arrows spawned successfully")
 
 # ======== TALENT SYSTEM METHODS ========
 func add_attack_upgrade(upgrade: BaseProjectileStrategy):
 	if upgrade not in attack_upgrades:
 		attack_upgrades.append(upgrade)
-		
-		# If it's Double Shot upgrade, initialize it specially
-		if upgrade is DoubleShot:
-			upgrade.initialize_with_archer(self)
 
 func apply_talent_effects():
-	# Reset effects to avoid duplication
+	# Reset talent effects to avoid duplication
 	reset_talent_effects()
 	
-	# Go through unlocked talents
+	# Go through unlocked talents and add their strategies to the attack_upgrades array
 	for key in unlocked_talents.keys():
 		# Determine talent ID (always as a number)
 		var talent_id = int(key)
@@ -269,18 +204,11 @@ func apply_talent_effects():
 			# Find corresponding talent node
 			var skill_node = find_talent_node(talent_id)
 			
-			# If talent has a strategy, apply it
+			# If talent has a strategy, add it to the array
 			if skill_node and skill_node.talent_strategy:
-				var strategy = skill_node.talent_strategy
-				
-				# Aplica o talento diretamente ao arqueiro
-				# Isto respeitará o target_type da estratégia
-				strategy.apply_upgrade(self)
-				
-				# Ainda adiciona à lista para aplicar nos projéteis depois
-				add_attack_upgrade(strategy)
+				add_attack_upgrade(skill_node.talent_strategy)
 	
-	# Refresh talents through the system
+	# Apply compiled effects through the talent system
 	if talent_system:
 		var effects = talent_system.compile_archer_effects()
 		talent_system.apply_effects_to_soldier(self, effects)
@@ -298,7 +226,7 @@ func reset_talent_effects():
 	cooldown_multiplier = 1.0
 	speed_multiplier = 1.0
 	
-	# Reset Double Shot and other metadata
+	# Reset metadata for various talents
 	if has_meta("double_shot_active"):
 		remove_meta("double_shot_active")
 	if has_meta("has_double_shot"):
